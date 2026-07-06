@@ -3,13 +3,13 @@
   "version": "0.0.0",
   "private": true,
   "description": "This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.",
-  "homepage": "https://github.com/gorkamorka13/electro-web#readme",
+  "homepage": "https://github.com/gorkamorka13/electrospace#readme",
   "bugs": {
-    "url": "https://github.com/gorkamorka13/electro-web/issues"
+    "url": "https://github.com/gorkamorka13/electrospace/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/gorkamorka13/electro-web.git"
+    "url": "git+https://github.com/gorkamorka13/electrospace.git"
   },
   "license": "ISC",
   "author": "",
