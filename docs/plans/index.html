@@ -1,0 +1,858 @@
+<!doctype html>
+<html lang="fr">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Éditeur de Points 3D</title>
+  <link rel="icon" type="image/png" href="geo3d-192.png" />
+  <link rel="manifest" href="manifest.json" />
+  <!-- IMPORTANT: La bibliothèque Three.js et OrbitControls seront chargées ici par votre JavaScript -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://unpkg.com/three@0.128.0/examples/js/controls/TransformControls.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  <!-- Ajout de Font Awesome pour les icônes -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+
+<body>
+  <div id="splashScreen" class="splash-hidden">
+    <span id="splashMessage"></span>
+  </div>
+
+  <div id="tooltip"></div>
+
+  <button id="openBtn" class="burger-btn show" onclick="togglePanel()">
+    <span class="burger-line"></span>
+    <span class="burger-line"></span>
+    <span class="burger-line"></span>
+  </button>
+  <div id="container">
+    <div id="snapControl" style="
+          position: absolute;
+          top: 20px;
+          right: 20px;
+          z-index: 990;
+          background: var(--panel-bg);
+          backdrop-filter: blur(5px);
+          -webkit-backdrop-filter: blur(5px);
+          padding: 5px 5px 5px 10px;
+          border-radius: 8px;
+          border: 1px solid var(--input-border);
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          box-shadow: 0 4px 10px var(--shadow-color);
+        ">
+      <!-- Checkbox cachée pour le toggle ON/OFF -->
+      <input type="checkbox" id="snapToggle" onchange="toggleSnapping()" style="display: none" />
+
+      <!-- Label cliquable pour activer/désactiver -->
+      <label for="snapToggle" style="
+            font-size: 13px;
+            margin: 0;
+            cursor: pointer;
+            color: var(--text-color);
+            display: flex;
+            align-items: center;
+          " title="Activer/Désactiver l'aimant">
+        <span id="snapIcon" class="icon-disabled">🧲</span>
+        <span style="margin-left: 5px; font-weight: bold">Aimant</span>
+      </label>
+
+      <!-- Séparateur visuel -->
+      <div style="
+            width: 1px;
+            height: 20px;
+            background-color: var(--input-border);
+          "></div>
+
+      <!-- Liste déroulante pour la taille -->
+      <select id="snapSizeSelect" onchange="updateSnapSize()" style="
+            width: auto;
+            padding: 2px 5px;
+            margin: 0;
+            height: 26px;
+            border: none;
+            background: transparent;
+            color: var(--text-color);
+            font-size: 13px;
+            cursor: pointer;
+            outline: none;
+            font-weight: bold;
+          ">
+        <option value="1">1.0</option>
+        <option value="0.5">0.5</option>
+        <option value="0.1">0.1</option>
+      </select>
+    </div>
+
+    <div id="cameraControls">
+      <!-- Vue de dessus (XY) : La face supérieure du cube est noire -->
+      <div class="camera-btn" id="btnTop" onclick="setCameraView('top', this)" title="Vue de dessus (XY)">
+        <svg width="40" height="40" viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg">
+          <!-- Face du dessus (noire) -->
+          <polygon points="5,15 25,5 45,15 25,25" fill="#222222" />
+          <!-- Face de droite (claire) -->
+          <polygon points="45,15 45,35 25,45 25,25" fill="#e6e6e6" />
+          <!-- Face de gauche (moyenne) -->
+          <polygon points="5,15 5,35 25,45 25,25" fill="#cacaca" />
+        </svg>
+      </div>
+
+      <!-- Vue de face (XZ) : La face de "gauche" (qui représente l'avant) est noire -->
+      <div class="camera-btn" id="btnFront" onclick="setCameraView('front', this)" title="Vue de face (XZ)">
+        <svg width="40" height="40" viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg">
+          <!-- Face du dessus (moyenne) -->
+          <polygon points="5,15 25,5 45,15 25,25" fill="#cacaca" />
+          <!-- Face de droite (claire) -->
+          <polygon points="45,15 45,35 25,45 25,25" fill="#e6e6e6" />
+          <!-- Face de gauche/avant (noire) -->
+          <polygon points="5,15 5,35 25,45 25,25" fill="#222222" />
+        </svg>
+      </div>
+
+      <!-- Vue de côté (YZ) : La face de "droite" (qui représente le côté) est noire -->
+      <div class="camera-btn" id="btnSide" onclick="setCameraView('side', this)" title="Vue de côté (YZ)">
+        <svg width="40" height="40" viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg">
+          <!-- Face du dessus (moyenne) -->
+          <polygon points="5,15 25,5 45,15 25,25" fill="#cacaca" />
+          <!-- Face de droite/côté (noire) -->
+          <polygon points="45,15 45,35 25,45 25,25" fill="#222222" />
+          <!-- Face de gauche (claire) -->
+          <polygon points="5,15 5,35 25,45 25,25" fill="#e6e6e6" />
+        </svg>
+      </div>
+
+      <div class="camera-btn" id="btnReset" onclick="resetCamera(this)" title="Réinitialiser la vue (Isométrique)">
+        <i class="fas fa-sync-alt"></i>
+      </div>
+      <div class="camera-btn" id="btnUndo" onclick="undo()" title="Annuler (Ctrl+Z)"
+        style="opacity: 0.5; pointer-events: none">
+        <i class="fas fa-undo"></i>
+      </div>
+      <div class="camera-btn" id="btnRedo" onclick="redo()" title="Rétablir (Ctrl+Y)"
+        style="opacity: 0.5; pointer-events: none">
+        <i class="fas fa-redo"></i>
+      </div>
+    </div>
+    <div id="panel" class="hidden">
+      <div id="panelHeader">
+        <button id="toggleBtn" class="burger-btn" onclick="togglePanel()">
+          <span class="burger-line"></span>
+          <span class="burger-line"></span>
+          <span class="burger-line"></span>
+        </button>
+
+        <!-- Groupe de boutons à droite -->
+        <div style="display: flex; gap: 5px; align-items: center">
+          <!-- NOUVEAU : Bouton Tout Masquer/Afficher -->
+          <button id="globalVisBtn" onclick="toggleGlobalVisibility()" title="Tout Masquer/Afficher">
+            <i class="fas fa-eye"></i>
+          </button>
+
+          <!-- Bouton Thème existant -->
+          <button id="themeToggleBtn" onclick="toggleTheme()" title="Changer le thème">
+            <i class="fas fa-moon"></i>
+          </button>
+        </div>
+      </div>
+      <div class="section collapsible collapsed">
+        <div class="section-header">
+          <h3 style="font-size: 16px">💾 Gestion des Scènes</h3>
+        </div>
+        <div class="section-content">
+          <h4 class="sub-section-title">Fichiers de sauvegarde (.json) :</h4>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px">
+            <!-- Bouton Exporter -->
+            <button class="btn-secondary" style="background-color: #009688" onclick="exportSceneToJSON()">
+              📤 Exporter
+            </button>
+
+            <!-- Bouton Importer (déclenche l'input caché) -->
+            <button class="btn-violet" onclick="document.getElementById('importFileInput').click()">
+              📥 Importer
+            </button>
+          </div>
+
+          <label style="margin-top: 10px">Nom du rapport / de la scène :</label>
+          <input type="text" id="sceneNameInput" placeholder="Ex: Exercice 1" />
+
+          <button class="btn-violet" style="background-color: #3f51b5; margin-top: 10px" onclick="generateMathReport()">
+            📄 Générer Rapport Mathématique
+          </button>
+
+          <!-- Input fichier caché pour l'import -->
+          <input type="file" id="importFileInput" accept=".json" style="display: none"
+            onchange="importSceneFromJSON(this)" />
+        </div>
+      </div>
+
+      <div class="section collapsible collapsed">
+        <div class="section-header">
+          <h3 style="font-size: 16px">📍 Tracer des points</h3>
+        </div>
+        <div class="section-content">
+          <label>Nom du point :</label>
+          <input type="text" id="pointName" placeholder="Ex: A, Point1..." />
+
+          <label style="margin-top: 10px">Coordonnées (X, Y, Z) :</label>
+          <div class="coord-inputs">
+            <input type="number" id="pointX" placeholder="X" step="1" />
+            <input type="number" id="pointY" placeholder="Y (Profondeur)" step="1" />
+            <input type="number" id="pointZ" placeholder="Z (Hauteur)" step="1" />
+          </div>
+
+          <!-- Bouton d'ajout de point, visible par défaut -->
+          <button id="addPointBtn" onclick="addPoint()">
+            ➕ Ajouter le point
+          </button>
+
+          <!-- NOUVEAU : Conteneur pour les boutons d'action d'édition des points -->
+          <input type="hidden" id="editPointIndex" />
+          <div id="pointEditActions" class="edit-actions-container" style="display: none">
+            <button id="updatePointBtn" class="btn-secondary" onclick="updatePoint()">
+              💾 Mettre à jour
+            </button>
+            <button id="deleteEditingPointBtn" class="btn-danger" onclick="deleteEditingPoint()">
+              🗑️ Supprimer
+            </button>
+            <button id="cancelEditBtn" class="btn-warning" onclick="cancelEdit()">
+              ✖ Annuler
+            </button>
+          </div>
+        </div>
+        <div class="section-content">
+          <div id="pointList" class="point-list"></div>
+          <button class="btn-danger" onclick="clearAllPoints()">
+            🗑️ Effacer tous les points
+          </button>
+        </div>
+        <!-- Le bloc "Charger A, B, C" a été supprimé ici -->
+      </div>
+
+      <div class="section collapsible collapsed">
+        <div class="section-header">
+          <h3 style="font-size: 16px">↗️ Tracer des vecteurs</h3>
+        </div>
+        <div class="section-content">
+          <h4 class="sub-section-title">Vecteur entre deux points :</h4>
+          <label>Point de départ :</label>
+          <select id="vectorStartPoint"></select>
+
+          <label style="margin-top: 10px">Point d'arrivée :</label>
+          <select id="vectorEndPoint"></select>
+
+          <button id="addVectorFromPointsBtn" class="btn-secondary" onclick="addVectorFromPoints()">
+            ➕ Tracer le vecteur
+          </button>
+
+          <h4 class="sub-section-title">Vecteur par coordonnées :</h4>
+          <label>Nom du vecteur :</label>
+          <input type="text" id="vectorNameCoords" placeholder="Ex: V1, Direction..." />
+          <label style="margin-top: 10px; color: #2196f3">Origine du vecteur (Ox, Oy, Oz) :</label>
+          <div class="coord-inputs">
+            <input type="number" id="vectorOriginX" placeholder="Ox" step="1" />
+            <input type="number" id="vectorOriginY" placeholder="Oy (Prof.)" step="1" />
+            <input type="number" id="vectorOriginZ" placeholder="Oz (Haut.)" step="1" />
+          </div>
+          <label style="margin-top: 10px">Coordonnées (Vx, Vy, Vz) :</label>
+          <div class="coord-inputs">
+            <input type="number" id="vectorCoordX" placeholder="Vx" step="1" />
+            <input type="number" id="vectorCoordY" placeholder="Vy" step="1" />
+            <input type="number" id="vectorCoordZ" placeholder="Vz" step="1" />
+          </div>
+
+          <label style="margin-top: 10px">Origine du vecteur :</label>
+          <select id="vectorOriginPoint"></select>
+          <button id="addVectorFromCoordsBtn" class="btn-secondary" onclick="addVectorFromCoords()">
+            ➕ Tracer le vecteur
+          </button>
+
+          <input type="hidden" id="editVectorId" />
+
+          <!-- NOUVEAU : Conteneur pour les boutons d'action d'édition -->
+          <div id="vectorEditActions" class="edit-actions-container" style="display: none">
+            <button id="updateVectorBtn" class="btn-secondary" onclick="updateVector()">
+              💾 Mettre à jour
+            </button>
+            <button id="deleteEditingVectorBtn" class="btn-danger" onclick="deleteEditingVector()">
+              🗑️ Supprimer
+            </button>
+            <button id="cancelVectorEditBtn" class="btn-warning" onclick="cancelVectorEdit()">
+              ✖ Annuler
+            </button>
+          </div>
+
+          <h4 class="sub-section-title">Vecteurs existants :</h4>
+          <div id="vectorList" class="geometry-list"></div>
+          <button class="btn-danger" onclick="clearAllVectors()">
+            🗑️ Effacer tous les vecteurs
+          </button>
+        </div>
+      </div>
+
+      <div class="section collapsible collapsed">
+        <div class="section-header">
+          <h3 style="font-size: 16px">📏 Tracer des droites</h3>
+        </div>
+        <div class="section-content">
+          <label>Nom de la droite (Optionnel) :</label>
+          <input type="text" id="lineNameGlobal" placeholder="Ex: D1, Delta..." />
+
+          <h4 class="sub-section-title">Droite par deux points :</h4>
+          <label>Premier point :</label>
+          <select id="lineStart"></select>
+          <label style="margin-top: 10px">Deuxième point :</label>
+          <select id="lineEnd"></select>
+          <button class="btn-secondary" onclick="addStraightLine()">
+            ➕ Tracer la droite
+          </button>
+
+          <h4 class="sub-section-title">Droite par Point et Vecteur :</h4>
+          <!-- Nom supprimé ici -->
+
+          <div class="coord-inputs" style="grid-template-columns: 1fr 1fr; gap: 8px">
+            <div>
+              <label style="font-size: 11px">Point de passage :</label>
+              <select id="linePointPVSelect"></select>
+            </div>
+            <div>
+              <label style="font-size: 11px">Vecteur directeur :</label>
+              <select id="lineVectorPVSelect"></select>
+            </div>
+          </div>
+
+          <button class="btn-secondary" onclick="addLineFromPointVector()">
+            ➕ Tracer la droite (Point + Vecteur)
+          </button>
+
+          <!-- DÉBUT MODIFICATION ÉTAPE 1 : UI pour Droite par équation -->
+          <h4 class="sub-section-title">
+            Droite par équation paramétrique :
+          </h4>
+          <!-- Nom supprimé ici -->
+
+          <label style="margin-top: 10px; color: #2196f3">Point de passage (Optionnel) :</label>
+          <select id="lineEquationPointSelect" onchange="onLineEquationPointChange()">
+            <!-- Sera rempli par JS -->
+          </select>
+
+          <label style="font-size: 11px; color: #666">Ou coordonnées manuelles du point ($P_0$) :</label>
+          <div class="coord-inputs">
+            <input type="number" id="lineEqPointX" placeholder="Px" step="1" />
+            <input type="number" id="lineEqPointY" placeholder="Py (Prof.)" step="1" />
+            <input type="number" id="lineEqPointZ" placeholder="Pz (Haut.)" step="1" />
+          </div>
+
+          <label style="margin-top: 10px">Équations (pour le vecteur directeur) :</label>
+          <textarea id="lineEquationInput" rows="3" placeholder="x = 2t&#10;y = t&#10;z = -5t"
+            style="font-family: monospace"></textarea>
+
+          <input type="hidden" id="editLineId" />
+
+          <!-- Bouton d'ajout existant (ajoutez-lui une ID pour pouvoir le cacher) -->
+          <button id="addLineFromEquationBtn" class="btn-secondary" onclick="addLineFromEquation()">
+            ➕ Créer la droite
+          </button>
+
+          <!-- Nouveaux boutons pour l'édition (cachés par défaut) -->
+          <div id="lineEquationActions" class="edit-actions-container" style="display: none">
+            <button id="updateLineBtn" class="btn-secondary" onclick="updateLine()">
+              💾 Mettre à jour
+            </button>
+            <button id="deleteEditingLineBtn" class="btn-danger" onclick="deleteEditingLine()">
+              🗑️ Supprimer
+            </button>
+            <button id="cancelLineEditBtn" class="btn-warning" onclick="cancelLineEdit()">
+              ✖ Annuler
+            </button>
+          </div>
+
+          <h4 class="sub-section-title">Droites existantes :</h4>
+          <div id="lineList" class="geometry-list"></div>
+          <button class="btn-danger" onclick="clearStraightLines()">
+            🗑️ Effacer les droites
+          </button>
+        </div>
+      </div>
+
+      <div class="section collapsible collapsed">
+        <div class="section-header">
+          <h3 style="font-size: 16px">🔷 Tracer des plans</h3>
+        </div>
+        <div class="section-content">
+          <h4 class="sub-section-title">Plan par 3 points :</h4>
+          <label>Nom du plan :</label>
+          <input type="text" id="planeName" placeholder="Ex: P1, MonPlan..." />
+
+          <label style="margin-top: 10px">Premier point :</label>
+          <select id="planeSelectP1"></select>
+
+          <label style="margin-top: 10px">Deuxième point :</label>
+          <select id="planeSelectP2"></select>
+
+          <label style="margin-top: 10px">Troisième point :</label>
+          <select id="planeSelectP3"></select>
+
+          <button class="btn-warning" onclick="addPlane()">
+            ➕ Ajouter ce plan
+          </button>
+
+          <h4 class="sub-section-title">
+            Plan par vecteur normal (équation) :
+          </h4>
+
+          <label style="color: #2196f3">Point de passage (Optionnel) :</label>
+          <select id="planeEquationPointSelect" onchange="onPlaneEquationPointChange()">
+            <!-- Sera rempli par JS -->
+          </select>
+
+          <label style="font-size: 11px; color: #666">Ou coordonnées manuelles ($P_0$) :</label>
+          <div class="coord-inputs">
+            <input type="number" id="planeEqPointX" placeholder="Px" step="1" />
+            <input type="number" id="planeEqPointY" placeholder="Py (Prof.)" step="1" />
+            <input type="number" id="planeEqPointZ" placeholder="Pz (Haut.)" step="1" />
+          </div>
+
+          <!-- <label style="margin-top: 10px">Équation (pour le vecteur normal a,b,c) :</label>
+          <input type="text" id="planeEquationInput" placeholder="Ex: 2x - y + 3z = 0" />
+          <button class="btn-warning" onclick="addPlaneFromEquation()">➕ Créer le plan</button> -->
+
+          <h4 class="sub-section-title">Plan par équation :</h4>
+          <label>Équation cartésienne (ax+by+cz+d=0) :</label>
+          <input type="text" id="planeEquationInput" placeholder="Ex: 2x - y + 3z - 6 = 0" />
+          <button id="addPlaneFromEquationBtn" class="btn-warning" onclick="addPlaneFromEquation()">
+            ➕ Créer le plan depuis l'équation
+          </button>
+
+          <input type="hidden" id="editPlaneId" />
+          <div id="planeEquationActions" class="edit-actions-container" style="display: none">
+            <button id="updatePlaneBtn" class="btn-secondary" onclick="updatePlane()">
+              💾 Mettre à jour
+            </button>
+            <button id="deleteEditingPlaneBtn" class="btn-danger" onclick="deleteEditingPlane()">
+              🗑️ Supprimer
+            </button>
+            <button id="cancelPlaneEditBtn" class="btn-warning" onclick="cancelPlaneEdit()">
+              ✖ Annuler
+            </button>
+          </div>
+          <h4 class="sub-section-title">Plans existants :</h4>
+          <div id="planeList" class="geometry-list"></div>
+          <button class="btn-danger" onclick="clearAllPlanes()">
+            🗑️ Effacer tous les plans
+          </button>
+        </div>
+      </div>
+
+      <div class="section collapsible collapsed">
+        <div class="section-header">
+          <h3 style="font-size: 16px">📈 Équations géométriques</h3>
+        </div>
+        <div class="section-content">
+          <h4 class="sub-section-title">Équation de plan :</h4>
+          <label>Sélectionner un plan pour voir son équation :</label>
+          <select id="equationPlaneSelect" onchange="displayPlaneEquation()"></select>
+          <div id="planeEquationDisplay" class="equation-display"></div>
+
+          <h4 class="sub-section-title" style="margin-top: 20px">
+            Équation paramétrique de droite :
+          </h4>
+          <label>Sélectionner une droite pour voir son équation :</label>
+          <select id="equationLineSelect" onchange="displayLineEquation()"></select>
+
+          <div id="lineEquationDisplay" class="equation-display"></div>
+        </div>
+      </div>
+
+      <div class="section collapsible collapsed">
+        <div class="section-header">
+          <h3 style="font-size: 16px">🧮 Calculs</h3>
+        </div>
+        <div class="section-content">
+          <!-- Outils de Mesure -->
+          <h4 class="sub-section-title" style="margin-top: 20px">
+            Opérations sur les Vecteurs
+          </h4>
+
+          <!-- Somme de vecteurs -->
+          <label>Somme de deux vecteurs \(\vec{u} + \vec{v}\) :</label>
+          <div class="coord-inputs" style="grid-template-columns: 1fr 1fr; margin-bottom: 8px">
+            <select id="sumVectorSelect1"></select>
+            <select id="sumVectorSelect2"></select>
+          </div>
+
+          <label>Point de départ (pour la construction ou le vecteur libre)
+            :</label>
+          <select id="sumVectorOrigin" style="margin-bottom: 8px"></select>
+
+          <!-- MODIFICATION: Boutons pour des actions distinctes -->
+          <button class="btn-violet" onclick="calculateVectorSumFree()">
+            🖩 Créer le vecteur somme (libre)
+          </button>
+          <button class="btn-warning" onclick="constructChaslesSum()">
+            📏 Construire la somme (Chasles)
+          </button>
+
+          <!-- NOUVEAU: Bouton pour nettoyer la construction, caché par défaut -->
+          <button class="btn-danger" onclick="clearChaslesConstruction()" style="display: none; margin-top: 5px"
+            id="clearChaslesBtn">
+            🗑️ Effacer la construction
+          </button>
+
+          <div id="vectorSumResult" class="equation-display"></div>
+
+          <!-- Produit Scalaire -->
+          <label style="margin-top: 15px">Produit scalaire de deux vecteurs \( \vec{u} \cdot \vec{v} \)
+            :</label>
+          <div class="coord-inputs" style="grid-template-columns: 1fr 1fr; margin-bottom: 8px">
+            <select id="dotVectorSelect1"></select>
+            <select id="dotVectorSelect2"></select>
+          </div>
+          <button class="btn-warning" onclick="calculateScalarProduct()">
+            🖩 Calculer
+          </button>
+          <div id="scalarProductResult" class="equation-display"></div>
+
+          <!-- Produit Vectoriel -->
+          <label style="margin-top: 15px">Produit vectoriel de deux vecteurs \( \vec{u} \wedge \vec{v} \)
+            :</label>
+          <div class="coord-inputs" style="grid-template-columns: 1fr 1fr; margin-bottom: 8px">
+            <select id="crossVectorSelect1"></select>
+            <select id="crossVectorSelect2"></select>
+          </div>
+          <label>Origine du vecteur produit :</label>
+          <select id="crossVectorOrigin" style="margin-bottom: 8px"></select>
+          <button class="btn-warning" onclick="calculateVectorProduct()">
+            🖩 Créer le vecteur produit
+          </button>
+          <div id="vectorProductResult" class="equation-display"></div>
+          <h4 class="sub-section-title" style="margin-top: 20px">
+            Projection Orthogonale
+          </h4>
+          <label>Projeter le point :</label>
+          <select id="projPointSelect"></select>
+          <label>Sur le plan :</label>
+          <select id="projPlaneSelect"></select>
+          <button class="btn-violet" onclick="projectPointOnPlane()">
+            📍 Projeter
+          </button>
+        </div>
+      </div>
+
+      <div class="section collapsible collapsed">
+        <div class="section-header">
+          <h3 style="font-size: 16px">📏 Mesures et Intersections</h3>
+        </div>
+        <div class="section-content">
+          <!-- Outils de Mesure -->
+          <h4 class="sub-section-title">Mesure de Distances</h4>
+
+          <!-- Distance Point-Point -->
+          <label>Distance entre deux points :</label>
+          <div class="coord-inputs" style="grid-template-columns: 1fr 1fr; margin-bottom: 8px">
+            <select id="distPointSelect1"></select>
+            <select id="distPointSelect2"></select>
+          </div>
+          <button class="btn-warning" onclick="calculatePointPointDistance()">
+            🖩 Mesurer
+          </button>
+          <div id="distResult1" class="equation-display"></div>
+
+          <!-- Distance Point-Droite -->
+          <label style="margin-top: 15px">Distance d'un point à une droite :</label>
+          <div class="coord-inputs" style="grid-template-columns: 1fr 1fr; margin-bottom: 8px">
+            <select id="distPointSelect3"></select>
+            <select id="distLineSelect1"></select>
+          </div>
+          <button class="btn-warning" onclick="calculatePointLineDistance()">
+            🖊 Mesurer
+          </button>
+          <div id="distResult2" class="equation-display"></div>
+
+          <!-- Distance Point-Plan -->
+          <label style="margin-top: 15px">Distance d'un point à un plan :</label>
+          <div class="coord-inputs" style="grid-template-columns: 1fr 1fr; margin-bottom: 8px">
+            <select id="calcPointSelect"></select>
+            <select id="calcPlaneSelect1"></select>
+          </div>
+          <button class="btn-warning" onclick="calculatePointPlaneDistance()">
+            🖊 Mesurer et projeter
+          </button>
+          <div id="calcResultDisplay1" class="equation-display" style="min-height: 50px"></div>
+
+          <!-- Outils d'Angle -->
+          <h4 class="sub-section-title" style="margin-top: 20px">
+            Mesure d'Angles
+          </h4>
+
+          <!-- Angle Droite-Droite -->
+          <label>Angle entre deux droites :</label>
+          <div class="coord-inputs" style="grid-template-columns: 1fr 1fr; margin-bottom: 8px">
+            <select id="angleLineSelect1"></select>
+            <select id="angleLineSelect2"></select>
+          </div>
+          <button class="btn-warning" onclick="calculateLineLineAngle()">
+            🖊 Mesurer
+          </button>
+          <div id="angleResult1" class="equation-display"></div>
+
+          <!-- Angle Plan-Plan -->
+          <label style="margin-top: 15px">Angle entre deux plans :</label>
+          <div class="coord-inputs" style="grid-template-columns: 1fr 1fr; margin-bottom: 8px">
+            <select id="anglePlaneSelect1"></select>
+            <select id="anglePlaneSelect2"></select>
+          </div>
+          <button class="btn-warning" onclick="calculatePlanePlaneAngle()">
+            🖊 Mesurer
+          </button>
+          <div id="angleResult2" class="equation-display"></div>
+
+          <!-- Angle Droite-Plan -->
+          <label style="margin-top: 15px">Angle entre une droite et un plan :</label>
+          <div class="coord-inputs" style="grid-template-columns: 1fr 1fr; margin-bottom: 8px">
+            <select id="angleLineSelect3"></select>
+            <select id="anglePlaneSelect3"></select>
+          </div>
+          <button class="btn-warning" onclick="calculateLinePlaneAngle()">
+            🖊 Mesurer
+          </button>
+          <div id="angleResult3" class="equation-display"></div>
+
+          <!-- Intersections -->
+          <h4 class="sub-section-title" style="margin-top: 20px">
+            Calcul d'Intersections
+          </h4>
+
+          <!-- Intersection Droite-Plan -->
+          <label>Intersection d'une droite et d'un plan :</label>
+          <div class="coord-inputs" style="grid-template-columns: 1fr 1fr; margin-bottom: 8px">
+            <select id="calcLineSelect"></select>
+            <select id="calcPlaneSelect2"></select>
+          </div>
+          <button class="btn-warning" onclick="calculateLinePlaneIntersection()">
+            🖊 Calculer l'intersection
+          </button>
+          <div id="calcResultDisplay2" class="equation-display"></div>
+
+          <!-- Intersection Plan-Plan -->
+          <label style="margin-top: 15px">Intersection de deux plans :</label>
+          <div class="coord-inputs" style="grid-template-columns: 1fr 1fr; margin-bottom: 8px">
+            <select id="calcPlaneSelect3"></select>
+            <select id="calcPlaneSelect4"></select>
+          </div>
+          <button class="btn-warning" onclick="calculatePlanePlaneIntersection()">
+            🖊 Calculer l'intersection
+          </button>
+          <div id="calcResultDisplay3" class="equation-display" style="min-height: 60px"></div>
+
+          <!-- Intersection Droite-Droite -->
+          <h4 class="sub-section-title" style="margin-top: 20px">
+            Intersection de deux droites :
+          </h4>
+          <label>Sélectionner les deux droites :</label>
+          <div class="coord-inputs" style="grid-template-columns: 1fr 1fr; margin-bottom: 8px">
+            <select id="calcLineSelect1"></select>
+            <select id="calcLineSelect2"></select>
+          </div>
+          <button class="btn-warning" onclick="calculateLineLineIntersection()">
+            🖊 Analyser l'intersection
+          </button>
+          <div id="calcResultDisplay4" class="equation-display" style="margin-top: 10px; min-height: 50px"></div>
+
+          <h4 class="sub-section-title" style="margin-top: 20px">
+            Perpendiculaire commune (Droites)
+          </h4>
+          <div class="coord-inputs" style="grid-template-columns: 1fr 1fr; margin-bottom: 8px">
+            <select id="perpLine1"></select>
+            <select id="perpLine2"></select>
+          </div>
+          <button class="btn-warning" onclick="calculateCommonPerpendicular()">
+            🖊 Tracer la perpendiculaire
+          </button>
+          <div id="perpResult" class="equation-display"></div>
+          <!-- DÉBUT AJOUT PROJECTIONS -->
+          <h4 class="sub-section-title" style="
+                margin-top: 20px;
+                border-top: 1px solid #eee;
+                padding-top: 10px;
+              ">
+            Projections Orthogonales
+          </h4>
+
+          <!-- 1. Projection Point sur Plan -->
+          <label>Point sur Plan :</label>
+          <div class="coord-inputs" style="grid-template-columns: 1fr 1fr; margin-bottom: 8px">
+            <select id="projPointOnPlaneSelect"></select>
+            <!-- Sélection du Point -->
+            <select id="projPlaneTargetSelect"></select>
+            <!-- Sélection du Plan -->
+          </div>
+          <button class="btn-violet" onclick="calculateProjectionPointPlane()">
+            📍 Projeter et créer le point
+          </button>
+          <div id="projPlaneResult" class="equation-display"></div>
+
+          <!-- 2. Projection Point sur Droite -->
+          <label style="margin-top: 15px">Point sur Droite :</label>
+          <div class="coord-inputs" style="grid-template-columns: 1fr 1fr; margin-bottom: 8px">
+            <select id="projPointOnLineSelect"></select>
+            <!-- Sélection du Point -->
+            <select id="projLineTargetSelect"></select>
+            <!-- Sélection de la Droite -->
+          </div>
+          <button class="btn-violet" onclick="calculateProjectionPointLine()">
+            📍 Projeter et créer le point
+          </button>
+          <div id="projLineResult" class="equation-display"></div>
+          <!-- FIN AJOUT PROJECTIONS -->
+        </div>
+      </div>
+
+      <div class="section collapsible collapsed">
+        <div class="section-header">
+          <h3 style="font-size: 16px">🔄 Transformations</h3>
+        </div>
+        <div class="section-content">
+          <p id="transformations-hint" style="font-size: 12px; color: #888; text-align: center">
+            Sélectionnez un objet dans la scène 3D pour activer les
+            transformations.
+          </p>
+
+          <!-- Sous-section Translation -->
+          <div id="transformations-container" style="display: none">
+            <h4 class="sub-section-title">Translation</h4>
+            <label>Vecteur de translation (dX, dY, dZ) :</label>
+            <div class="coord-inputs">
+              <input type="number" id="transX" placeholder="dX" value="0" step="1" />
+              <input type="number" id="transY" placeholder="dY" value="0" step="1" />
+              <input type="number" id="transZ" placeholder="dZ" value="0" step="1" />
+            </div>
+            <button class="btn-secondary" onclick="applyTranslation()">
+              ➡ Appliquer la Translation
+            </button>
+
+            <!-- Sous-section Rotation -->
+            <h4 class="sub-section-title" style="margin-top: 20px">
+              Rotation
+            </h4>
+            <label>Centre de rotation :</label>
+            <select id="rotationCenterSelect">
+              <option value="origin">Origine du repère (0,0,0)</option>
+              <!-- Les points seront ajoutés dynamiquement ici -->
+            </select>
+            <label style="margin-top: 10px">Axe de rotation :</label>
+            <select id="rotationAxisSelect">
+              <option value="x">Axe X</option>
+              <option value="y">Axe Y</option>
+              <option value="z">Axe Z</option>
+            </select>
+            <label style="margin-top: 10px">Angle de rotation (en degrés) :</label>
+            <input type="number" id="rotationAngle" value="90" step="1" />
+            <button class="btn-secondary" onclick="applyRotation()">
+              🔄 Appliquer la Rotation
+            </button>
+
+            <!-- Sous-section Symétrie -->
+            <h4 class="sub-section-title" style="margin-top: 20px">
+              Symétrie
+            </h4>
+            <label>Symétrie par rapport à :</label>
+
+            <select id="symmetryTypeSelect" onchange="updateSymmetryUI()">
+              <option value="origin">Origine (0,0,0)</option>
+
+              <option value="axis_x">Axe X</option>
+              <option value="axis_y">Axe Y (Profondeur)</option>
+              <option value="axis_z">Axe Z (Hauteur)</option>
+
+              <option value="plane_xy">Plan XY (Sol)</option>
+              <option value="plane_xz">Plan XZ (Face)</option>
+              <option value="plane_yz">Plan YZ (Côté)</option>
+              <option value="">-- Choisir un type --</option>
+              <option value="point">Un Point</option>
+              <option value="line">Une Droite</option>
+              <option value="plane">Un Plan</option>
+            </select>
+            <div id="symmetryOptionsContainer" style="margin-top: 10px">
+              <!-- Les options (sélecteurs de point, droite, plan) apparaîtront ici -->
+            </div>
+            <button class="btn-secondary" id="applySymmetryBtn" style="display: none" onclick="applySymmetry()">
+              🔹 Appliquer la Symétrie
+            </button>
+          </div>
+        </div>
+      </div>
+      <div style="
+            text-align: center;
+            font-size: 10px;
+            color: #888;
+            margin-top: 20px;
+            padding-top: 5px;
+          ">
+        Copyright Michel ESPARSA 06/03/2026
+      </div>
+
+      <div id="contextMenu" class="context-menu" style="display: none">
+        <ul id="contextMenuItems" class="context-menu-items">
+          <!-- Les options du menu seront injectées ici par JavaScript -->
+        </ul>
+      </div>
+    </div>
+
+    <!-- =========================================
+     NOUVEAU : PANNEAU TABLEUR (BAS)
+     ========================================= -->
+    <div id="spreadsheetContainer" class="spreadsheet-hidden">
+      <div class="spreadsheet-header">
+        <div class="spreadsheet-tabs">
+          <button class="tab-btn active" onclick="switchSpreadsheetTab('points')">
+            Points
+          </button>
+          <button class="tab-btn" onclick="switchSpreadsheetTab('vectors')">
+            Vecteurs
+          </button>
+          <button class="tab-btn" onclick="switchSpreadsheetTab('lines')">
+            Droites
+          </button>
+          <button class="tab-btn" onclick="switchSpreadsheetTab('planes')">
+            Plans
+          </button>
+        </div>
+        <div class="spreadsheet-controls">
+          <button class="close-spreadsheet-btn" onclick="toggleSpreadsheet()">
+            ▼ Fermer
+          </button>
+        </div>
+      </div>
+      <div class="spreadsheet-body">
+        <table id="spreadsheetTable">
+          <thead>
+            <!-- Les en-tÃªtes seront générés par JS -->
+          </thead>
+          <tbody>
+            <!-- Le contenu sera généré par JS -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <!-- Bouton flottant pour ouvrir le tableur (en bas à gauche) -->
+  <button id="openSpreadsheetBtn" onclick="toggleSpreadsheet()">
+    📅 Tableur de données
+  </button>
+
+  <div id="credits-text">© 2025 Michel ESPARSA</div>
+
+  <script src="js/geometry-classes.js"></script>
+  <script src="js/geometry-manager.js"></script>
+  <script src="js/ui-manager.js"></script>
+  <script src="js/object-utils.js"></script>
+  <script src="js/camera-utils.js"></script>
+  <script src="js/math-utils.js"></script>
+  <script src="js/app.js"></script>
+</body>
+
+</html>

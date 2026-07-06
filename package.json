@@ -1,0 +1,51 @@
+{
+  "name": "electrospace",
+  "version": "0.0.0",
+  "private": true,
+  "description": "This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.",
+  "homepage": "https://github.com/gorkamorka13/electro-web#readme",
+  "bugs": {
+    "url": "https://github.com/gorkamorka13/electro-web/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gorkamorka13/electro-web.git"
+  },
+  "license": "ISC",
+  "author": "",
+  "type": "module",
+  "main": "eslint.config.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "eslint .",
+    "preview": "npm run build && wrangler dev",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "deploy": "npm run build && wrangler deploy"
+  },
+  "dependencies": {
+    "@react-three/drei": "^10.7.7",
+    "@react-three/fiber": "^9.6.1",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "three": "^0.185.0",
+    "zustand": "^5.0.14"
+  },
+  "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.43.0",
+    "@eslint/js": "^10.0.1",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.2",
+    "eslint": "^10.5.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.3",
+    "globals": "^17.6.0",
+    "vite": "^8.1.0",
+    "wrangler": "^4.107.0"
+  }
+}
