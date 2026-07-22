@@ -68,6 +68,51 @@ export function GaussianSurfaceVis() {
 
   const arrowLen = 1.2
 
+  // Calculate plane orientations for Step 1 so that BOTH planes are centered DIRECTLY AT Point M
+  const planeSize = Math.max(6, gaussSurfaceRadius * 3 || 6)
+  
+  // Both planes are centered at Point M (relM) so that their intersection passes right through M
+  let plane1Pos = [relM.x, relM.y, relM.z]
+  let plane1Rot = [0, 0, 0]
+  let plane2Pos = [relM.x, relM.y, relM.z]
+  let plane2Rot = [0, Math.PI / 2, 0]
+  
+  if (configType === 'cylinder' || configType === 'line' || gaussSurfaceType === 'cylinder') {
+    const thetaM = Math.atan2(relM.z, relM.x)
+    // Plan 1 (Bleu): Plan méridien (M, e_r, e_z) contenant l'axe z (O) et le point M
+    plane1Pos = [0, relM.y, 0]
+    plane1Rot = [0, -thetaM, 0]
+    
+    // Plan 2 (Rose): Plan transversal (M, e_r, e_θ) perpendiculaire à l'axe z à la hauteur yM de M
+    plane2Pos = [0, relM.y, 0]
+    plane2Rot = [Math.PI / 2, 0, 0]
+  } else if (configType === 'sphere' || gaussSurfaceType === 'sphere') {
+    const omDir = relM.lengthSq() > 1e-4 ? relM.clone().normalize() : new THREE.Vector3(1, 0, 0)
+    // Quaternion q1 aligne l'axe local Y (0, 1, 0) du plan sur la direction OM
+    const q1 = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), omDir)
+    const euler1 = new THREE.Euler().setFromQuaternion(q1)
+    
+    // Plan 1 (Bleu): Contient l'origine O et le point M
+    plane1Pos = [0, 0, 0]
+    plane1Rot = [euler1.x, euler1.y, euler1.z]
+    
+    // Plan 2 (Rose): Orthogonal au plan 1, tourné de 90° autour de l'axe OM (contient aussi O et M)
+    const q90 = new THREE.Quaternion().setFromAxisAngle(omDir, Math.PI / 2)
+    const q2 = q90.clone().multiply(q1)
+    const euler2 = new THREE.Euler().setFromQuaternion(q2)
+    
+    plane2Pos = [0, 0, 0]
+    plane2Rot = [euler2.x, euler2.y, euler2.z]
+  } else if (configType === 'plane' || gaussSurfaceType === 'box') {
+    // Plan 1: Plan vertical passant par zM du point M
+    plane1Pos = [0, 0, relM.z]
+    plane1Rot = [0, 0, 0]
+    
+    // Plan 2: Plan vertical orthogonal passant par xM du point M
+    plane2Pos = [relM.x, 0, 0]
+    plane2Rot = [0, Math.PI / 2, 0]
+  }
+
   return (
     <group ref={groupRef} position={centerVec}>
       {/* 3D Gaussian Surface Mesh - Only drawn from Phase 3 onwards */}
@@ -126,18 +171,64 @@ export function GaussianSurfaceVis() {
         </>
       )}
 
-      {/* STEP 1: Symmetry Planes Visualizer */}
+      {/* STEP 4 & 5: 3D Enclosed Charge Q_int Volume (Gold-Yellow) */}
+      {gaussStep >= 4 && (
+        <group>
+          {(configType === 'sphere' || gaussSurfaceType === 'sphere') && (
+            <mesh>
+              <sphereGeometry args={[Math.min(gaussSurfaceRadius, activeDist?.radius || 1.5), 32, 32]} />
+              <meshBasicMaterial color="#f59e0b" transparent opacity={0.35} side={THREE.DoubleSide} depthWrite={false} />
+              <lineSegments>
+                <edgesGeometry args={[new THREE.SphereGeometry(Math.min(gaussSurfaceRadius, activeDist?.radius || 1.5), 16, 16)]} />
+                <lineBasicMaterial color="#fbbf24" transparent opacity={0.7} />
+              </lineSegments>
+            </mesh>
+          )}
+
+          {(configType === 'cylinder' || configType === 'line' || gaussSurfaceType === 'cylinder') && (
+            <mesh>
+              <cylinderGeometry args={[Math.min(gaussSurfaceRadius, activeDist?.radius || 1.5), Math.min(gaussSurfaceRadius, activeDist?.radius || 1.5), gaussSurfaceHeight, 32]} />
+              <meshBasicMaterial color="#f59e0b" transparent opacity={0.35} side={THREE.DoubleSide} depthWrite={false} />
+              <lineSegments>
+                <edgesGeometry args={[new THREE.CylinderGeometry(Math.min(gaussSurfaceRadius, activeDist?.radius || 1.5), Math.min(gaussSurfaceRadius, activeDist?.radius || 1.5), gaussSurfaceHeight, 16)]} />
+                <lineBasicMaterial color="#fbbf24" transparent opacity={0.7} />
+              </lineSegments>
+            </mesh>
+          )}
+
+          {(configType === 'plane' || gaussSurfaceType === 'box') && (
+            <mesh>
+              <boxGeometry args={[gaussSurfaceWidth, 0.1, gaussSurfaceDepth]} />
+              <meshBasicMaterial color="#f59e0b" transparent opacity={0.4} side={THREE.DoubleSide} depthWrite={false} />
+              <lineSegments>
+                <edgesGeometry args={[new THREE.BoxGeometry(gaussSurfaceWidth, 0.1, gaussSurfaceDepth)]} />
+                <lineBasicMaterial color="#fbbf24" transparent opacity={0.8} />
+              </lineSegments>
+            </mesh>
+          )}
+        </group>
+      )}
+
+      {/* STEP 1: 3D Symmetry Planes Visualizer passing EXACTLY through Point M */}
       {gaussStep === 1 && (
         <group>
-          {/* Plan 1 (xz / vertical) */}
-          <mesh rotation={[0, 0, 0]}>
-            <planeGeometry args={[gaussSurfaceRadius * 3 || 6, gaussSurfaceRadius * 3 || 6]} />
-            <meshBasicMaterial color="#3b82f6" transparent opacity={0.12} side={THREE.DoubleSide} depthWrite={false} />
+          {/* Plan 1 (Bleu) */}
+          <mesh position={plane1Pos} rotation={plane1Rot}>
+            <planeGeometry args={[planeSize, planeSize]} />
+            <meshBasicMaterial color="#3b82f6" transparent opacity={0.2} side={THREE.DoubleSide} depthWrite={false} />
+            <lineSegments>
+              <edgesGeometry args={[new THREE.PlaneGeometry(planeSize, planeSize)]} />
+              <lineBasicMaterial color="#60a5fa" transparent opacity={0.6} />
+            </lineSegments>
           </mesh>
-          {/* Plan 2 (yz / vertical orthogonal) */}
-          <mesh rotation={[0, Math.PI / 2, 0]}>
-            <planeGeometry args={[gaussSurfaceRadius * 3 || 6, gaussSurfaceRadius * 3 || 6]} />
-            <meshBasicMaterial color="#ec4899" transparent opacity={0.12} side={THREE.DoubleSide} depthWrite={false} />
+          {/* Plan 2 (Rose/Violet) */}
+          <mesh position={plane2Pos} rotation={plane2Rot}>
+            <planeGeometry args={[planeSize, planeSize]} />
+            <meshBasicMaterial color="#ec4899" transparent opacity={0.2} side={THREE.DoubleSide} depthWrite={false} />
+            <lineSegments>
+              <edgesGeometry args={[new THREE.PlaneGeometry(planeSize, planeSize)]} />
+              <lineBasicMaterial color="#f472b6" transparent opacity={0.6} />
+            </lineSegments>
           </mesh>
         </group>
       )}

@@ -153,15 +153,15 @@ export function calculateGaussParameters(state) {
   if (configName === 'sphere') {
     symmetryDetails = {
       basisType: 'spherical',
-      basisVectors: ['e_r', 'e_θ', 'e_φ'],
+      basisVectors: ['\\vec{e}_r', '\\vec{e}_\\theta', '\\vec{e}_\\phi'],
       planes: [
-        "Tout plan Π_S contenant le centre O de la sphère est un plan de symétrie de la distribution.",
-        "Le champ E(M) appartient à tous les plans de symétrie passant par M.",
-        "L'intersection de tous ces plans Π_S définit la droite radiale (O, e_r)."
+        "Tout plan $\\Pi_S$ contenant le centre $O$ et passant par le point $M$ est un plan de symétrie.",
+        "Le champ $\\vec{E}(M)$ appartient à tous les plans de symétrie passant par $M$.",
+        "L'intersection de tous ces plans $\\Pi_S$ passant par $M$ définit la droite radiale $(O, M)$ portée par $\\vec{e}_r$."
       ],
-      antiPlanes: ["Distribution à symétrie de sphère chargée positivement ou négativement."],
-      directionText: "Le champ électrique est strictement radial : E(M) = E(r) · e_r",
-      directionVec: "e_r"
+      antiPlanes: ["Distribution à symétrie sphérique centrée en $O$."],
+      directionText: "Le champ électrique est radial et passe par $M$ : $\\vec{E}(M) = E(r) \\, \\vec{e}_r",
+      directionVec: "\\vec{e}_r"
     }
 
     invariances = {
@@ -191,33 +191,33 @@ export function calculateGaussParameters(state) {
         vValue = R > 0 ? (KE_REAL * Q / (2 * R)) * (3 - Math.pow(r_g / R, 2)) : 0
       }
     } else {
-      vFieldFormula = "V(r) = (k_e · Q) / r (avec V(∞) = 0)"
+      vFieldFormula = "V(r) = \\frac{k_e Q}{r}"
       vValue = r_g > 0 ? (KE_REAL * Q) / r_g : 0
     }
 
     gaussStep4Detail = {
       qIntFormula: r_g < R 
-        ? (hollow ? "Q_int = 0 (sphère creuse à l'intérieur)" : `Q_int = Q · (r/R)³ = ${(qInt * 1e9).toFixed(3)} nC`) 
-        : `Q_int = Q_total = ${(qInt * 1e9).toFixed(3)} nC`,
+        ? (hollow ? "Q_{\\text{int}} = 0 \\text{ (sphère creuse à l'intérieur)}" : `Q_{\\text{int}} = Q \\cdot \\left(\\frac{r}{R}\\right)^3 = ${(qInt * 1e9).toFixed(3)} \\text{ nC}`) 
+        : `Q_{\\text{int}} = Q_{\\text{total}} = ${(qInt * 1e9).toFixed(3)} \\text{ nC}`,
       eFieldFormula: r_g < R 
-        ? (hollow ? "E(r) = 0 V/m" : "E(r) = (k_e · Q · r) / R³") 
-        : "E(r) = (k_e · Q) / r²",
-      vectorResult: `E(M) = ${eField.toExponential(2)} e_r V/m`,
+        ? (hollow ? "E(r) = 0 \\text{ V/m}" : "E(r) = \\frac{k_e Q r}{R^3}") 
+        : "E(r) = \\frac{k_e Q}{r^2}",
+      vectorResult: `\\vec{E}(M) = ${eField.toExponential(2)} \\, \\vec{e}_r \\text{ V/m}`,
       vFieldFormula,
       vValueStr: `V(M) = ${Math.abs(vValue) >= 1000 ? (vValue / 1000).toFixed(2) + ' kV' : vValue.toFixed(2) + ' V'}`
     }
 
     let gaussStep5Detail = {
-      relation: "E(r) = -dV/dr  ⇒  V(r) = -∫ E(r) dr + C",
-      extIntegration: "Pour r ≥ R : V_ext(r) = -∫ (k_e Q / r²) dr = (k_e Q / r) + C_ext",
-      extBoundary: "Condition à l'infini : lim(r → ∞) V_ext(r) = 0  ⇒  C_ext = 0",
+      relation: "$E(r) = -\\frac{dV}{dr} \\implies V(r) = -\\int E(r) \\, dr + C$",
+      extIntegration: "Pour $r \\ge R$ : $V_{\\text{ext}}(r) = -\\int \\frac{k_e Q}{r^2} \\, dr = \\frac{k_e Q}{r} + C_{\\text{ext}}$",
+      extBoundary: "Condition à l'infini : $\\lim_{r \\to \\infty} V_{\\text{ext}}(r) = 0 \\implies C_{\\text{ext}} = 0$",
       intIntegration: hollow 
-        ? "Pour r < R : E_int(r) = 0  ⇒  V_int(r) = C_int"
-        : "Pour r < R : E_int(r) = (k_e Q r)/R³  ⇒  V_int(r) = -(k_e Q r²)/(2 R³) + C_int",
-      continuity: "Raccordement par Continuité du Potentiel en r = R : V_int(R) = V_ext(R)",
+        ? "Pour $r < R$ : $E_{\\text{int}}(r) = 0 \\implies V_{\\text{int}}(r) = C_{\\text{int}}$"
+        : "Pour $r < R$ : $E_{\\text{int}}(r) = \\frac{k_e Q r}{R^3} \\implies V_{\\text{int}}(r) = -\\frac{k_e Q r^2}{2 R^3} + C_{\\text{int}}$",
+      continuity: "Raccordement par Continuité en $r = R$ : $V_{\\text{int}}(R) = V_{\\text{ext}}(R)$",
       constantResolution: hollow
-        ? "C_int = V_ext(R) = (k_e Q) / R"
-        : "-(k_e Q)/(2 R) + C_int = (k_e Q)/R  ⇒  C_int = (3 k_e Q) / (2 R)",
+        ? "$C_{\\text{int}} = V_{\\text{ext}}(R) = \\frac{k_e Q}{R}$"
+        : "$-\\frac{k_e Q}{2 R} + C_{\\text{int}} = \\frac{k_e Q}{R} \\implies C_{\\text{int}} = \\frac{3 k_e Q}{2 R}$",
       finalFormula: vFieldFormula,
       finalValueStr: `V(M) = ${Math.abs(vValue) >= 1000 ? (vValue / 1000).toFixed(2) + ' kV' : vValue.toFixed(2) + ' V'}`
     }
@@ -229,30 +229,30 @@ export function calculateGaussParameters(state) {
   } else if (configName === 'cylinder' || configName === 'line') {
     symmetryDetails = {
       basisType: 'cylindrical',
-      basisVectors: ['e_r', 'e_θ', 'e_z'],
+      basisVectors: ['\\vec{e}_r', '\\vec{e}_\\theta', '\\vec{e}_z'],
       planes: [
-        "Tout plan Π_S1 passant par l'axe z du cylindre est un plan de symétrie.",
-        "Le plan Π_S2 orthogonal à l'axe z et passant par M est aussi un plan de symétrie.",
-        "L'intersection Π_S1 ∩ Π_S2 donne le vecteur radial e_r."
+        "Pour un cylindre ou fil infini, le plan $\\Pi_{S1} = (M, \\vec{e}_r, \\vec{e}_z)$ contenant l'axe $z$ et le point $M$ est un plan de symétrie.",
+        "Le plan $\\Pi_{S2} = (M, \\vec{e}_r, \\vec{e}_\\theta)$ orthogonal à l'axe $z$ et passant par le point $M$ est aussi un plan de symétrie.",
+        "L'intersection $\\Pi_{S1} \\cap \\Pi_{S2} = (M, \\vec{e}_r)$ exige que le champ $\\vec{E}(M)$ soit porté par le vecteur radial : $\\vec{E}(M) = E(r) \\, \\vec{e}_r$."
       ],
       antiPlanes: ["Symétrie axiale cylindrique uniforme."],
-      directionText: "Le champ électrique est radial et perpendiculaire à l'axe z : E(M) = E(r) · e_r",
-      directionVec: "e_r"
+      directionText: "Le champ électrique est radial et porté par $\\vec{e}_r$ : $\\vec{E}(M) = E(r) \\, \\vec{e}_r$",
+      directionVec: "\\vec{e}_r"
     }
 
     invariances = {
       list: [
-        "Invariance par translation le long de l'axe z (cylindre ou fil infini).",
-        "Invariance par rotation autour de l'axe z (angle θ)."
+        "Invariance par translation le long de l'axe $z$ (cylindre ou fil infini).",
+        "Invariance par rotation autour de l'axe $z$ (angle $\\theta$)."
       ],
-      deduction: "La norme du champ E ne dépend que de la distance radiale r à l'axe : E(r, θ, z) = E(r)"
+      deduction: "La norme du champ $E$ ne dépend que de la distance radiale $r$ à l'axe : $E(r, \\theta, z) = E(r)$"
     }
 
     surfaceAnalysis = {
       surfaceType: 'cylinder',
       fluxDecomposition: [
-        { face: "Paroi Latérale Σ_lat (rayon r, haut h)", dotProduct: "E ∥ dS (E · dS = E · dS)", eConst: "E(r) est uniforme sur la paroi", fluxTerm: "Φ_lat = E(r) · (2π r h)" },
-        { face: "Base supérieure & inférieure Σ_base", dotProduct: "E ⊥ dS (E · dS = 0)", eConst: "-", fluxTerm: "Φ_bases = 0" }
+        { face: "Paroi Latérale $\\Sigma_{\\text{lat}}$ (rayon $r$, haut $h$)", dotProduct: "\\vec{E} \\parallel d\\vec{S}", eConst: "$E(r)$ est uniforme sur la paroi", fluxTerm: "\\Phi_{\\text{lat}} = E(r) \\cdot (2\\pi r h)" },
+        { face: "Base supérieure & inférieure $\\Sigma_{\\text{bases}}$", dotProduct: "\\vec{E} \\perp d\\vec{S}", eConst: "-", fluxTerm: "\\Phi_{\\text{bases}} = 0" }
       ]
     }
 
@@ -261,40 +261,40 @@ export function calculateGaussParameters(state) {
 
     if (r_g < R) {
       if (hollow) {
-        vFieldFormula = "V(r) = 0 V (Référence V(R) = 0)"
+        vFieldFormula = "V(r) = 0 \\text{ V (Référence } V(R) = 0\\text{)}"
         vValue = 0
       } else {
-        vFieldFormula = "V(r) = (k_e · λ / R²) · (R² - r²) (Référence V(R) = 0)"
+        vFieldFormula = "V(r) = \\frac{k_e \\lambda}{R^2} (R^2 - r^2) \\text{ (Référence } V(R) = 0\\text{)}"
         vValue = R > 0 ? (KE_REAL * lambda / (R * R)) * (R * R - r_g * r_g) : 0
       }
     } else {
-      vFieldFormula = "V(r) = -2 · k_e · λ · ln(r / R) (Référence V(R) = 0)"
+      vFieldFormula = "V(r) = -2 k_e \\lambda \\ln\\left(\\frac{r}{R}\\right) \\text{ (Référence } V(R) = 0\\text{)}"
       vValue = (R > 0 && r_g > 0) ? -2 * KE_REAL * lambda * Math.log(r_g / R) : 0
     }
 
     gaussStep4Detail = {
       qIntFormula: r_g < R 
-        ? (hollow ? "Q_int = 0 (creux)" : `Q_int = λ_eff · h · (r/R)² = ${(qInt * 1e9).toFixed(3)} nC`) 
-        : `Q_int = λ · h = ${(qInt * 1e9).toFixed(3)} nC`,
+        ? (hollow ? "Q_{\\text{int}} = 0 \\text{ (creux)}" : `Q_{\\text{int}} = \\lambda_{\\text{eff}} h \\cdot \\left(\\frac{r}{R}\\right)^2 = ${(qInt * 1e9).toFixed(3)} \\text{ nC}`) 
+        : `Q_{\\text{int}} = \\lambda h = ${(qInt * 1e9).toFixed(3)} \\text{ nC}`,
       eFieldFormula: r_g < R 
-        ? (hollow ? "E(r) = 0 V/m" : "E(r) = (2 k_e λ r) / R²") 
-        : "E(r) = (2 k_e λ) / r",
-      vectorResult: `E(M) = ${eField.toExponential(2)} e_r V/m`,
+        ? (hollow ? "E(r) = 0 \\text{ V/m}" : "E(r) = \\frac{2 k_e \\lambda r}{R^2}") 
+        : "E(r) = \\frac{2 k_e \\lambda}{r}",
+      vectorResult: `\\vec{E}(M) = ${eField.toExponential(2)} \\, \\vec{e}_r \\text{ V/m}`,
       vFieldFormula,
       vValueStr: `V(M) = ${Math.abs(vValue) >= 1000 ? (vValue / 1000).toFixed(2) + ' kV' : vValue.toFixed(2) + ' V'}`
     }
 
     let gaussStep5Detail = {
-      relation: "E(r) = -dV/dr  ⇒  V(r) = -∫ E(r) dr + C",
-      extIntegration: "Pour r ≥ R : V_ext(r) = -∫ (2 k_e λ / r) dr = -2 k_e λ ln(r) + C_ext",
-      extBoundary: "Référence de potentiel fixée à la surface r = R : V(R) = 0  ⇒  C_ext = 2 k_e λ ln(R)",
+      relation: "$E(r) = -\\frac{dV}{dr} \\implies V(r) = -\\int E(r) \\, dr + C$",
+      extIntegration: "Pour $r \\ge R$ : $V_{\\text{ext}}(r) = -\\int \\frac{2 k_e \\lambda}{r} \\, dr = -2 k_e \\lambda \\ln(r) + C_{\\text{ext}}$",
+      extBoundary: "Référence de potentiel fixée à la surface $r = R$ : $V(R) = 0 \\implies C_{\\text{ext}} = 2 k_e \\lambda \\ln(R)$",
       intIntegration: hollow 
-        ? "Pour r < R : E_int(r) = 0  ⇒  V_int(r) = C_int"
-        : "Pour r < R : E_int(r) = (2 k_e λ r)/R²  ⇒  V_int(r) = -(k_e λ r²)/R² + C_int",
-      continuity: "Raccordement par Continuité du Potentiel en r = R : V_int(R) = V_ext(R) = 0",
+        ? "Pour $r < R$ : $E_{\\text{int}}(r) = 0 \\implies V_{\\text{int}}(r) = C_{\\text{int}}$"
+        : "Pour $r < R$ : $E_{\\text{int}}(r) = \\frac{2 k_e \\lambda r}{R^2} \\implies V_{\\text{int}}(r) = -\\frac{k_e \\lambda r^2}{R^2} + C_{\\text{int}}$",
+      continuity: "Raccordement par Continuité du Potentiel en $r = R$ : $V_{\\text{int}}(R) = V_{\\text{ext}}(R) = 0$",
       constantResolution: hollow
-        ? "C_int = 0  ⇒  V_int(r) = 0"
-        : "-k_e λ + C_int = 0  ⇒  C_int = k_e λ",
+        ? "$C_{\\text{int}} = 0 \\implies V_{\\text{int}}(r) = 0$"
+        : "$-k_e \\lambda + C_{\\text{int}} = 0 \\implies C_{\\text{int}} = k_e \\lambda$",
       finalFormula: vFieldFormula,
       finalValueStr: `V(M) = ${Math.abs(vValue) >= 1000 ? (vValue / 1000).toFixed(2) + ' kV' : vValue.toFixed(2) + ' V'}`
     }
@@ -306,51 +306,51 @@ export function calculateGaussParameters(state) {
   } else if (configName === 'plane') {
     symmetryDetails = {
       basisType: 'cartesian',
-      basisVectors: ['e_x', 'e_y', 'e_z'],
+      basisVectors: ['\\vec{e}_x', '\\vec{e}_y', '\\vec{e}_z'],
       planes: [
-        "Tout plan perpendiculaire au plan chargé est un plan de symétrie (Π_S).",
-        "L'intersection de deux de ces plans perpendiculaires donne la normale e_z (ou e_n) au plan chargé.",
-        "Le plan chargé lui-même est un plan de symétrie, imposant l'antisymétrie du champ de chaque côté : E(-z) = -E(z)."
+        "Tout plan $\\Pi_{S1}$ et $\\Pi_{S2}$ perpendiculaires au plan chargé et passant par le point $M$ sont des plans de symétrie.",
+        "L'intersection de ces deux plans $\\Pi_{S1} \\cap \\Pi_{S2}$ passant par $M$ donne la normale $\\vec{e}_z$ au plan chargé.",
+        "Le plan chargé lui-même est un plan de symétrie imposant l'anti-symétrie : $\\vec{E}(-z) = -\\vec{E}(z)$."
       ],
       antiPlanes: ["Changement de signe du champ à la traversée du plan."],
-      directionText: "Le champ est strictement normal au plan : E(M) = sgn(z) · E(z) · e_z",
-      directionVec: "e_z"
+      directionText: "Le champ est normal au plan et passe par $M$ : $\\vec{E}(M) = \\text{sgn}(z) E(z) \\, \\vec{e}_z$",
+      directionVec: "\\vec{e}_z"
     }
 
     invariances = {
       list: [
-        "Invariance par translation le long de l'axe x.",
-        "Invariance par translation le long de l'axe y."
+        "Invariance par translation le long de l'axe $x$.",
+        "Invariance par translation le long de l'axe $y$."
       ],
-      deduction: "La norme du champ E ne dépend que de la distance orthogonale |z| au plan : E(x, y, z) = E(|z|)"
+      deduction: "La norme du champ $E$ ne dépend que de la distance orthogonale $|z|$ au plan : $E(x, y, z) = E(|z|)$"
     }
 
     surfaceAnalysis = {
       surfaceType: 'box',
       fluxDecomposition: [
-        { face: "2 Faces parallèles au plan (Aire S)", dotProduct: "E ∥ dS (E · dS = E · S)", eConst: "E = E(|z|) uniforme", fluxTerm: "Φ_actives = 2 · E(|z|) · S" },
-        { face: "4 Faces latérales", dotProduct: "E ⊥ dS (E · dS = 0)", eConst: "-", fluxTerm: "Φ_lat = 0" }
+        { face: "2 Faces parallèles au plan (Aire $S$)", dotProduct: "\\vec{E} \\parallel d\\vec{S}", eConst: "$E = E(|z|)$ uniforme", fluxTerm: "\\Phi_{\\text{actives}} = 2 E(|z|) S" },
+        { face: "4 Faces latérales", dotProduct: "\\vec{E} \\perp d\\vec{S}", eConst: "-", fluxTerm: "\\Phi_{\\text{lat}} = 0" }
       ]
     }
 
     const vValue = -2 * Math.PI * KE_REAL * sigma * r_g
-    const vFieldFormula = "V(z) = -σ · |z| / (2 ε₀) = -2π k_e σ |z| (Référence V(0) = 0)"
+    const vFieldFormula = "V(z) = -\\frac{\\sigma |z|}{2 \\varepsilon_0} = -2\\pi k_e \\sigma |z| \\text{ (Référence } V(0) = 0\\text{)}"
 
     gaussStep4Detail = {
-      qIntFormula: `Q_int = σ · S = ${(qInt * 1e9).toFixed(3)} nC`,
-      eFieldFormula: "E = σ / (2 ε₀) = 2π k_e σ (Champ uniforme indépendant de z !)",
-      vectorResult: `E(M) = ${eField.toExponential(2)} e_z V/m`,
+      qIntFormula: `Q_{\\text{int}} = \\sigma S = ${(qInt * 1e9).toFixed(3)} \\text{ nC}`,
+      eFieldFormula: "E = \\frac{\\sigma}{2 \\varepsilon_0} = 2\\pi k_e \\sigma \\text{ (Champ uniforme indépendant de } z \\text{!)}",
+      vectorResult: `\\vec{E}(M) = ${eField.toExponential(2)} \\, \\vec{e}_z \\text{ V/m}`,
       vFieldFormula,
       vValueStr: `V(M) = ${Math.abs(vValue) >= 1000 ? (vValue / 1000).toFixed(2) + ' kV' : vValue.toFixed(2) + ' V'}`
     }
 
     let gaussStep5Detail = {
-      relation: "E_z = -dV/dz  ⇒  V(z) = -∫ E_z dz + C",
-      extIntegration: "Pour z > 0 : E_z = σ / (2 ε₀)  ⇒  V(z) = -(σ / (2 ε₀)) · z + C",
-      extBoundary: "Référence de potentiel fixée sur le plan z = 0 : V(0) = 0  ⇒  C = 0",
-      intIntegration: "Symétrie par rapport au plan : V(-z) = V(z)",
-      continuity: "Continuité de V(z) en z = 0 garantie",
-      constantResolution: "C = 0",
+      relation: "$E_z = -\\frac{dV}{dz} \\implies V(z) = -\\int E_z \\, dz + C$",
+      extIntegration: "Pour $z > 0$ : $E_z = \\frac{\\sigma}{2 \\varepsilon_0} \\implies V(z) = -\\frac{\\sigma z}{2 \\varepsilon_0} + C$",
+      extBoundary: "Référence de potentiel fixée sur le plan $z = 0$ : $V(0) = 0 \\implies C = 0$",
+      intIntegration: "Symétrie par rapport au plan : $V(-z) = V(z)$",
+      continuity: "Continuité de $V(z)$ en $z = 0$ garantie",
+      constantResolution: "$C = 0$",
       finalFormula: vFieldFormula,
       finalValueStr: `V(M) = ${Math.abs(vValue) >= 1000 ? (vValue / 1000).toFixed(2) + ' kV' : vValue.toFixed(2) + ' V'}`
     }
