@@ -474,7 +474,7 @@ export function GaussWizard() {
             </div>
             
             <div className="gw-final-vector-card" style={{ borderColor: '#10b981', background: 'rgba(16, 185, 129, 0.08)' }}>
-              <div className="vector-label" style={{ color: '#10b981' }}>Expression Analytique & Valeur au Point M ($\vec{E}$) :</div>
+              <div className="vector-label" style={{ color: '#10b981' }}>Expression Analytique &amp; Valeur au Point M (<InlineMath math="\vec{E}" />) :</div>
               <div className="vector-val" style={{ color: '#34d399', fontSize: '1.05rem', margin: '0.3rem 0' }}>
                 <TextWithMath text={gaussStep4Detail.eFieldFormula} />
               </div>
@@ -515,7 +515,7 @@ export function GaussWizard() {
             </div>
 
             <div className="gw-final-vector-card" style={{ borderColor: '#f59e0b', background: 'rgba(245, 158, 11, 0.08)' }}>
-              <div className="vector-label" style={{ color: '#f59e0b' }}>Expression Analytique & Valeur au Point M ($V$) :</div>
+              <div className="vector-label" style={{ color: '#f59e0b' }}>Expression Analytique &amp; Valeur au Point M (<InlineMath math="V" />) :</div>
               <div className="vector-val" style={{ color: '#fbbf24', fontSize: '1.05rem', margin: '0.3rem 0' }}>
                 <TextWithMath text={gaussStep5Detail.finalFormula.startsWith('$') ? gaussStep5Detail.finalFormula : `$${gaussStep5Detail.finalFormula}$`} />
               </div>
