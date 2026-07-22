@@ -201,7 +201,7 @@ export function calculatePotentialFromPlane(dist, targetPos, ke = KE_REAL, rMin 
   const P = new THREE.Vector3(...targetPos)
   const C = new THREE.Vector3(...center)
   const d = Math.abs(new THREE.Vector3().subVectors(P, C).dot(n))
-  return -2 * Math.PI * ke * sigma * Math.max(d, rMin)
+  return -2 * Math.PI * ke * sigma * d
 }
 
 /* ---------- Disk ---------- */
@@ -241,7 +241,7 @@ export function calculatePotentialFromDisk(dist, targetPos, ke = KE_REAL, rMin =
   const z = new THREE.Vector3().subVectors(P, C).dot(n)
   const dPerp = Math.sqrt(Math.max(0, new THREE.Vector3().subVectors(P, C).lengthSq() - z * z))
   if (dPerp < 1e-10) {
-    return 2 * Math.PI * ke * sigma * (Math.sqrt(z * z + radius * radius) - Math.max(Math.abs(z), rMin))
+    return 2 * Math.PI * ke * sigma * (Math.sqrt(z * z + radius * radius) - Math.abs(z))
   }
   let V = 0
   const frame = makeLocalFrame(center, new THREE.Vector3(...normal))
@@ -537,7 +537,7 @@ function thickCylShellPotential(rho, inner, outer, d, ke, rMin) {
       - 2 * ke * Math.PI * rho * inner * inner * Math.log(Math.max(outer / Math.max(inner, 1e-14), 1))
   }
   return -2 * ke * lambdaTotal * Math.log(Math.max(outer, rMin))
-    + ke * Math.PI * rho * (outer * outer - dClamped * dClamped)
+    + ke * Math.PI * rho * (outer * outer - d * d)
     - 2 * ke * Math.PI * rho * inner * inner * Math.log(Math.max(outer / Math.max(d, 1e-14), 1))
 }
 
@@ -576,11 +576,11 @@ export function calculatePotentialFromSphere(dist, targetPos, ke = KE_REAL, rMin
   const { density, center, radius, innerRadius = 0, hollow, e_ext = 0, e_int = 0 } = dist
   const C = new THREE.Vector3(...center)
   const P = new THREE.Vector3(...targetPos)
-  const r = Math.max(new THREE.Vector3().subVectors(P, C).length(), rMin)
+  const r = new THREE.Vector3().subVectors(P, C).length()
   if (hollow) {
     const Q = density * (4 * Math.PI * radius * radius)
-    if (r < radius) return ke * Q / Math.max(radius, rMin)
-    return ke * Q / r
+    if (r < radius) return ke * Q / radius
+    return ke * Q / Math.max(r, rMin)
   }
   const a = innerRadius
   const b = radius
