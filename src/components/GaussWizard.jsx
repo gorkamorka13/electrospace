@@ -206,8 +206,17 @@ export function GaussWizard() {
     if (typeof window !== 'undefined') localStorage.setItem('gwPos', JSON.stringify(pos))
   }, [pos])
 
-  const activeDist = distributions[0] || null
+  const GAUSS_COMPATIBLE = ['sphere', 'cylinder', 'line', 'plane']
+  const activeDist = distributions.find(d => GAUSS_COMPATIBLE.includes(d.type)) || null
   const activeType = activeDist ? activeDist.type : 'charges'
+  const hasCompatibleDist = activeDist !== null
+
+  // Auto-close companion if there's no longer a compatible distribution
+  useEffect(() => {
+    if (showGaussCompanion && !hasCompatibleDist) {
+      setShowGaussCompanion(false)
+    }
+  }, [showGaussCompanion, hasCompatibleDist, setShowGaussCompanion])
 
   useEffect(() => {
     if (!showGaussCompanion) return
@@ -262,7 +271,7 @@ export function GaussWizard() {
     }
   }
 
-  if (!showGaussCompanion) return null
+  if (!showGaussCompanion || !hasCompatibleDist) return null
 
   const storeState = useStore.getState()
   const { 

@@ -104,12 +104,15 @@ export function GaussianSurfaceVis() {
     plane2Pos = [0, 0, 0]
     plane2Rot = [euler2.x, euler2.y, euler2.z]
   } else if (configType === 'plane' || gaussSurfaceType === 'box') {
-    // Plan 1: Plan vertical passant par zM du point M
-    plane1Pos = [0, 0, relM.z]
+    // Pour un plan infini chargé horizontal (y=0 dans Three.js), la normale est e_y
+    // Plan 1 (Bleu) : Π_S1 = (M, e_x, e_y) → plan XY de Three.js, vertical selon xz
+    // PlaneGeometry par défaut est dans le plan XY (face vers Z) → rotation [0, 0, 0], centré sur M
+    plane1Pos = [relM.x, relM.y, relM.z]
     plane1Rot = [0, 0, 0]
     
-    // Plan 2: Plan vertical orthogonal passant par xM du point M
-    plane2Pos = [relM.x, 0, 0]
+    // Plan 2 (Rose) : Π_S2 = (M, e_y, e_z) → plan YZ de Three.js
+    // Pour le plan YZ : rotation autour de Y de 90° → [0, Math.PI/2, 0], centré sur M
+    plane2Pos = [relM.x, relM.y, relM.z]
     plane2Rot = [0, Math.PI / 2, 0]
   }
 

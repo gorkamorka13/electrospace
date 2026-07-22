@@ -682,12 +682,27 @@ export function Sidebar() {
       </CollapsibleSection>
 
       <CollapsibleSection title="Théorème de Gauss">
-        <button
-          className={`gauss-toggle ${showGaussCompanion ? 'active' : 'inactive'}`}
-          onClick={() => setShowGaussCompanion(!showGaussCompanion)}
-        >
-          <span aria-hidden="true">{showGaussCompanion ? '❌' : '📖'}</span> {showGaussCompanion ? 'Masquer le compagnon' : 'Lancer le compagnon'}
-        </button>
+        {(() => {
+          const GAUSS_COMPATIBLE = ['sphere', 'cylinder', 'line', 'plane']
+          const hasCompatible = distributions.some(d => GAUSS_COMPATIBLE.includes(d.type))
+          return hasCompatible ? (
+            <button
+              className={`gauss-toggle ${showGaussCompanion ? 'active' : 'inactive'}`}
+              onClick={() => setShowGaussCompanion(!showGaussCompanion)}
+            >
+              <span aria-hidden="true">{showGaussCompanion ? '❌' : '📖'}</span> {showGaussCompanion ? 'Masquer le compagnon' : 'Lancer le compagnon'}
+            </button>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <button className="gauss-toggle inactive" disabled style={{ opacity: 0.45, cursor: 'not-allowed' }}>
+                <span aria-hidden="true">🔒</span> Compagnon indisponible
+              </button>
+              <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', margin: 0, lineHeight: '1.4' }}>
+                ⚠️ Le Théorème de Gauss nécessite une <strong>distribution continue avec symétrie</strong> (sphère, cylindre, fil infini ou plan infini). Ajoutez une telle distribution pour activer le compagnon.
+              </p>
+            </div>
+          )
+        })()}
       </CollapsibleSection>
 
       <div className="sidebar-footer">
