@@ -184,10 +184,10 @@ export function calculateGaussParameters(state) {
 
     if (r_g < R) {
       if (hollow) {
-        vFieldFormula = "V(r) = (k_e · Q) / R (Constant à l'intérieur)"
+        vFieldFormula = "V(r) = \\frac{k_e Q}{R} \\text{ (Constant à l'intérieur)}"
         vValue = R > 0 ? (KE_REAL * Q) / R : 0
       } else {
-        vFieldFormula = "V(r) = (k_e · Q / 2R) · [3 - (r/R)²]"
+        vFieldFormula = "V(r) = \\frac{k_e Q}{2 R} \\cdot \\left[3 - \\left(\\frac{r}{R}\\right)^2\\right]"
         vValue = R > 0 ? (KE_REAL * Q / (2 * R)) * (3 - Math.pow(r_g / R, 2)) : 0
       }
     } else {
@@ -204,7 +204,7 @@ export function calculateGaussParameters(state) {
         : "$E(r) = \\frac{k_e Q}{r^2}$",
       vectorResult: `\\vec{E}(M) = ${eField.toExponential(2)} \\, \\vec{e}_r \\text{ V/m}`,
       vFieldFormula,
-      vValueStr: `V(M) = ${Math.abs(vValue) >= 1000 ? (vValue / 1000).toFixed(2) + ' kV' : vValue.toFixed(2) + ' V'}`
+      vValueStr: `$V(M) = ${Math.abs(vValue) >= 1000 ? (vValue / 1000).toFixed(2) + ' \\text{ kV}' : vValue.toFixed(2) + ' \\text{ V}'}$`
     }
 
     let gaussStep5Detail = {
@@ -219,7 +219,7 @@ export function calculateGaussParameters(state) {
         ? "$C_{\\text{int}} = V_{\\text{ext}}(R) = \\frac{k_e Q}{R}$"
         : "$-\\frac{k_e Q}{2 R} + C_{\\text{int}} = \\frac{k_e Q}{R} \\implies C_{\\text{int}} = \\frac{3 k_e Q}{2 R}$",
       finalFormula: vFieldFormula,
-      finalValueStr: `V(M) = ${Math.abs(vValue) >= 1000 ? (vValue / 1000).toFixed(2) + ' kV' : vValue.toFixed(2) + ' V'}`
+      finalValueStr: `$V(M) = ${Math.abs(vValue) >= 1000 ? (vValue / 1000).toFixed(2) + ' \\text{ kV}' : vValue.toFixed(2) + ' \\text{ V}'}$`
     }
 
     return { 
@@ -281,7 +281,7 @@ export function calculateGaussParameters(state) {
         : "$E(r) = \\frac{2 k_e \\lambda}{r}$",
       vectorResult: `\\vec{E}(M) = ${eField.toExponential(2)} \\, \\vec{e}_r \\text{ V/m}`,
       vFieldFormula,
-      vValueStr: `V(M) = ${Math.abs(vValue) >= 1000 ? (vValue / 1000).toFixed(2) + ' kV' : vValue.toFixed(2) + ' V'}`
+      vValueStr: `$V(M) = ${Math.abs(vValue) >= 1000 ? (vValue / 1000).toFixed(2) + ' \\text{ kV}' : vValue.toFixed(2) + ' \\text{ V}'}$`
     }
 
     let gaussStep5Detail = {
@@ -296,7 +296,7 @@ export function calculateGaussParameters(state) {
         ? "$C_{\\text{int}} = 0 \\implies V_{\\text{int}}(r) = 0$"
         : "$-k_e \\lambda + C_{\\text{int}} = 0 \\implies C_{\\text{int}} = k_e \\lambda$",
       finalFormula: vFieldFormula,
-      finalValueStr: `V(M) = ${Math.abs(vValue) >= 1000 ? (vValue / 1000).toFixed(2) + ' kV' : vValue.toFixed(2) + ' V'}`
+      finalValueStr: `$V(M) = ${Math.abs(vValue) >= 1000 ? (vValue / 1000).toFixed(2) + ' \\text{ kV}' : vValue.toFixed(2) + ' \\text{ V}'}$`
     }
 
     return { 
@@ -353,7 +353,7 @@ export function calculateGaussParameters(state) {
       continuity: "Continuité de $V(x)$ en $x = 0$ garantie",
       constantResolution: "$C = 0$",
       finalFormula: vFieldFormula,
-      finalValueStr: `V(M) = ${Math.abs(vValue) >= 1000 ? (vValue / 1000).toFixed(2) + ' kV' : vValue.toFixed(2) + ' V'}`
+      finalValueStr: `$V(M) = ${Math.abs(vValue) >= 1000 ? (vValue / 1000).toFixed(2) + ' \\text{ kV}' : vValue.toFixed(2) + ' \\text{ V}'}$`
     }
 
     return { 

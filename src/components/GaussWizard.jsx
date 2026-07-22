@@ -473,9 +473,14 @@ export function GaussWizard() {
               <p className="formula-text">🔹 <TextWithMath text={gaussStep4Detail.eFieldFormula} /></p>
             </div>
             
-            <div className="gw-final-vector-card">
-              <div className="vector-label">Champ Vectoriel Final <InlineMath math="\vec{E}(M)" /> :</div>
-              <div className="vector-val"><InlineMath math={gaussStep4Detail.vectorResult} /></div>
+            <div className="gw-final-vector-card" style={{ borderColor: '#10b981', background: 'rgba(16, 185, 129, 0.08)' }}>
+              <div className="vector-label" style={{ color: '#10b981' }}>Expression Analytique & Valeur au Point M ($\vec{E}$) :</div>
+              <div className="vector-val" style={{ color: '#34d399', fontSize: '1.05rem', margin: '0.3rem 0' }}>
+                <TextWithMath text={gaussStep4Detail.eFieldFormula} />
+              </div>
+              <div className="vector-val" style={{ fontSize: '1.15rem', color: '#fbbf24', marginTop: '0.3rem' }}>
+                <InlineMath math={gaussStep4Detail.vectorResult} />
+              </div>
             </div>
 
             <p className="note-text-center">
@@ -509,10 +514,14 @@ export function GaussWizard() {
               </div>
             </div>
 
-            <div className="gw-final-vector-card" style={{ borderColor: '#f59e0b', background: 'rgba(245, 158, 11, 0.1)' }}>
-              <div className="vector-label" style={{ color: '#f59e0b' }}>Expression Analytique & Valeur au Point M :</div>
-              <div className="vector-val" style={{ color: '#fbbf24' }}><InlineMath math={gaussStep5Detail.finalFormula} /></div>
-              <div className="vector-val" style={{ fontSize: '1.2rem', color: '#10b981', marginTop: '0.4rem' }}>{gaussStep5Detail.finalValueStr}</div>
+            <div className="gw-final-vector-card" style={{ borderColor: '#f59e0b', background: 'rgba(245, 158, 11, 0.08)' }}>
+              <div className="vector-label" style={{ color: '#f59e0b' }}>Expression Analytique & Valeur au Point M ($V$) :</div>
+              <div className="vector-val" style={{ color: '#fbbf24', fontSize: '1.05rem', margin: '0.3rem 0' }}>
+                <TextWithMath text={gaussStep5Detail.finalFormula.startsWith('$') ? gaussStep5Detail.finalFormula : `$${gaussStep5Detail.finalFormula}$`} />
+              </div>
+              <div className="vector-val" style={{ fontSize: '1.15rem', color: '#34d399', marginTop: '0.3rem' }}>
+                <TextWithMath text={gaussStep5Detail.finalValueStr} />
+              </div>
             </div>
 
             <p className="note-text-center">
