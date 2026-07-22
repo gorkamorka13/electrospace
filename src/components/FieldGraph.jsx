@@ -136,12 +136,11 @@ export function FieldGraph() {
     const physicalCharges = distributions.length > 0 ? [] : charges.map(c => ({ ...c, q: c.q * multiplier }))
     const { ke, rMin } = useStore.getState()
     const axisIndex = 'xyz'.indexOf(sweepAxis)
-    const pos = [0, 0, 0]
+    const pos = [...testPoint]
     const pts = []
     let minVal = Infinity, maxVal = -Infinity
     for (let i = 0; i < SAMPLES; i++) {
       const t = (i / (SAMPLES - 1)) * (AXIS_RANGE * 2) - AXIS_RANGE
-      pos.fill(0)
       pos[axisIndex] = t
       const E = calculateTotalField(physicalCharges, pos, ke, rMin, distributions)
       const val = fieldKey === 'mag' ? E.length() : E[fieldKey[1]]

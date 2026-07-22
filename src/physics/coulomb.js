@@ -4,7 +4,7 @@ import { makeLocalFrame, worldFromLocal, fibonacciSphere } from './utils'
 export const KE_REAL = 8.9875517923e9
 export const E_CHARGE = 1.602176634e-19
 
-export function calculateFieldFromCharge(charge, targetPos, ke = KE_REAL, rMin = 0.5) {
+export function calculateFieldFromCharge(charge, targetPos, ke = KE_REAL, rMin = 0.05) {
   const q = charge.q
   const chargePos = new THREE.Vector3(...charge.position)
   const M = new THREE.Vector3(...targetPos)
@@ -15,14 +15,14 @@ export function calculateFieldFromCharge(charge, targetPos, ke = KE_REAL, rMin =
   return u.multiplyScalar((ke * q) / (r * r))
 }
 
-export function calculateTotalField(charges, targetPos, ke = KE_REAL, rMin = 0.5, distributions = []) {
+export function calculateTotalField(charges, targetPos, ke = KE_REAL, rMin = 0.05, distributions = []) {
   const totalField = new THREE.Vector3(0, 0, 0)
   charges.forEach(c => totalField.add(calculateFieldFromCharge(c, targetPos, ke, rMin)))
   distributions.forEach(d => totalField.add(calculateFieldFromDistribution(d, targetPos, ke, rMin)))
   return totalField
 }
 
-export function calculatePotentialFromCharge(charge, targetPos, ke = KE_REAL, rMin = 0.5) {
+export function calculatePotentialFromCharge(charge, targetPos, ke = KE_REAL, rMin = 0.05) {
   const chargePos = new THREE.Vector3(...charge.position)
   const M = new THREE.Vector3(...targetPos)
   const rVec = new THREE.Vector3().subVectors(M, chargePos)

@@ -63,6 +63,8 @@ export function PhysicsCanvas({ rootRef: _rootRef }) {
   const toggleLockedAxis = useStore((state) => state.toggleLockedAxis)
   const activeView = useStore((state) => state.activeView)
   const setActiveView = useStore((state) => state.setActiveView)
+  const cameraMode = useStore((state) => state.cameraMode)
+  const setCameraMode = useStore((state) => state.setCameraMode)
   const showForces = useStore((state) => state.showForces)
   const setShowForces = useStore((state) => state.setShowForces)
   const showFieldLines = useStore((state) => state.showFieldLines)
@@ -92,19 +94,19 @@ export function PhysicsCanvas({ rootRef: _rootRef }) {
     let cameraPos, lookAt
 
     if (viewName === 'top') {
-      // Top view looking down on the XZ plane
+      setCameraMode('orthographic')
       cameraPos = new THREE.Vector3(0.001, 15, 0)
       lookAt = new THREE.Vector3(0, 0.5, 0)
     } else if (viewName === 'front') {
-      // Front view looking along Z at the XY plane
+      setCameraMode('orthographic')
       cameraPos = new THREE.Vector3(0, 0.5, 15)
       lookAt = new THREE.Vector3(0, 0.5, 0)
     } else if (viewName === 'side') {
-      // Side view looking along X at the ZY plane
+      setCameraMode('orthographic')
       cameraPos = new THREE.Vector3(15, 0.5, 0)
       lookAt = new THREE.Vector3(0, 0.5, 0)
     } else if (viewName === 'isometric') {
-      // Default isometric reset view
+      setCameraMode('perspective')
       cameraPos = new THREE.Vector3(1.7, 8, 12)
       lookAt = new THREE.Vector3(0, 0.5, 0)
     }
@@ -351,16 +353,9 @@ export function PhysicsCanvas({ rootRef: _rootRef }) {
         shadows="pcf"
         onPointerMissed={() => {}}
       >
-        {activeView === 'top' || activeView === 'front' || activeView === 'side' ? (
+        {cameraMode === 'orthographic' ? (
           <OrthographicCamera
             makeDefault
-            position={
-              activeView === 'top'
-                ? [0.001, 20, 0]
-                : activeView === 'front'
-                ? [0, 0.5, 20]
-                : [20, 0.5, 0]
-            }
             zoom={45}
             near={-1000}
             far={1000}

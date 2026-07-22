@@ -126,12 +126,11 @@ export function PotentialXGraph() {
     const physicalCharges = distributions.length > 0 ? [] : charges.map(c => ({ ...c, q: c.q * multiplier }))
     const { ke, rMin } = useStore.getState()
     const axisIdx = potAxis === 'x' ? 0 : potAxis === 'y' ? 1 : 2
-    const pos = [0, 0, 0]
+    const pos = [...testPoint]
     const pts = []
     let minV = Infinity, maxV = -Infinity
     for (let i = 0; i < SAMPLES; i++) {
       const t = (i / (SAMPLES - 1)) * (AXIS_RANGE * 2) - AXIS_RANGE
-      pos.fill(0)
       pos[axisIdx] = t
       const V = calculateTotalPotential(physicalCharges, pos, ke, rMin, distributions)
       pts.push({ t, V })
@@ -249,7 +248,7 @@ export function PotentialXGraph() {
     ctx.restore()
     ctx.fillStyle = titleColor
     ctx.font = '9px monospace'
-    ctx.fillText(`V(${data.axisLabel}) au centre`, PAD + 4, PAD + 12)
+    ctx.fillText(`V(${data.axisLabel}) passant par M`, PAD + 4, PAD + 12)
     ctx.fillStyle = infoColor
     ctx.font = '12px monospace'
     ctx.fillText(`M: ${data.axisLabel}=${data.testPos.toFixed(2)}`, PAD + 4, PAD + plotH - 4)
