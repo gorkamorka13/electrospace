@@ -1490,6 +1490,154 @@ body, html, #root {
   font-weight: 500;
 }
 
+/* Gauss Companion Pedagogical Enhancements */
+.gw-basis-svg-card {
+  background: rgba(15, 23, 42, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 0.6rem;
+  margin: 0.8rem 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.basis-title {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--color-accent);
+  margin-bottom: 0.4rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.basis-svg {
+  width: 100%;
+  max-width: 260px;
+  height: auto;
+}
+
+.gw-rule-box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: 0.8rem;
+}
+
+.rule-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  background: rgba(255, 255, 255, 0.02);
+  border-left: 3px solid var(--color-accent);
+  padding: 0.4rem 0.6rem;
+  border-radius: 4px;
+  font-size: 0.76rem;
+  color: var(--text-primary);
+}
+
+.badge-rule {
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0.1rem 0.35rem;
+  border-radius: 3px;
+  align-self: flex-start;
+  text-transform: uppercase;
+}
+
+.badge-rule.green {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.badge-rule.red {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.gw-planes-list {
+  list-style: none;
+  padding: 0;
+  margin: 0.3rem 0 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.76rem;
+  color: var(--text-secondary);
+}
+
+.gw-math-card {
+  background: rgba(245, 158, 11, 0.06);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  border-radius: 8px;
+  padding: 0.6rem 0.8rem;
+  margin-bottom: 0.8rem;
+}
+
+.math-card-title {
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.25rem;
+}
+
+.math-card-body {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #fbbf24;
+}
+
+.gw-table-container {
+  overflow-x: auto;
+  margin-top: 0.4rem;
+}
+
+.gw-dot-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.72rem;
+}
+
+.gw-dot-table th, .gw-dot-table td {
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--border-color);
+  text-align: left;
+}
+
+.gw-dot-table th {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.gw-final-vector-card {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(59, 130, 246, 0.12));
+  border: 1.5px solid #10b981;
+  border-radius: 8px;
+  padding: 0.75rem;
+  margin: 0.8rem 0;
+  text-align: center;
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.2);
+}
+
+.vector-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #34d399;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.25rem;
+}
+
+.vector-val {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #f59e0b;
+  font-family: monospace;
+}
+
+
 .surface-buttons {
   display: flex;
   gap: 0.4rem;

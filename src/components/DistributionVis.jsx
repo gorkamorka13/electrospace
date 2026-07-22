@@ -27,7 +27,7 @@ function CylinderVis({ dist }) {
   const frame = makeLocalFrame(dist.center, dist.axis)
   const quat = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), frame.z)
   
-  const showGauss = useStore((state) => state.showGaussCompanion)
+  const showGauss = useStore((state) => state.showGaussCompanion && state.gaussStep >= 3)
   const r_g = useStore((state) => state.gaussSurfaceRadius)
   const h_g = useStore((state) => state.gaussSurfaceHeight)
   const R = dist.radius
@@ -169,7 +169,7 @@ function PlaneVis({ dist }) {
   const frame = makeLocalFrame(dist.center, dist.normal)
   const quat = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), frame.z)
   
-  const showGauss = useStore((state) => state.showGaussCompanion)
+  const showGauss = useStore((state) => state.showGaussCompanion && state.gaussStep >= 3)
   const w_g = useStore((state) => state.gaussSurfaceWidth)
   const h_g = useStore((state) => state.gaussSurfaceHeight)
   const highlightColor = '#fbbf24'
@@ -209,7 +209,7 @@ function DiskVis({ dist }) {
   const frame = makeLocalFrame(dist.center, dist.normal)
   const quat = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), frame.z)
   
-  const showGauss = useStore((state) => state.showGaussCompanion)
+  const showGauss = useStore((state) => state.showGaussCompanion && state.gaussStep >= 3)
   const r_g = useStore((state) => state.gaussSurfaceRadius)
   const highlightColor = '#fbbf24'
 
@@ -296,7 +296,7 @@ function BoxVis({ dist }) {
 
 function SphereVis({ dist }) {
   const openContextMenu = useStore((s) => s.openContextMenu)
-  const showGauss = useStore((state) => state.showGaussCompanion)
+  const showGauss = useStore((state) => state.showGaussCompanion && state.gaussStep >= 3)
   const r_g = useStore((state) => state.gaussSurfaceRadius)
   const R = dist.radius
   const a = dist.innerRadius || 0
