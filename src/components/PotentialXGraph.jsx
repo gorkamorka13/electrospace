@@ -263,7 +263,7 @@ export function PotentialXGraph() {
   return (
     <div className="pg-window" ref={winRef} style={{ left: x, top: y, width: w, height: h }}
       onPointerDown={(e) => {
-        if (e.target.closest?.('select, button, .pg-close, .pg-axis-select')) return
+        if (e.target.closest?.('select, button, .pg-close, .pg-axis-select, .pg-resize')) return
         const header = e.target.closest?.('.pg-header')
         if (!header) return
         e.preventDefault()
@@ -296,6 +296,8 @@ export function PotentialXGraph() {
         onPointerDown={(e) => {
           e.preventDefault()
           e.stopPropagation()
+          const target = e.currentTarget
+          try { target.setPointerCapture(e.pointerId) } catch {}
           const cur = winRefState.current
           const sw = cur.w, sh = cur.h
           const sx = e.clientX, sy = e.clientY
@@ -303,9 +305,15 @@ export function PotentialXGraph() {
             const mw = window.innerWidth, mh = window.innerHeight
             return { ...prev, w: Math.max(MIN_W, Math.min(mw - prev.x - MARGIN, sw + ev.clientX - sx)), h: Math.max(MIN_H, Math.min(mh - prev.y - MARGIN, sh + ev.clientY - sy)) }
           }) }
-          const up = () => { window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', up); dragCleanupRef.current = null }
+          const up = (ev) => {
+            try { target.releasePointerCapture(ev.pointerId) } catch {}
+            window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', up); dragCleanupRef.current = null
+          }
           window.addEventListener('pointermove', mv); window.addEventListener('pointerup', up)
-          dragCleanupRef.current = () => { window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', up) }
+          dragCleanupRef.current = () => {
+            try { target.releasePointerCapture(e.pointerId) } catch {}
+            window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', up)
+          }
         }}
       />
     </div>

@@ -1184,10 +1184,12 @@ body, html, #root {
   position: absolute;
   bottom: 0;
   right: 0;
-  width: 14px;
-  height: 14px;
+  width: 18px;
+  height: 18px;
   cursor: nwse-resize;
-  background: linear-gradient(135deg, transparent 50%, rgba(255,255,255,0.15) 50%);
+  background: linear-gradient(135deg, transparent 50%, rgba(255,255,255,0.25) 50%);
+  z-index: 10;
+  touch-action: none;
 }
 
 :root[data-theme='light'] .pg-window {
