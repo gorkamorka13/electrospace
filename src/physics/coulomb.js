@@ -167,12 +167,12 @@ export function calculatePotentialFromCylinder(dist, targetPos, ke = KE_REAL, rM
           - 2 * ke * Math.PI * density * a * a * Math.log(Math.max(b / Math.max(a, 1e-14), 1))
       }
       return -2 * ke * lambdaTotal * Math.log(Math.max(b, rMin))
-        + ke * Math.PI * density * (b * b - dClamped * dClamped)
+        + ke * Math.PI * density * (b * b - d * d)
         - 2 * ke * Math.PI * density * a * a * Math.log(Math.max(b / Math.max(d, 1e-14), 1))
     }
     const lambda = density * Math.PI * b * b
     if (d < b) {
-      return ke * Math.PI * density * (b * b - dClamped * dClamped) - 2 * ke * lambda * Math.log(Math.max(b, rMin))
+      return ke * Math.PI * density * (b * b - d * d) - 2 * ke * lambda * Math.log(Math.max(b, rMin))
     }
     return -2 * ke * lambda * Math.log(dClamped)
   }
