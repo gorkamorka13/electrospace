@@ -363,6 +363,7 @@ export function Sidebar() {
   const selectedObjectId = useStore((s) => s.selectedObjectId)
   const setSelectedObjectId = useStore((s) => s.setSelectedObjectId)
   const distributions = useStore((s) => s.distributions)
+  const charges = useStore((s) => s.charges)
   const addDistribution = useStore((s) => s.addDistribution)
   const removeDistribution = useStore((s) => s.removeDistribution)
   const updateDistribution = useStore((s) => s.updateDistribution)
@@ -684,7 +685,22 @@ export function Sidebar() {
       <CollapsibleSection title="Théorème de Gauss">
         {(() => {
           const GAUSS_COMPATIBLE = ['sphere', 'cylinder', 'line', 'plane']
-          const hasCompatible = distributions.some(d => GAUSS_COMPATIBLE.includes(d.type))
+          const hasCharges = charges.length > 0
+          const hasCompatible = !hasCharges && distributions.some(d => GAUSS_COMPATIBLE.includes(d.type))
+
+          if (hasCharges) {
+            return (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <button className="gauss-toggle inactive" disabled style={{ opacity: 0.45, cursor: 'not-allowed' }}>
+                  <span aria-hidden="true">🔒</span> Compagnon indisponible
+                </button>
+                <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', margin: 0, lineHeight: '1.4' }}>
+                  ⚠️ Le Théorème de Gauss n'est pas disponible en présence de <strong>charges ponctuelles</strong>. Supprimez les charges ponctuelles et utilisez une distribution continue avec symétrie (sphère, cylindre, fil infini ou plan infini).
+                </p>
+              </div>
+            )
+          }
+
           return hasCompatible ? (
             <button
               className={`gauss-toggle ${showGaussCompanion ? 'active' : 'inactive'}`}

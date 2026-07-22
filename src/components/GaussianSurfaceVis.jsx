@@ -14,13 +14,14 @@ export function GaussianSurfaceVis() {
   const gaussCenter = useStore((state) => state.gaussCenter)
   const testPoint = useStore((state) => state.testPoint)
   const distributions = useStore((state) => state.distributions)
+  const charges = useStore((state) => state.charges)
 
   const groupRef = useRef()
 
-  if (!showGaussCompanion) return null
+  if (!showGaussCompanion || charges.length > 0) return null
 
   const activeDist = distributions[0] || null
-  const configType = activeDist ? activeDist.type : 'charges'
+  const configType = activeDist ? activeDist.type : null
 
   // Glowing, translucent green-cyan for Gaussian surface
   const surfaceColor = '#10b981' 

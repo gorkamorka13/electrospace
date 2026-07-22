@@ -206,17 +206,18 @@ export function GaussWizard() {
     if (typeof window !== 'undefined') localStorage.setItem('gwPos', JSON.stringify(pos))
   }, [pos])
 
+  const charges = useStore((state) => state.charges)
   const GAUSS_COMPATIBLE = ['sphere', 'cylinder', 'line', 'plane']
-  const activeDist = distributions.find(d => GAUSS_COMPATIBLE.includes(d.type)) || null
-  const activeType = activeDist ? activeDist.type : 'charges'
+  const activeDist = charges.length === 0 ? (distributions.find(d => GAUSS_COMPATIBLE.includes(d.type)) || null) : null
+  const activeType = activeDist ? activeDist.type : null
   const hasCompatibleDist = activeDist !== null
 
-  // Auto-close companion if there's no longer a compatible distribution
+  // Auto-close companion if there's no longer a compatible distribution or if point charges are added
   useEffect(() => {
-    if (showGaussCompanion && !hasCompatibleDist) {
+    if (showGaussCompanion && (!hasCompatibleDist || charges.length > 0)) {
       setShowGaussCompanion(false)
     }
-  }, [showGaussCompanion, hasCompatibleDist, setShowGaussCompanion])
+  }, [showGaussCompanion, hasCompatibleDist, charges.length, setShowGaussCompanion])
 
   useEffect(() => {
     if (!showGaussCompanion) return
