@@ -1,4 +1,4 @@
-import { useRef, useMemo } from 'react'
+import { useRef, useMemo, useState } from 'react'
 import * as THREE from 'three'
 import { Billboard, Text } from '@react-three/drei'
 import { useStore, UNIT_FACTORS } from '../store/useStore'
@@ -31,6 +31,8 @@ export function TestPoint() {
   }, [charges, distributions, chargeUnit, testPoint])
 
   const meshRef = useRef()
+  const coordTipTimeout = useRef(null)
+  const [showCoordTip, setShowCoordTip] = useState(false)
   const isSelected = selectedObjectId === 'testPoint'
 
   const handlePointerDown = (e) => {
@@ -38,6 +40,8 @@ export function TestPoint() {
     e.target.setPointerCapture(e.pointerId)
     setDragging(true)
     setSelectedObjectId('testPoint')
+    if (coordTipTimeout.current) clearTimeout(coordTipTimeout.current)
+    setShowCoordTip(true)
   }
 
   const handlePointerMove = (e) => {
@@ -84,6 +88,8 @@ export function TestPoint() {
       // ignore if already released
     }
     setDragging(false)
+    if (coordTipTimeout.current) clearTimeout(coordTipTimeout.current)
+    coordTipTimeout.current = setTimeout(() => setShowCoordTip(false), 1000)
   }
 
   const labelColor = '#f59e0b'
@@ -142,6 +148,22 @@ export function TestPoint() {
           {potentialStr}
         </Text>
       </Billboard>
+
+      {showCoordTip && (
+        <Billboard position={[0, -1.1, 0]}>
+          <Text
+            fontSize={0.2}
+            color="#facc15"
+            anchorX="center"
+            anchorY="middle"
+            outlineColor={theme === 'dark' ? '#070a13' : '#f8fafc'}
+            outlineWidth={0.02}
+            fontWeight="bold"
+          >
+            [{Number(testPoint[0]).toFixed(2)}, {Number(testPoint[1]).toFixed(2)}, {Number(testPoint[2]).toFixed(2)}]
+          </Text>
+        </Billboard>
+      )}
 
       {isSelected && (
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.5, 0]}>

@@ -123,6 +123,7 @@ export const useStore = create((set, get) => ({
   history: [],
   future: [],
   showHelp: false,
+  toast: null,
 
   setDragging: (isDragging) => set({ isDragging }),
   setSelectedObjectId: (id) => set({ selectedObjectId: id }),
@@ -144,6 +145,15 @@ export const useStore = create((set, get) => ({
   setCameraMode: (cameraMode) => set({ cameraMode }),
   setChargeUnit: (chargeUnit) => set({ chargeUnit }),
   setShowHelp: (v) => set({ showHelp: v }),
+  setToast: ({ message, type = 'error', duration = 4000 }) => {
+    set({ toast: { message, type } })
+    if (typeof window !== 'undefined') {
+      setTimeout(() => {
+        const current = get().toast
+        if (current && current.message === message) set({ toast: null })
+      }, duration)
+    }
+  },
   setVectorScale: (vectorScale) => set({ vectorScale }),
   setShowForces: (showForces) => set({ showForces }),
   setShowFieldLines: (showFieldLines) => set({ showFieldLines }),
@@ -228,7 +238,9 @@ export const useStore = create((set, get) => ({
   importScene: (jsonStr) => {
     try {
       const data = JSON.parse(jsonStr)
-      if (!data.charges || !Array.isArray(data.charges)) return false
+      if (!data.charges || !Array.isArray(data.charges)) {
+        return { success: false, error: 'Fichier invalide : propriété "charges" manquante ou non valide.' }
+      }
       get().pushHistory()
       const charges = data.charges.map((c, i) => ({
         id: String(i + 1),
@@ -267,9 +279,9 @@ export const useStore = create((set, get) => ({
         activeView: data.activeView || 'isometric',
         selectedObjectId: null,
       })
-      return true
-    } catch {
-      return false
+      return { success: true, error: null }
+    } catch (e) {
+      return { success: false, error: `Erreur de lecture du fichier : ${e.message}` }
     }
   },
 

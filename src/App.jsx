@@ -3,6 +3,7 @@ import { Sidebar } from './components/Sidebar'
 import { PhysicsCanvas } from './components/PhysicsCanvas'
 import { ContextMenu } from './components/ContextMenu'
 import { HelpModal } from './components/HelpModal'
+import { Toast } from './components/Toast'
 import { useStore } from './store/useStore'
 
 function App() {
@@ -140,6 +141,7 @@ function App() {
       </main>
     </div>
     <ContextMenu />
+    <Toast />
     <HelpModal />
     </>
   )

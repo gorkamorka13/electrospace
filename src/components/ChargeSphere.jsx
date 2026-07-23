@@ -1,7 +1,9 @@
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import * as THREE from 'three'
 import { Billboard, Text } from '@react-three/drei'
 import { useStore } from '../store/useStore'
+
+function clamp(v) { return Number(v.toFixed(2)) }
 
 export function ChargeSphere({ charge }) {
   const updateChargePosition = useStore((state) => state.updateChargePosition)
@@ -16,6 +18,8 @@ export function ChargeSphere({ charge }) {
   const theme = useStore((state) => state.theme)
   
   const meshRef = useRef()
+  const coordTipTimeout = useRef(null)
+  const [showCoordTip, setShowCoordTip] = useState(false)
   const isSelected = selectedObjectId === charge.id
   const radius = Math.max(0.15, Math.min(0.8, 0.35 * Math.pow(Math.abs(charge.q), 1 / 3)))
 
@@ -24,6 +28,8 @@ export function ChargeSphere({ charge }) {
     e.target.setPointerCapture(e.pointerId)
     setDragging(true)
     setSelectedObjectId(charge.id)
+    if (coordTipTimeout.current) clearTimeout(coordTipTimeout.current)
+    setShowCoordTip(true)
   }
 
   const handlePointerMove = (e) => {
@@ -81,11 +87,20 @@ export function ChargeSphere({ charge }) {
     }
     setDragging(false)
     pushHistory()
+    if (coordTipTimeout.current) clearTimeout(coordTipTimeout.current)
+    coordTipTimeout.current = setTimeout(() => setShowCoordTip(false), 1000)
   }
 
-  // Visuals: Red for positive charges, Blue for negative charges
-  const color = charge.q >= 0 ? '#ff3e3e' : '#3e8bff'
-  const emissive = charge.q >= 0 ? '#ff3e3e' : '#3e8bff'
+  // Color gradient based on relative charge magnitude
+  const allCharges = useStore((state) => state.charges)
+  const maxMag = Math.max(...allCharges.map(c => Math.abs(c.q)), 1)
+  const intensity = Math.abs(charge.q) / maxMag
+  // positive: hue 0° (red), negative: hue 220° (blue)
+  const hue = charge.q >= 0 ? 0 : 220
+  const sat = 20 + 70 * intensity
+  const lig = 70 - 25 * intensity
+  const color = `hsl(${hue}, ${sat}%, ${lig}%)`
+  const emissive = `hsl(${hue}, ${Math.min(100, sat * 1.2)}%, ${lig - 10}%)`
 
   return (
     <group position={charge.position}>
@@ -134,6 +149,23 @@ export function ChargeSphere({ charge }) {
             {charge.name}
           </Text>
         </Billboard>
+
+        {/* Drag coordinate tooltip — shown while dragging + 1s after */}
+        {showCoordTip && (
+          <Billboard position={[0, -radius - 0.35, 0]}>
+            <Text
+              fontSize={0.22}
+              color="#facc15"
+              anchorX="center"
+              anchorY="middle"
+              outlineColor={theme === 'dark' ? '#070a13' : '#f8fafc'}
+              outlineWidth={0.02}
+              fontWeight="bold"
+            >
+              [{clamp(charge.position[0])}, {clamp(charge.position[1])}, {clamp(charge.position[2])}]
+            </Text>
+          </Billboard>
+        )}
         
         {/* Neon selection ring under the charge */}
         {isSelected && (

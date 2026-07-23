@@ -85,6 +85,8 @@ export function PhysicsCanvas({ rootRef: _rootRef }) {
   const setShowFieldGraph = useStore((state) => state.setShowFieldGraph)
   const sidebarOpen = useStore((state) => state.sidebarOpen)
 
+  const chargeUnit = useStore((state) => state.chargeUnit)
+
   const controlsRef = useRef()
   const animationTarget = useRef(null)
   const [toolbarOpen, setToolbarOpen] = useState(true)
@@ -337,6 +339,14 @@ export function PhysicsCanvas({ rootRef: _rootRef }) {
             <div className="controls-divider"></div>
           </div>
         )}
+      </div>
+
+      {/* Floating legend: unit + scale */}
+      <div className="canvas-legend">
+        {(() => {
+          const labels = { uC: 'µC', nC: 'nC', C: 'C', e: 'e⁻' }
+          return `Unité : ${labels[chargeUnit] || chargeUnit} | Échelle : 1 = 1 mètre`
+        })()}
       </div>
 
       {/* Subtle bottom-center watermark credits */}

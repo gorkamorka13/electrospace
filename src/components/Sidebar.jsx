@@ -379,6 +379,7 @@ export function Sidebar() {
   // Stable action selectors
   const exportScene = useStore((s) => s.exportScene)
   const importScene = useStore((s) => s.importScene)
+  const setToast = useStore((s) => s.setToast)
   const setSidebarOpen = useStore((s) => s.setSidebarOpen)
   const sidebarOpen = useStore((s) => s.sidebarOpen)
   const theme = useStore((s) => s.theme)
@@ -484,7 +485,11 @@ export function Sidebar() {
                       const file = e.target.files?.[0]
                       if (!file) return
                       const reader = new FileReader()
-                      reader.onload = (ev) => { importScene(ev.target.result); e.target.value = '' }
+                      reader.onload = (ev) => {
+                        const result = importScene(ev.target.result)
+                        if (!result.success) setToast({ message: result.error, type: 'error' })
+                        e.target.value = ''
+                      }
                       reader.readAsText(file)
                     }}
                   />
