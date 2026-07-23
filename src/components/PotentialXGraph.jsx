@@ -257,12 +257,33 @@ export function PotentialXGraph() {
   const winRefState = useRef(win)
   winRefState.current = win
 
+  const exportPng = useCallback(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const link = document.createElement('a')
+    link.download = `potential-graph-${potAxis}.png`
+    link.href = canvas.toDataURL('image/png')
+    link.click()
+  }, [potAxis])
+
+  const exportCsv = useCallback(() => {
+    if (!data) return
+    const header = `position_${potAxis}_m,V_V\n`
+    const rows = data.pts.map(p => `${p.t},${p.V}`).join('\n')
+    const blob = new Blob([header + rows], { type: 'text/csv' })
+    const link = document.createElement('a')
+    link.download = `potential-graph-${potAxis}.csv`
+    link.href = URL.createObjectURL(blob)
+    link.click()
+    URL.revokeObjectURL(link.href)
+  }, [data, potAxis])
+
   if (!show || !data) return null
 
   return (
     <div className="pg-window" ref={winRef} style={{ left: x, top: y, width: w, height: h }}
       onPointerDown={(e) => {
-        if (e.target.closest?.('select, button, .pg-close, .pg-axis-select, .pg-resize')) return
+        if (e.target.closest?.('select, button, .pg-close, .pg-axis-select, .pg-export-btn, .pg-resize')) return
         const header = e.target.closest?.('.pg-header')
         if (!header) return
         e.preventDefault()
@@ -281,6 +302,8 @@ export function PotentialXGraph() {
           {AXIS_KEYS.map(k => <option key={k} value={k}>Axe {AXIS_LABELS[k]}</option>)}
         </select>
         <span className="pg-test-val" style={{ color: '#4ade80' }}>{data.testV.toExponential(2)} V</span>
+        <button className="pg-export-btn" onClick={exportPng} title="Exporter PNG">🖼</button>
+        <button className="pg-export-btn" onClick={exportCsv} title="Copier CSV">📋</button>
         <button className="pg-close" onClick={() => setShow(false)}>&times;</button>
       </div>
       <div className="pg-body">

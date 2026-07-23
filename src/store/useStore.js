@@ -41,6 +41,17 @@ const PRESETS = {
     { id: '7', q: 1, position: [-2, -2, 2], name: 'G' },
     { id: '8', q: -1, position: [-2, -2, -2], name: 'H' },
   ],
+  tripole: [
+    { id: '1', q: 1.0, position: [0, 2, 0], name: 'A' },
+    { id: '2', q: -1.0, position: [1.732, -1, 0], name: 'B' },
+    { id: '3', q: 1.0, position: [-1.732, -1, 0], name: 'C' },
+  ],
+  tetrahedron: [
+    { id: '1', q: 1.0, position: [0, 3, 0], name: 'A' },
+    { id: '2', q: -1.0, position: [2, 0, 0], name: 'B' },
+    { id: '3', q: 1.0, position: [-1, 0, 1.732], name: 'C' },
+    { id: '4', q: -1.0, position: [-1, 0, -1.732], name: 'D' },
+  ],
 }
 
 export { PRESETS }

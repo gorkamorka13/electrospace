@@ -232,7 +232,9 @@ const ChargeListSection = memo(({ selectedObjectId, setSelectedObjectId }) => {
           <option value="">Préréglages...</option>
           <option value="single">Charge unique</option>
           <option value="dipole">Dipôle (+ / -)</option>
+          <option value="tripole">Tripôle</option>
           <option value="quadrupole">Quadrupôle</option>
+          <option value="tetrahedron">Tétraèdre</option>
           <option value="capacitor">Condensateur</option>
           <option value="cubicQuadrupole">Quadripôle cubique</option>
         </select>
@@ -344,48 +346,84 @@ const ChargeListSection = memo(({ selectedObjectId, setSelectedObjectId }) => {
   )
 })
 
+/* ─── Tab icons as SVG components (lightweight, no emoji in code) ─── */
+
+function TabIcon({ id, active }) {
+  const color = active ? 'var(--accent)' : 'var(--text-secondary)'
+  const props = { width: 16, height: 16, fill: 'none', stroke: color, strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round' }
+  switch (id) {
+    case 'scene':
+      return <svg {...props}><circle cx="6" cy="6" r="3" /><circle cx="16" cy="16" r="3" /><path d="M6 9v6m0 0a3 3 0 0 0 3 3" /><path d="M16 13a3 3 0 0 0-3-3" /></svg>
+    case 'analysis':
+      return <svg {...props}><polyline points="22 12 18 12 15 21 9 3 6 12 2 12" /></svg>
+    case 'pedagogy':
+      return <svg {...props}><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></svg>
+    case 'settings':
+      return <svg {...props}><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>
+    default: return null
+  }
+}
+
 /* ─── Main Sidebar ─── */
 
+const TABS = [
+  { id: 'scene', label: 'Scène' },
+  { id: 'analysis', label: 'Analyse' },
+  { id: 'pedagogy', label: 'Pédagogie' },
+  { id: 'settings', label: 'Paramètres' },
+]
+
 export function Sidebar() {
-  // Stable action selectors (these never cause re-renders)
+  const [activeTab, setActiveTab] = useState('scene')
+
+  // Stable action selectors
   const exportScene = useStore((s) => s.exportScene)
   const importScene = useStore((s) => s.importScene)
   const setSidebarOpen = useStore((s) => s.setSidebarOpen)
-
-  // State that changes rarely
   const sidebarOpen = useStore((s) => s.sidebarOpen)
   const theme = useStore((s) => s.theme)
   const toggleTheme = useStore((s) => s.toggleTheme)
+
+  // Scene tab
+  const charges = useStore((s) => s.charges)
+  const distributions = useStore((s) => s.distributions)
+  const addDistribution = useStore((s) => s.addDistribution)
+  const removeDistribution = useStore((s) => s.removeDistribution)
+  const updateDistribution = useStore((s) => s.updateDistribution)
+  const clearDistributions = useStore((s) => s.clearDistributions)
+  const selectedObjectId = useStore((s) => s.selectedObjectId)
+  const setSelectedObjectId = useStore((s) => s.setSelectedObjectId)
+
+  // Analysis tab
+  const testPoint = useStore((s) => s.testPoint)
+  const updateTestPoint = useStore((s) => s.updateTestPoint)
+  const showFieldGraph = useStore((s) => s.showFieldGraph)
+  const setShowFieldGraph = useStore((s) => s.setShowFieldGraph)
+  const showPotentialXGraph = useStore((s) => s.showPotentialXGraph)
+  const setShowPotentialXGraph = useStore((s) => s.setShowPotentialXGraph)
+
+  // Settings tab
   const chargeUnit = useStore((s) => s.chargeUnit)
   const setChargeUnit = useStore((s) => s.setChargeUnit)
   const vectorScale = useStore((s) => s.vectorScale)
   const setVectorScale = useStore((s) => s.setVectorScale)
   const fieldLinesPerCharge = useStore((s) => s.fieldLinesPerCharge)
   const setFieldLinesPerCharge = useStore((s) => s.setFieldLinesPerCharge)
-  const selectedObjectId = useStore((s) => s.selectedObjectId)
-  const setSelectedObjectId = useStore((s) => s.setSelectedObjectId)
-  const distributions = useStore((s) => s.distributions)
-  const charges = useStore((s) => s.charges)
-  const addDistribution = useStore((s) => s.addDistribution)
-  const removeDistribution = useStore((s) => s.removeDistribution)
-  const updateDistribution = useStore((s) => s.updateDistribution)
-  const clearDistributions = useStore((s) => s.clearDistributions)
+  const showForces = useStore((s) => s.showForces)
+  const setShowForces = useStore((s) => s.setShowForces)
+  const showFieldLines = useStore((s) => s.showFieldLines)
+  const setShowFieldLines = useStore((s) => s.setShowFieldLines)
+
+  // Pedagogy tab
   const showGaussCompanion = useStore((s) => s.showGaussCompanion)
   const setShowGaussCompanion = useStore((s) => s.setShowGaussCompanion)
 
-  // Only used in the FieldAndPotential memo sub-component (separate subscription)
-  const testPoint = useStore((s) => s.testPoint)
-  const updateTestPoint = useStore((s) => s.updateTestPoint)
-
-  // Touch gesture state for swipe-to-close
+  // Touch gesture
   const [touchStart, setTouchStart] = useState(null)
 
   const handleTouchStart = (e) => {
     const touch = e.touches[0]
-    setTouchStart({
-      x: touch.clientX,
-      y: touch.clientY,
-    })
+    setTouchStart({ x: touch.clientX, y: touch.clientY })
   }
 
   const handleTouchMove = (e) => {
@@ -393,16 +431,13 @@ export function Sidebar() {
     const touch = e.touches[0]
     const diffX = touch.clientX - touchStart.x
     const diffY = touch.clientY - touchStart.y
-
     if (diffX < -50 && Math.abs(diffX) > Math.abs(diffY)) {
       setSidebarOpen(false)
       setTouchStart(null)
     }
   }
 
-  const handleTouchEnd = () => {
-    setTouchStart(null)
-  }
+  const handleTouchEnd = () => setTouchStart(null)
 
   const handleMCoordinateChange = (axis, val) => {
     const newPos = [...testPoint]
@@ -411,303 +446,304 @@ export function Sidebar() {
   }
 
   return (
-    <aside
-      className={`sidebar ${sidebarOpen ? '' : 'closed'}`}
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
+    <aside className={`sidebar ${sidebarOpen ? '' : 'closed'}`}
+      onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}
     >
-      <div className="flex-row:sb brand-header">
+      <div className="sidebar-brand">
         <div className="brand">
           <h2><img src="/icon-192.png" alt="" className="brand-icon" />ElectroSpace 3D</h2>
-          {/* <p className="subtitle">Phase 1 : Bac à sable des charges</p> */}
         </div>
-        <button
-          onClick={toggleTheme}
-          className="theme-toggle-btn"
-          title={theme === 'dark' ? "Activer le mode clair" : "Activer le mode sombre"}
-        >
-          {theme === 'dark' ? (
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <circle cx="12" cy="12" r="5"></circle>
-              <line x1="12" y1="1" x2="12" y2="3"></line>
-              <line x1="12" y1="21" x2="12" y2="23"></line>
-              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
-              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
-              <line x1="1" y1="12" x2="3" y2="12"></line>
-              <line x1="21" y1="12" x2="23" y2="12"></line>
-              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
-              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
-            </svg>
-          ) : (
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
-            </svg>
-          )}
-        </button>
       </div>
 
-      <CollapsibleSection title="Scènes" defaultOpen={true}>
-        <div className="flex-row gap-2">
-          <button className="btn-text scene-btn" onClick={exportScene}>
-            <span aria-hidden="true">💾</span> Exporter
+      {/* Tab navigation */}
+      <nav className="sidebar-tabs">
+        {TABS.map((tab) => (
+          <button key={tab.id}
+            className={`sidebar-tab ${activeTab === tab.id ? 'active' : ''}`}
+            onClick={() => setActiveTab(tab.id)}
+          >
+            <TabIcon id={tab.id} active={activeTab === tab.id} />
+            <span>{tab.label}</span>
           </button>
-          <label className="btn-text scene-btn" style={{ cursor: 'pointer' }}>
-            <span aria-hidden="true">📂</span> Importer
-            <input type="file" accept=".json" style={{ display: 'none' }}
-              onChange={(e) => {
-                const file = e.target.files?.[0]
-                if (!file) return
-                const reader = new FileReader()
-                reader.onload = (ev) => { importScene(ev.target.result); e.target.value = '' }
-                reader.readAsText(file)
-              }}
-            />
-          </label>
-        </div>
-      </CollapsibleSection>
+        ))}
+      </nav>
 
-      <CollapsibleSection title="Configuration Physique">
-        <div className="data-box" style={{ padding: '0.8rem 1rem' }}>
-          <div className="flex-col gap-6">
-            <div>
-              <span className="label" style={{ display: 'block', marginBottom: '0.4rem' }}>Unité de Charge</span>
-              <div className="flex-row gap-3">
+      {/* Tab content */}
+      <div className="sidebar-tab-content">
+        {activeTab === 'scene' && (
+          <div className="tab-panel">
+            <CollapsibleSection title="Scènes" defaultOpen={true}>
+              <div className="flex-row gap-2">
+                <button className="btn-text scene-btn" onClick={exportScene}>
+                  <span aria-hidden="true">💾</span> Exporter
+                </button>
+                <label className="btn-text scene-btn" style={{ cursor: 'pointer' }}>
+                  <span aria-hidden="true">📂</span> Importer
+                  <input type="file" accept=".json" style={{ display: 'none' }}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      if (!file) return
+                      const reader = new FileReader()
+                      reader.onload = (ev) => { importScene(ev.target.result); e.target.value = '' }
+                      reader.readAsText(file)
+                    }}
+                  />
+                </label>
+              </div>
+            </CollapsibleSection>
+
+            <ChargeListSection selectedObjectId={selectedObjectId} setSelectedObjectId={setSelectedObjectId} />
+
+            <CollapsibleSection title="Distributions continues">
+              <div className="dist-btn-row">
                 {[
-                  { value: 'uC', label: 'µC', title: 'Microcoulomb (10⁻⁶ C)' },
-                  { value: 'nC', label: 'nC', title: 'Nanocoulomb (10⁻⁹ C)' },
-                  { value: 'C', label: 'C', title: 'Coulomb (1 C)' },
-                  { value: 'e', label: 'e', title: 'Charge élémentaire (1.602 × 10⁻¹⁹ C - Électron/Proton)' }
-                ].map((unit) => (
-                  <button
-                    key={unit.value}
-                    className={`btn-unit ${chargeUnit === unit.value ? 'active' : ''}`}
-                    onClick={() => setChargeUnit(unit.value)}
-                    title={unit.title}
-                  >
-                    {unit.label}
+                  { type: 'line', label: 'Fil' },
+                  { type: 'cylinder', label: 'Cylindre' },
+                  { type: 'plane', label: 'Plan' },
+                  { type: 'disk', label: 'Disque' },
+                  { type: 'circle', label: 'Anneau' },
+                  { type: 'frame', label: 'Cadre' },
+                  { type: 'sphere', label: 'Sphère' },
+                  { type: 'box', label: 'Boîte' },
+                ].map((b) => (
+                  <button key={b.type} className="btn btn-small" onClick={() => addDistribution(b.type)}>
+                    +{b.label}
                   </button>
                 ))}
               </div>
-            </div>
-
-            <div className="flex-col gap-3">
-              <div className="flex-row:sb">
-                <span className="label">Échelle Visuelle Flèche</span>
-                <span className="value font-mono">{vectorScale.toFixed(1)}x</span>
-              </div>
-              <input
-                type="range"
-                min="0.1"
-                max="10.0"
-                step="0.1"
-                value={vectorScale}
-                onChange={(e) => setVectorScale(parseFloat(e.target.value))}
-                className="slider"
-              />
-            </div>
-
-            <div className="flex-col gap-3">
-              <div className="flex-row:sb">
-                <span className="label">Lignes de champ par charge</span>
-                <span className="value font-mono">{fieldLinesPerCharge}</span>
-              </div>
-              <input
-                type="range"
-                min="4"
-                max="32"
-                step="2"
-                value={fieldLinesPerCharge}
-                onChange={(e) => setFieldLinesPerCharge(parseInt(e.target.value, 10))}
-                className="slider"
-              />
-            </div>
-          </div>
-        </div>
-      </CollapsibleSection>
-
-      <CollapsibleSection title="Point de Test M"
-        headerExtra={
-          <span
-            className={`select-indicator ${selectedObjectId === 'testPoint' ? 'active' : ''}`}
-            onClick={(e) => { e.stopPropagation(); setSelectedObjectId('testPoint') }}
-          >
-            {selectedObjectId === 'testPoint' ? '● Actif' : 'Sélectionner'}
-          </span>
-        }
-      >
-        <div
-          className={`data-box clickable-box ${selectedObjectId === 'testPoint' ? 'box-selected' : ''}`}
-          onClick={() => setSelectedObjectId('testPoint')}
-        >
-          <div className="data-row">
-            <span className="label">Position M</span>
-            <span className="value font-mono">
-              [{testPoint[0].toFixed(2)}, {testPoint[1].toFixed(2)}, {testPoint[2].toFixed(2)}]
-            </span>
-          </div>
-
-          <div className="coord-inputs" onClick={(e) => e.stopPropagation()}>
-            <CoordInput
-              label="X"
-              value={testPoint[0]}
-              onChange={(val) => handleMCoordinateChange(0, val)}
-            />
-            <CoordInput
-              label="Y"
-              value={testPoint[1]}
-              onChange={(val) => handleMCoordinateChange(1, val)}
-            />
-            <CoordInput
-              label="Z"
-              value={testPoint[2]}
-              onChange={(val) => handleMCoordinateChange(2, val)}
-            />
-          </div>
-        </div>
-      </CollapsibleSection>
-
-      <CollapsibleSection title="Champ Élect &amp; Potentiel EN M">
-        <FieldAndPotential testPoint={testPoint} />
-      </CollapsibleSection>
-
-      <ChargeListSection selectedObjectId={selectedObjectId} setSelectedObjectId={setSelectedObjectId} />
-
-      <CollapsibleSection title="Distributions continues">
-        <div className="dist-btn-row">
-          {[
-            { type: 'line', label: 'Fil' },
-            { type: 'cylinder', label: 'Cylindre' },
-            { type: 'plane', label: 'Plan' },
-            { type: 'disk', label: 'Disque' },
-            { type: 'circle', label: 'Anneau' },
-            { type: 'frame', label: 'Cadre' },
-            { type: 'sphere', label: 'Sphère' },
-            { type: 'box', label: 'Boîte' },
-          ].map((b) => (
-            <button key={b.type} className="btn btn-small" onClick={() => addDistribution(b.type)}>
-              +{b.label}
-            </button>
-          ))}
-        </div>
-        {distributions.length > 0 && (
-          <div className="dist-list">
-            {distributions.map((d) => (
-              <div key={d.id} className="data-box dist-item">
-                <div className="dist-item-header">
-                  <span className="dist-item-name">{d.name}</span>
-                  <button className="btn-close" onClick={() => removeDistribution(d.id)}>&times;</button>
-                </div>
-                {DIST_PARAMS[d.type]?.map((param) => {
-                  const val = d[param.key]
-                  if (param.type === 'vec3') {
-                    return (
-                      <div key={param.key} className="dist-vec3-row">
-                        <span className="label dist-vec3-label">{param.label}</span>
-                        {['X', 'Y', 'Z'].map((c, ci) => (
-                          <input key={c} type="text" value={Array.isArray(val) ? String(Number(val[ci]) || 0) : '0'}
-                            onChange={(e) => {
-                              const arr = [...(Array.isArray(val) ? val : [0, 0, 0])]
-                              arr[ci] = parseFloat(e.target.value) || 0
-                              updateDistribution(d.id, { [param.key]: arr })
-                            }}
-                            className="dist-vec3-input"
-                          />
-                        ))}
+              {distributions.length > 0 && (
+                <div className="dist-list">
+                  {distributions.map((d) => (
+                    <div key={d.id} className="data-box dist-item">
+                      <div className="dist-item-header">
+                        <span className="dist-item-name">{d.name}</span>
+                        <button className="btn-close" onClick={() => removeDistribution(d.id)}>&times;</button>
                       </div>
-                    )
-                  }
-                  if (param.type === 'radii') {
-                    const outerVal = d[param.key] ?? 0
-                    const innerVal = d[param.innerKey] ?? 0
-                    const hideInner = param.innerKey === 'e_int' && !d.innerRadius
-                    return (
-                      <div key={param.key} className="dist-param-row" style={{ gap: '0.25rem' }}>
-                        <span className="label dist-param-label" style={{ minWidth: 'auto', marginRight: '0.25rem' }}>{param.label}</span>
-                        <span className="label" style={{ fontSize: '0.6rem', whiteSpace: 'nowrap' }}>{param.outerLabel}</span>
-                        <DistInput value={outerVal} onChange={(v) => updateDistribution(d.id, { [param.key]: v })}
-                          className="dist-param-input" style={{ width: '3rem' }} />
-                        {!hideInner && (
-                          <>
-                            <span className="label" style={{ fontSize: '0.6rem', whiteSpace: 'nowrap' }}>{param.innerLabel}</span>
-                            <DistInput value={innerVal} onChange={(v) => updateDistribution(d.id, { [param.innerKey]: v })}
-                              className="dist-param-input" style={{ width: '3rem' }} />
-                          </>
-                        )}
-                      </div>
-                    )
-                  }
-                  return (
-                    <div key={param.key} className="dist-param-row">
-                      <span className="label dist-param-label">{param.label}</span>
-                      <DistInput value={val ?? 0} onChange={(v) => updateDistribution(d.id, { [param.key]: v })}
-                        className="dist-param-input" />
+                      {DIST_PARAMS[d.type]?.map((param) => {
+                        const val = d[param.key]
+                        if (param.type === 'vec3') {
+                          return (
+                            <div key={param.key} className="dist-vec3-row">
+                              <span className="label dist-vec3-label">{param.label}</span>
+                              {['X', 'Y', 'Z'].map((c, ci) => (
+                                <input key={c} type="text" value={Array.isArray(val) ? String(Number(val[ci]) || 0) : '0'}
+                                  onChange={(e) => {
+                                    const arr = [...(Array.isArray(val) ? val : [0, 0, 0])]
+                                    arr[ci] = parseFloat(e.target.value) || 0
+                                    updateDistribution(d.id, { [param.key]: arr })
+                                  }}
+                                  className="dist-vec3-input"
+                                />
+                              ))}
+                            </div>
+                          )
+                        }
+                        if (param.type === 'radii') {
+                          const outerVal = d[param.key] ?? 0
+                          const innerVal = d[param.innerKey] ?? 0
+                          const hideInner = param.innerKey === 'e_int' && !d.innerRadius
+                          return (
+                            <div key={param.key} className="dist-param-row" style={{ gap: '0.25rem' }}>
+                              <span className="label dist-param-label" style={{ minWidth: 'auto', marginRight: '0.25rem' }}>{param.label}</span>
+                              <span className="label" style={{ fontSize: '0.6rem', whiteSpace: 'nowrap' }}>{param.outerLabel}</span>
+                              <DistInput value={outerVal} onChange={(v) => updateDistribution(d.id, { [param.key]: v })}
+                                className="dist-param-input" style={{ width: '3rem' }} />
+                              {!hideInner && (
+                                <>
+                                  <span className="label" style={{ fontSize: '0.6rem', whiteSpace: 'nowrap' }}>{param.innerLabel}</span>
+                                  <DistInput value={innerVal} onChange={(v) => updateDistribution(d.id, { [param.innerKey]: v })}
+                                    className="dist-param-input" style={{ width: '3rem' }} />
+                                </>
+                              )}
+                            </div>
+                          )
+                        }
+                        return (
+                          <div key={param.key} className="dist-param-row">
+                            <span className="label dist-param-label">{param.label}</span>
+                            <DistInput value={val ?? 0} onChange={(v) => updateDistribution(d.id, { [param.key]: v })}
+                              className="dist-param-input" />
+                          </div>
+                        )
+                      })}
+                      {(d.type === 'cylinder' || d.type === 'sphere' || d.type === 'box') && (
+                        <div className="flex-row gap-3 mt-3">
+                          <span className="label" style={{ fontSize: '0.65rem' }}>Creux</span>
+                          <label className="switch">
+                            <input type="checkbox" checked={!!d.hollow}
+                              onChange={(e) => updateDistribution(d.id, { hollow: e.target.checked })} />
+                            <span className={`switch-slider ${d.hollow ? 'on' : ''}`}>
+                              <span className="switch-knob" />
+                            </span>
+                          </label>
+                        </div>
+                      )}
                     </div>
-                  )
-                })}
-                {(d.type === 'cylinder' || d.type === 'sphere' || d.type === 'box') && (
-                  <div className="flex-row gap-3 mt-3">
-                    <span className="label" style={{ fontSize: '0.65rem' }}>Creux</span>
-                    <label className="switch">
-                      <input type="checkbox" checked={!!d.hollow}
-                        onChange={(e) => updateDistribution(d.id, { hollow: e.target.checked })} />
-                      <span className={`switch-slider ${d.hollow ? 'on' : ''}`}>
-                        <span className="switch-knob" />
-                      </span>
-                    </label>
-                  </div>
-                )}
-              </div>
-            ))}
-            <button className="btn-text accent" onClick={clearDistributions}>
-              Tout effacer
-            </button>
+                  ))}
+                  <button className="btn-text accent" onClick={clearDistributions}>
+                    Tout effacer
+                  </button>
+                </div>
+              )}
+            </CollapsibleSection>
           </div>
         )}
-      </CollapsibleSection>
 
-      <CollapsibleSection title="Théorème de Gauss">
-        {(() => {
-          const GAUSS_COMPATIBLE = ['sphere', 'cylinder', 'line', 'plane']
-          const hasCompatible = distributions.some(d => GAUSS_COMPATIBLE.includes(d.type))
-
-          return hasCompatible ? (
-            <button
-              className={`gauss-toggle ${showGaussCompanion ? 'active' : 'inactive'}`}
-              onClick={() => setShowGaussCompanion(!showGaussCompanion)}
+        {activeTab === 'analysis' && (
+          <div className="tab-panel">
+            <CollapsibleSection title="Point de Test M"
+              headerExtra={
+                <span className={`select-indicator ${selectedObjectId === 'testPoint' ? 'active' : ''}`}
+                  onClick={(e) => { e.stopPropagation(); setSelectedObjectId('testPoint') }}
+                >
+                  {selectedObjectId === 'testPoint' ? '● Actif' : 'Sélectionner'}
+                </span>
+              }
             >
-              <span aria-hidden="true">{showGaussCompanion ? '❌' : '📖'}</span> {showGaussCompanion ? 'Masquer le compagnon' : 'Lancer le compagnon'}
-            </button>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              <button className="gauss-toggle inactive" disabled style={{ opacity: 0.45, cursor: 'not-allowed' }}>
-                <span aria-hidden="true">🔒</span> Compagnon indisponible
-              </button>
-              <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', margin: 0, lineHeight: '1.4' }}>
-                ⚠️ Le Théorème de Gauss nécessite une <strong>distribution continue avec symétrie</strong> (sphère, cylindre, fil infini ou plan infini). Ajoutez une telle distribution pour activer le compagnon.
-              </p>
-            </div>
-          )
-        })()}
-      </CollapsibleSection>
+              <div className={`data-box clickable-box ${selectedObjectId === 'testPoint' ? 'box-selected' : ''}`}
+                onClick={() => setSelectedObjectId('testPoint')}
+              >
+                <div className="data-row">
+                  <span className="label">Position M</span>
+                  <span className="value font-mono">
+                    [{testPoint[0].toFixed(2)}, {testPoint[1].toFixed(2)}, {testPoint[2].toFixed(2)}]
+                  </span>
+                </div>
+                <div className="coord-inputs" onClick={(e) => e.stopPropagation()}>
+                  <CoordInput label="X" value={testPoint[0]} onChange={(v) => handleMCoordinateChange(0, v)} />
+                  <CoordInput label="Y" value={testPoint[1]} onChange={(v) => handleMCoordinateChange(1, v)} />
+                  <CoordInput label="Z" value={testPoint[2]} onChange={(v) => handleMCoordinateChange(2, v)} />
+                </div>
+              </div>
+            </CollapsibleSection>
+
+            <CollapsibleSection title="Champ Élect &amp; Potentiel en M">
+              <FieldAndPotential testPoint={testPoint} />
+            </CollapsibleSection>
+
+            <CollapsibleSection title="Forces &amp; Graphiques">
+              <div className="flex-col gap-3" style={{ padding: '0.3rem 0' }}>
+                <label className="toggle-row">
+                  <input type="checkbox" checked={showForces} onChange={(e) => setShowForces(e.target.checked)} />
+                  <span>Afficher les forces de Coulomb</span>
+                </label>
+                <label className="toggle-row">
+                  <input type="checkbox" checked={showFieldLines} onChange={(e) => setShowFieldLines(e.target.checked)} />
+                  <span>Afficher les lignes de champ</span>
+                </label>
+                <label className="toggle-row">
+                  <input type="checkbox" checked={showFieldGraph} onChange={(e) => setShowFieldGraph(e.target.checked)} />
+                  <span>Afficher le graphique E(x)</span>
+                </label>
+                <label className="toggle-row">
+                  <input type="checkbox" checked={showPotentialXGraph} onChange={(e) => setShowPotentialXGraph(e.target.checked)} />
+                  <span>Afficher le graphique V(x)</span>
+                </label>
+              </div>
+              <CoulombForces />
+            </CollapsibleSection>
+          </div>
+        )}
+
+        {activeTab === 'pedagogy' && (
+          <div className="tab-panel">
+            <CollapsibleSection title="Théorème de Gauss">
+              {(() => {
+                const GAUSS_COMPATIBLE = ['sphere', 'cylinder', 'line', 'plane']
+                const hasCompatible = distributions.some(d => GAUSS_COMPATIBLE.includes(d.type))
+
+                return hasCompatible ? (
+                  <button className={`gauss-toggle ${showGaussCompanion ? 'active' : 'inactive'}`}
+                    onClick={() => setShowGaussCompanion(!showGaussCompanion)}
+                  >
+                    <span aria-hidden="true">{showGaussCompanion ? '❌' : '📖'}</span>
+                    {showGaussCompanion ? 'Masquer le compagnon' : 'Lancer le compagnon'}
+                  </button>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <button className="gauss-toggle inactive" disabled style={{ opacity: 0.45, cursor: 'not-allowed' }}>
+                      <span aria-hidden="true">🔒</span> Compagnon indisponible
+                    </button>
+                    <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', margin: 0, lineHeight: '1.4' }}>
+                      ⚠️ Le Théorème de Gauss nécessite une <strong>distribution continue avec symétrie</strong> (sphère, cylindre, fil infini ou plan infini).
+                    </p>
+                  </div>
+                )
+              })()}
+            </CollapsibleSection>
+          </div>
+        )}
+
+        {activeTab === 'settings' && (
+          <div className="tab-panel">
+            <CollapsibleSection title="Affichage">
+              <div className="flex-col gap-4" style={{ padding: '0.8rem 1rem' }}>
+                <div className="flex-row:sb">
+                  <span className="label">Thème</span>
+                  <button onClick={toggleTheme} className="theme-toggle-btn-sm">
+                    {theme === 'dark' ? '☀️ Clair' : '🌙 Sombre'}
+                  </button>
+                </div>
+                <div className="flex-row:sb">
+                  <span className="label">Forces de Coulomb</span>
+                  <label className="switch-sm">
+                    <input type="checkbox" checked={showForces} onChange={(e) => setShowForces(e.target.checked)} />
+                    <span className="switch-slider-sm" />
+                  </label>
+                </div>
+                <div className="flex-row:sb">
+                  <span className="label">Lignes de champ</span>
+                  <label className="switch-sm">
+                    <input type="checkbox" checked={showFieldLines} onChange={(e) => setShowFieldLines(e.target.checked)} />
+                    <span className="switch-slider-sm" />
+                  </label>
+                </div>
+              </div>
+            </CollapsibleSection>
+
+            <CollapsibleSection title="Unités">
+              <div className="flex-col gap-3" style={{ padding: '0.8rem 1rem' }}>
+                <span className="label" style={{ display: 'block', marginBottom: '0.4rem' }}>Unité de Charge</span>
+                <div className="flex-row gap-3" style={{ flexWrap: 'wrap' }}>
+                  {[
+                    { value: 'uC', label: 'µC', title: 'Microcoulomb (10⁻⁶ C)' },
+                    { value: 'nC', label: 'nC', title: 'Nanocoulomb (10⁻⁹ C)' },
+                    { value: 'C', label: 'C', title: 'Coulomb' },
+                    { value: 'e', label: 'e', title: 'Charge élémentaire' }
+                  ].map((unit) => (
+                    <button key={unit.value} className={`btn-unit ${chargeUnit === unit.value ? 'active' : ''}`}
+                      onClick={() => setChargeUnit(unit.value)} title={unit.title}
+                    >
+                      {unit.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </CollapsibleSection>
+
+            <CollapsibleSection title="Échelles">
+              <div className="flex-col gap-4" style={{ padding: '0.8rem 1rem' }}>
+                <div className="flex-col gap-2">
+                  <div className="flex-row:sb">
+                    <span className="label">Échelle des flèches</span>
+                    <span className="value font-mono">{vectorScale.toFixed(1)}x</span>
+                  </div>
+                  <input type="range" min="0.1" max="10.0" step="0.1" value={vectorScale}
+                    onChange={(e) => setVectorScale(parseFloat(e.target.value))} className="slider" />
+                </div>
+                <div className="flex-col gap-2">
+                  <div className="flex-row:sb">
+                    <span className="label">Lignes de champ / charge</span>
+                    <span className="value font-mono">{fieldLinesPerCharge}</span>
+                  </div>
+                  <input type="range" min="4" max="32" step="2" value={fieldLinesPerCharge}
+                    onChange={(e) => setFieldLinesPerCharge(parseInt(e.target.value, 10))} className="slider" />
+                </div>
+              </div>
+            </CollapsibleSection>
+          </div>
+        )}
+      </div>
 
       <div className="sidebar-footer">
         <div>© 2026 Michel ESPARSA</div>

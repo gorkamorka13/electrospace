@@ -274,12 +274,33 @@ export function FieldGraph() {
   const winRefState = useRef(win)
   winRefState.current = win
 
+  const exportPng = useCallback(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const link = document.createElement('a')
+    link.download = `field-graph-${sweepAxis}-${fieldKey}.png`
+    link.href = canvas.toDataURL('image/png')
+    link.click()
+  }, [sweepAxis, fieldKey])
+
+  const exportCsv = useCallback(() => {
+    if (!data) return
+    const header = `position_${sweepAxis}_m,${fieldKey}_Vm\n`
+    const rows = data.pts.map(p => `${p.t},${p.val}`).join('\n')
+    const blob = new Blob([header + rows], { type: 'text/csv' })
+    const link = document.createElement('a')
+    link.download = `field-graph-${sweepAxis}-${fieldKey}.csv`
+    link.href = URL.createObjectURL(blob)
+    link.click()
+    URL.revokeObjectURL(link.href)
+  }, [data, sweepAxis, fieldKey])
+
   if (!show || !data) return null
 
   return (
     <div className="pg-window" ref={winRef} style={{ left: x, top: y, width: w, height: h }}
       onPointerDown={(e) => {
-        if (e.target.closest?.('select, button, .pg-close, .pg-axis-select, .pg-resize')) return
+        if (e.target.closest?.('select, button, .pg-close, .pg-axis-select, .pg-export-btn, .pg-resize')) return
         const header = e.target.closest?.('.pg-header')
         if (!header) return
         e.preventDefault()
@@ -303,6 +324,8 @@ export function FieldGraph() {
           {FIELD_OPTIONS.map(o => <option key={o.key} value={o.key}>{o.label}</option>)}
         </select>
         <span className="pg-test-val" style={{ color: colors[fieldKey] }}>{data.testVal.toExponential(2)} V/m</span>
+        <button className="pg-export-btn" onClick={exportPng} title="Exporter PNG">🖼</button>
+        <button className="pg-export-btn" onClick={exportCsv} title="Copier CSV">📋</button>
         <button className="pg-close" onClick={() => setShow(false)}>&times;</button>
       </div>
       <div className="pg-body">
