@@ -1,7 +1,76 @@
 import { useRef, useMemo } from 'react'
 import * as THREE from 'three'
 import { Billboard, Text, Html } from '@react-three/drei'
-import { useStore } from '../store/useStore'
+import { useStore, UNIT_FACTORS } from '../store/useStore'
+import { calculateTotalField } from '../physics/coulomb'
+
+function getVertexNormal(px, py, pz, surfaceType, radius, height, width, depth) {
+  switch (surfaceType) {
+    case 'sphere': {
+      const r = Math.sqrt(px * px + py * py + pz * pz)
+      return r > 1e-8 ? new THREE.Vector3(px / r, py / r, pz / r) : new THREE.Vector3(1, 0, 0)
+    }
+    case 'cylinder': {
+      const r = Math.sqrt(px * px + pz * pz)
+      const hh = height / 2
+      if (r < 1e-6 || Math.abs(Math.abs(py) - hh) < 0.001) {
+        return new THREE.Vector3(0, py >= 0 ? 1 : -1, 0)
+      }
+      return new THREE.Vector3(px / r, 0, pz / r).normalize()
+    }
+    case 'box': {
+      const hw = width / 2, hh = height / 2, hd = depth / 2
+      const dx = Math.abs(px), dy = Math.abs(py), dz = Math.abs(pz)
+      const dists = [
+        { d: Math.abs(dx - hw), n: new THREE.Vector3(Math.sign(px), 0, 0) },
+        { d: Math.abs(dy - hh), n: new THREE.Vector3(0, Math.sign(py), 0) },
+        { d: Math.abs(dz - hd), n: new THREE.Vector3(0, 0, Math.sign(pz)) },
+      ]
+      return dists.sort((a, b) => a.d - b.d)[0].n
+    }
+    default:
+      return new THREE.Vector3(px, py, pz).normalize()
+  }
+}
+
+function addFluxColors(geometry, surfaceType, params, center, charges, distributions, chargeUnit, ke, rMin) {
+  const pos = geometry.attributes.position
+  const n = pos.count
+  const colors = new Float32Array(n * 3)
+  const { radius, height, width, depth } = params
+
+  const multiplier = UNIT_FACTORS[chargeUnit] || 1e-6
+  const physicalCharges = distributions.length > 0 ? [] : charges.map(c => ({ ...c, q: c.q * multiplier }))
+
+  const fluxes = new Float32Array(n)
+  let maxAbs = 0
+
+  for (let i = 0; i < n; i++) {
+    const px = pos.getX(i), py = pos.getY(i), pz = pos.getZ(i)
+    const normal = getVertexNormal(px, py, pz, surfaceType, radius, height, width, depth)
+    const worldPos = [px + center[0], py + center[1], pz + center[2]]
+    const E = calculateTotalField(physicalCharges, worldPos, ke, rMin, distributions)
+    const flux = E.x * normal.x + E.y * normal.y + E.z * normal.z
+    fluxes[i] = flux
+    maxAbs = Math.max(maxAbs, Math.abs(flux))
+  }
+
+  const invMax = maxAbs > 1e-30 ? 1 / maxAbs : 1
+  for (let i = 0; i < n; i++) {
+    const t = Math.tanh(fluxes[i] * invMax * 3)
+    if (t > 0) {
+      colors[i * 3] = 0.25 + 0.75 * t
+      colors[i * 3 + 1] = 0.25 * (1 - t)
+      colors[i * 3 + 2] = 0.25 * (1 - t)
+    } else {
+      colors[i * 3] = 0.25 * (1 + t)
+      colors[i * 3 + 1] = 0.25 * (1 + t)
+      colors[i * 3 + 2] = 0.25 - 0.75 * t
+    }
+  }
+
+  geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3))
+}
 
 export function GaussianSurfaceVis() {
   const showGaussCompanion = useStore((state) => state.showGaussCompanion)
@@ -15,13 +84,16 @@ export function GaussianSurfaceVis() {
   const testPoint = useStore((state) => state.testPoint)
   const distributions = useStore((state) => state.distributions)
   const charges = useStore((state) => state.charges)
+  const ke = useStore((state) => state.ke)
+  const rMin = useStore((state) => state.rMin)
+  const chargeUnit = useStore((state) => state.chargeUnit)
 
   const groupRef = useRef()
 
   if (!showGaussCompanion) return null
 
-  // ⚠️ Warn when point charges exist — Gaussian surface visualization hidden
-  if (charges.length > 0) {
+  // ⚠️ Warn only when point charges exist WITHOUT a distribution
+  if (charges.length > 0 && distributions.length === 0) {
     return (
       <Html center>
         <div style={{
@@ -30,8 +102,8 @@ export function GaussianSurfaceVis() {
           maxWidth: 320, textAlign: 'center', fontWeight: 600,
           border: '2px solid #f59e0b'
         }}>
-          ⚡ Le Compagnon de Gauss est désactivé en présence de charges ponctuelles.<br/>
-          <span style={{fontSize: 12, opacity: 0.8}}>Utilisez une distribution continue (sphère, cylindre, plan…).</span>
+          ⚡ Le Compagnon de Gauss nécessite une distribution continue.<br/>
+          <span style={{fontSize: 12, opacity: 0.8}}>Ajoutez une sphère, un cylindre ou un plan chargé.</span>
         </div>
       </Html>
     )
@@ -145,20 +217,53 @@ export function GaussianSurfaceVis() {
     plane2Rot = [0, Math.PI / 2, 0]
   }
 
+  // Flux-colored surface geometries
+  const fluxSurfaceParams = useMemo(() => ({
+    radius: gaussSurfaceRadius,
+    height: gaussSurfaceHeight,
+    width: gaussSurfaceWidth,
+    depth: gaussSurfaceDepth,
+  }), [gaussSurfaceRadius, gaussSurfaceHeight, gaussSurfaceWidth, gaussSurfaceDepth])
+
+  const hasChargesOnly = charges.length > 0 && distributions.length === 0
+
+  const fluxSphereGeo = useMemo(() => {
+    if (gaussSurfaceType !== 'sphere' || gaussStep < 3 || hasChargesOnly) return null
+    const geo = new THREE.SphereGeometry(gaussSurfaceRadius, 32, 32)
+    addFluxColors(geo, 'sphere', fluxSurfaceParams, gaussCenter, charges, distributions, chargeUnit, ke, rMin)
+    return geo
+  }, [gaussSurfaceType, gaussStep, gaussSurfaceRadius, gaussCenter, hasChargesOnly, charges, distributions, chargeUnit, ke, rMin])
+
+  const fluxCylinderGeo = useMemo(() => {
+    if (gaussSurfaceType !== 'cylinder' || gaussStep < 3 || hasChargesOnly) return null
+    const geo = new THREE.CylinderGeometry(gaussSurfaceRadius, gaussSurfaceRadius, gaussSurfaceHeight, 32)
+    addFluxColors(geo, 'cylinder', fluxSurfaceParams, gaussCenter, charges, distributions, chargeUnit, ke, rMin)
+    return geo
+  }, [gaussSurfaceType, gaussStep, gaussSurfaceRadius, gaussSurfaceHeight, gaussCenter, hasChargesOnly, charges, distributions, chargeUnit, ke, rMin])
+
+  const fluxBoxGeo = useMemo(() => {
+    if (gaussSurfaceType !== 'box' || gaussStep < 3 || hasChargesOnly) return null
+    const geo = new THREE.BoxGeometry(gaussSurfaceWidth, gaussSurfaceHeight, gaussSurfaceDepth)
+    addFluxColors(geo, 'box', fluxSurfaceParams, gaussCenter, charges, distributions, chargeUnit, ke, rMin)
+    return geo
+  }, [gaussSurfaceType, gaussStep, gaussSurfaceWidth, gaussSurfaceHeight, gaussSurfaceDepth, gaussCenter, hasChargesOnly, charges, distributions, chargeUnit, ke, rMin])
+
   return (
     <group ref={groupRef} position={centerVec}>
-      {/* 3D Gaussian Surface Mesh - Only drawn from Phase 3 onwards */}
+      {/* 3D Gaussian Surface Mesh with flux visualization - Only drawn from Phase 3 onwards */}
       {gaussStep >= 3 && (
         <>
-          {gaussSurfaceType === 'sphere' && (
+          {gaussSurfaceType === 'sphere' && fluxSphereGeo && (
             <mesh>
-              <sphereGeometry args={[gaussSurfaceRadius, 32, 32]} />
-              <meshBasicMaterial 
-                color={surfaceColor} 
-                transparent 
-                opacity={0.15} 
-                side={THREE.DoubleSide} 
+              <primitive object={fluxSphereGeo} />
+              <meshPhysicalMaterial
+                vertexColors
+                transparent
+                opacity={0.55}
+                side={THREE.DoubleSide}
                 depthWrite={false}
+                roughness={0.3}
+                metalness={0.0}
               />
               <lineSegments>
                 <edgesGeometry args={[sphereEdgesGeo]} />
@@ -167,15 +272,17 @@ export function GaussianSurfaceVis() {
             </mesh>
           )}
 
-          {gaussSurfaceType === 'cylinder' && (
+          {gaussSurfaceType === 'cylinder' && fluxCylinderGeo && (
             <mesh>
-              <cylinderGeometry args={[gaussSurfaceRadius, gaussSurfaceRadius, gaussSurfaceHeight, 32]} />
-              <meshBasicMaterial 
-                color={surfaceColor} 
-                transparent 
-                opacity={0.15} 
-                side={THREE.DoubleSide} 
+              <primitive object={fluxCylinderGeo} />
+              <meshPhysicalMaterial
+                vertexColors
+                transparent
+                opacity={0.55}
+                side={THREE.DoubleSide}
                 depthWrite={false}
+                roughness={0.3}
+                metalness={0.0}
               />
               <lineSegments>
                 <edgesGeometry args={[cylinderEdgesGeo]} />
@@ -184,15 +291,17 @@ export function GaussianSurfaceVis() {
             </mesh>
           )}
 
-          {gaussSurfaceType === 'box' && (
+          {gaussSurfaceType === 'box' && fluxBoxGeo && (
             <mesh>
-              <boxGeometry args={[gaussSurfaceWidth, gaussSurfaceHeight, gaussSurfaceDepth]} />
-              <meshBasicMaterial 
-                color={surfaceColor} 
-                transparent 
-                opacity={0.15} 
-                side={THREE.DoubleSide} 
+              <primitive object={fluxBoxGeo} />
+              <meshPhysicalMaterial
+                vertexColors
+                transparent
+                opacity={0.55}
+                side={THREE.DoubleSide}
                 depthWrite={false}
+                roughness={0.3}
+                metalness={0.0}
               />
               <lineSegments>
                 <edgesGeometry args={[boxEdgesGeo]} />
