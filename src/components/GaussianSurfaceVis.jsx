@@ -90,9 +90,44 @@ export function GaussianSurfaceVis() {
 
   const groupRef = useRef()
 
-  if (!showGaussCompanion) return null
+  // --- All useMemo hooks must come BEFORE any early return ---
+  const activeDist = distributions[0] || null
+  const innerRadius = activeDist?.radius || 1.5
+  const innerVolRadius = Math.min(gaussSurfaceRadius, innerRadius)
+  const planeSize = Math.max(6, gaussSurfaceRadius * 3 || 6)
+  const hasChargesOnly = charges.length > 0 && distributions.length === 0
 
-  // ⚠️ Warn only when point charges exist WITHOUT a distribution
+  const sphereEdgesGeo = useMemo(() => new THREE.SphereGeometry(gaussSurfaceRadius, 16, 16), [gaussSurfaceRadius])
+  const cylinderEdgesGeo = useMemo(() => new THREE.CylinderGeometry(gaussSurfaceRadius, gaussSurfaceRadius, gaussSurfaceHeight, 16), [gaussSurfaceRadius, gaussSurfaceHeight])
+  const boxEdgesGeo = useMemo(() => new THREE.BoxGeometry(gaussSurfaceWidth, gaussSurfaceHeight, gaussSurfaceDepth), [gaussSurfaceWidth, gaussSurfaceHeight, gaussSurfaceDepth])
+  const innerSphereEdgesGeo = useMemo(() => new THREE.SphereGeometry(innerVolRadius, 16, 16), [innerVolRadius])
+  const innerCylinderEdgesGeo = useMemo(() => new THREE.CylinderGeometry(innerVolRadius, innerVolRadius, gaussSurfaceHeight, 16), [innerVolRadius, gaussSurfaceHeight])
+  const innerBoxEdgesGeo = useMemo(() => new THREE.BoxGeometry(gaussSurfaceWidth, 0.1, gaussSurfaceDepth), [gaussSurfaceWidth, gaussSurfaceDepth])
+  const planeEdgesGeo = useMemo(() => new THREE.PlaneGeometry(planeSize, planeSize), [planeSize])
+  const fluxSurfaceParams = useMemo(() => ({
+    radius: gaussSurfaceRadius, height: gaussSurfaceHeight, width: gaussSurfaceWidth, depth: gaussSurfaceDepth,
+  }), [gaussSurfaceRadius, gaussSurfaceHeight, gaussSurfaceWidth, gaussSurfaceDepth])
+  const fluxSphereGeo = useMemo(() => {
+    if (gaussSurfaceType !== 'sphere' || gaussStep < 3 || hasChargesOnly) return null
+    const geo = new THREE.SphereGeometry(gaussSurfaceRadius, 32, 32)
+    addFluxColors(geo, 'sphere', fluxSurfaceParams, gaussCenter, charges, distributions, chargeUnit, ke, rMin)
+    return geo
+  }, [gaussSurfaceType, gaussStep, gaussSurfaceRadius, gaussCenter, hasChargesOnly, charges, distributions, chargeUnit, ke, rMin])
+  const fluxCylinderGeo = useMemo(() => {
+    if (gaussSurfaceType !== 'cylinder' || gaussStep < 3 || hasChargesOnly) return null
+    const geo = new THREE.CylinderGeometry(gaussSurfaceRadius, gaussSurfaceRadius, gaussSurfaceHeight, 32)
+    addFluxColors(geo, 'cylinder', fluxSurfaceParams, gaussCenter, charges, distributions, chargeUnit, ke, rMin)
+    return geo
+  }, [gaussSurfaceType, gaussStep, gaussSurfaceRadius, gaussSurfaceHeight, gaussCenter, hasChargesOnly, charges, distributions, chargeUnit, ke, rMin])
+  const fluxBoxGeo = useMemo(() => {
+    if (gaussSurfaceType !== 'box' || gaussStep < 3 || hasChargesOnly) return null
+    const geo = new THREE.BoxGeometry(gaussSurfaceWidth, gaussSurfaceHeight, gaussSurfaceDepth)
+    addFluxColors(geo, 'box', fluxSurfaceParams, gaussCenter, charges, distributions, chargeUnit, ke, rMin)
+    return geo
+  }, [gaussSurfaceType, gaussStep, gaussSurfaceWidth, gaussSurfaceHeight, gaussSurfaceDepth, gaussCenter, hasChargesOnly, charges, distributions, chargeUnit, ke, rMin])
+
+  // --- Early returns (safe now, all hooks above) ---
+  if (!showGaussCompanion) return null
   if (charges.length > 0 && distributions.length === 0) {
     return (
       <Html center>
@@ -109,11 +144,7 @@ export function GaussianSurfaceVis() {
     )
   }
 
-  const activeDist = distributions[0] || null
   const configType = activeDist ? activeDist.type : null
-
-  // Glowing, translucent green-cyan for Gaussian surface
-  const surfaceColor = '#10b981' 
   const edgeColor = '#34d399'
 
   // Position of evaluation Point M from store
@@ -132,7 +163,6 @@ export function GaussianSurfaceVis() {
 
   if (gaussSurfaceType === 'sphere' || configType === 'sphere') {
     e_rad = relM.lengthSq() > 1e-6 ? relM.clone().normalize() : new THREE.Vector3(1, 0, 0)
-    // tangent e_θ in xz plane
     e_tan = new THREE.Vector3(-e_rad.z, 0, e_rad.x).normalize()
     if (e_tan.lengthSq() < 1e-4) e_tan = new THREE.Vector3(0, 1, 0)
     e_third = new THREE.Vector3().crossVectors(e_rad, e_tan).normalize()
@@ -157,20 +187,8 @@ export function GaussianSurfaceVis() {
   }
 
   const arrowLen = 1.2
-  const innerRadius = activeDist?.radius || 1.5
-  const innerVolRadius = Math.min(gaussSurfaceRadius, innerRadius)
-
-  // Memoized geometries for edge wireframes (avoid recreation on every render)
-  const sphereEdgesGeo = useMemo(() => new THREE.SphereGeometry(gaussSurfaceRadius, 16, 16), [gaussSurfaceRadius])
-  const cylinderEdgesGeo = useMemo(() => new THREE.CylinderGeometry(gaussSurfaceRadius, gaussSurfaceRadius, gaussSurfaceHeight, 16), [gaussSurfaceRadius, gaussSurfaceHeight])
-  const boxEdgesGeo = useMemo(() => new THREE.BoxGeometry(gaussSurfaceWidth, gaussSurfaceHeight, gaussSurfaceDepth), [gaussSurfaceWidth, gaussSurfaceHeight, gaussSurfaceDepth])
-  const innerSphereEdgesGeo = useMemo(() => new THREE.SphereGeometry(innerVolRadius, 16, 16), [innerVolRadius])
-  const innerCylinderEdgesGeo = useMemo(() => new THREE.CylinderGeometry(innerVolRadius, innerVolRadius, gaussSurfaceHeight, 16), [innerVolRadius, gaussSurfaceHeight])
-  const innerBoxEdgesGeo = useMemo(() => new THREE.BoxGeometry(gaussSurfaceWidth, 0.1, gaussSurfaceDepth), [gaussSurfaceWidth, gaussSurfaceDepth])
 
   // Calculate plane orientations for Step 1 so that BOTH planes are centered DIRECTLY AT Point M
-  const planeSize = Math.max(6, gaussSurfaceRadius * 3 || 6)
-  const planeEdgesGeo = useMemo(() => new THREE.PlaneGeometry(planeSize, planeSize), [planeSize])
   
   // Both planes are centered at Point M (relM) so that their intersection passes right through M
   let plane1Pos = [relM.x, relM.y, relM.z]
@@ -216,37 +234,6 @@ export function GaussianSurfaceVis() {
     plane2Pos = [relM.x, relM.y, relM.z]
     plane2Rot = [0, Math.PI / 2, 0]
   }
-
-  // Flux-colored surface geometries
-  const fluxSurfaceParams = useMemo(() => ({
-    radius: gaussSurfaceRadius,
-    height: gaussSurfaceHeight,
-    width: gaussSurfaceWidth,
-    depth: gaussSurfaceDepth,
-  }), [gaussSurfaceRadius, gaussSurfaceHeight, gaussSurfaceWidth, gaussSurfaceDepth])
-
-  const hasChargesOnly = charges.length > 0 && distributions.length === 0
-
-  const fluxSphereGeo = useMemo(() => {
-    if (gaussSurfaceType !== 'sphere' || gaussStep < 3 || hasChargesOnly) return null
-    const geo = new THREE.SphereGeometry(gaussSurfaceRadius, 32, 32)
-    addFluxColors(geo, 'sphere', fluxSurfaceParams, gaussCenter, charges, distributions, chargeUnit, ke, rMin)
-    return geo
-  }, [gaussSurfaceType, gaussStep, gaussSurfaceRadius, gaussCenter, hasChargesOnly, charges, distributions, chargeUnit, ke, rMin])
-
-  const fluxCylinderGeo = useMemo(() => {
-    if (gaussSurfaceType !== 'cylinder' || gaussStep < 3 || hasChargesOnly) return null
-    const geo = new THREE.CylinderGeometry(gaussSurfaceRadius, gaussSurfaceRadius, gaussSurfaceHeight, 32)
-    addFluxColors(geo, 'cylinder', fluxSurfaceParams, gaussCenter, charges, distributions, chargeUnit, ke, rMin)
-    return geo
-  }, [gaussSurfaceType, gaussStep, gaussSurfaceRadius, gaussSurfaceHeight, gaussCenter, hasChargesOnly, charges, distributions, chargeUnit, ke, rMin])
-
-  const fluxBoxGeo = useMemo(() => {
-    if (gaussSurfaceType !== 'box' || gaussStep < 3 || hasChargesOnly) return null
-    const geo = new THREE.BoxGeometry(gaussSurfaceWidth, gaussSurfaceHeight, gaussSurfaceDepth)
-    addFluxColors(geo, 'box', fluxSurfaceParams, gaussCenter, charges, distributions, chargeUnit, ke, rMin)
-    return geo
-  }, [gaussSurfaceType, gaussStep, gaussSurfaceWidth, gaussSurfaceHeight, gaussSurfaceDepth, gaussCenter, hasChargesOnly, charges, distributions, chargeUnit, ke, rMin])
 
   return (
     <group ref={groupRef} position={centerVec}>

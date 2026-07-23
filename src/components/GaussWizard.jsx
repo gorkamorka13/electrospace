@@ -179,6 +179,9 @@ export function GaussWizard() {
   const [minimized, setMinimized] = useState(false)
   const [isMobile, setIsMobile] = useState(() => window.innerWidth <= 768)
   const [pos, setPos] = useState(() => ({ x: Math.min(400, Math.max(0, window.innerWidth - 480)), y: null }))
+  const [quizAnswers, setQuizAnswers] = useState({})
+  const [quizFeedback, setQuizFeedback] = useState({})
+  const [quizScore, setQuizScore] = useState({ correct: 0, total: 0 })
   const panelRef = useRef(null)
   const dragCleanupRef = useRef(null)
 
@@ -292,6 +295,180 @@ export function GaussWizard() {
   const handleNext = () => { if (gaussStep < 5) setGaussStep(gaussStep + 1) }
   const handlePrev = () => { if (gaussStep > 1) setGaussStep(gaussStep - 1) }
 
+  // Quiz configuration per step
+  const stepQuiz = (step) => {
+    if (step === 1) {
+      const radialLabel = symmetryDetails.basisType === 'cartesian' ? 'e_x (normale)' : 'e_r'
+      const tan1Label = symmetryDetails.basisType === 'cartesian' ? 'e_y' : symmetryDetails.basisType === 'cylindrical' ? 'e_θ' : 'e_θ'
+      const tan2Label = symmetryDetails.basisType === 'cartesian' ? 'e_z' : symmetryDetails.basisType === 'cylindrical' ? 'e_z' : 'e_φ'
+      return {
+        question: 'Quelle est la direction de $\\vec{E}(M)$ ?',
+        options: [
+          { value: 'radial', label: `$\\vec{e}_{${radialLabel.split('_')[1] || 'r'}}$ (${radialLabel})` },
+          { value: 'tan1', label: `$\\vec{e}_{${tan1Label.split('_')[1] || 'θ'}}$ (${tan1Label})` },
+          { value: 'tan2', label: `$\\vec{e}_{${tan2Label.split('_')[1] || 'φ'}}$ (${tan2Label})` },
+        ],
+        correct: 'radial',
+        explanation: 'Par analyse des plans de symétrie, $\\vec{E}(M)$ est toujours radial (normal à la surface de Gauss).'
+      }
+    }
+    if (step === 2) {
+      return {
+        question: 'La norme $E = |\\vec{E}(M)|$ dépend-elle de la position de $M$ ?',
+        options: [
+          { value: 'radial', label: 'Oui, uniquement de la coordonnée radiale $r$' },
+          { value: 'constant', label: 'Non, elle est constante dans tout l\'espace' },
+        ],
+        correct: activeType === 'plane' ? 'constant' : 'radial',
+        explanation: activeType === 'plane'
+          ? 'Pour un plan infini, $E = \\sigma / (2\\varepsilon_0)$ est uniforme, indépendant de la distance au plan.'
+          : 'Par invariance par rotation/translation, $E$ ne dépend que de la distance radiale $r$.'
+      }
+    }
+    if (step === 3) {
+      return {
+        question: 'Quelle surface de Gauss est optimale pour cette distribution ?',
+        options: [
+          { value: 'sphere', label: 'Sphère' },
+          { value: 'cylinder', label: 'Cylindre' },
+          { value: 'box', label: 'Pavé / Boîte' },
+        ],
+        correct: req.surface,
+        explanation: `La surface ${req.surface} exploite la symétrie ${req.symmetry} : $\\vec{E} \\parallel d\\vec{S}$ sur toute la surface active.`
+      }
+    }
+    if (step === 4) {
+      const correctVal = Math.round(qInt * 1e9 * 100) / 100
+      return {
+        question: 'Quelle est la valeur de $Q_{\\text{int}}$ en nC ?',
+        type: 'number',
+        correct: correctVal,
+        tolerance: 0.05,
+        explanation: `$Q_{\\text{int}} = ${correctVal.toFixed(2)} \\text{ nC}$ d'après le calcul avec les paramètres actuels.`
+      }
+    }
+    if (step === 5) {
+      return {
+        question: 'Le potentiel $V(M)$ est-il une fonction continue dans tout l\'espace ?',
+        options: [
+          { value: 'yes', label: 'Oui, toujours' },
+          { value: 'no', label: 'Non, il peut être discontinu' },
+        ],
+        correct: 'yes',
+        explanation: 'Le potentiel $V$ est toujours continu (même si $\\vec{E}$ peut être discontinu à la traversée d\'une nappe de charge).'
+      }
+    }
+    return null
+  }
+
+  const handleQuizCheck = (step) => {
+    const quiz = stepQuiz(step)
+    if (!quiz) return
+    const userAnswer = quizAnswers[step]
+    if (userAnswer === undefined || userAnswer === '') return
+
+    let correct = false
+    if (quiz.type === 'number') {
+      const num = parseFloat(userAnswer)
+      correct = !isNaN(num) && Math.abs(num - quiz.correct) <= quiz.tolerance
+    } else {
+      correct = userAnswer === quiz.correct
+    }
+
+    setQuizFeedback(prev => ({ ...prev, [step]: { checked: true, correct } }))
+    if (!quizFeedback[step]?.checked) {
+      setQuizScore(prev => ({ correct: prev.correct + (correct ? 1 : 0), total: prev.total + 1 }))
+    }
+  }
+
+  const renderQuizSection = (step) => {
+    const quiz = stepQuiz(step)
+    if (!quiz) return null
+
+    const feedback = quizFeedback[step]
+    const userAnswer = quizAnswers[step]
+    const isNumber = quiz.type === 'number'
+
+    return (
+      <div className="gw-quiz-section">
+        <div className="gw-quiz-header">
+          <span className="gw-quiz-icon">❓</span>
+          <span className="gw-quiz-label">Auto-évaluation</span>
+          <span className="gw-quiz-badge">Question</span>
+        </div>
+        <p className="gw-quiz-question">
+          {(() => {
+            const parts = quiz.question.split('$')
+            return parts.map((part, i) =>
+              i % 2 === 1 ? <InlineMath key={i} math={part} /> : part
+            )
+          })()}
+        </p>
+        {isNumber ? (
+          <div className="gw-quiz-input-row">
+            <input
+              type="number"
+              step="0.01"
+              className="gw-quiz-input"
+              placeholder="Saisir la valeur en nC..."
+              value={userAnswer || ''}
+              onChange={(e) => {
+                setQuizAnswers(prev => ({ ...prev, [step]: e.target.value }))
+                if (feedback?.checked) {
+                  setQuizFeedback(prev => ({ ...prev, [step]: undefined }))
+                }
+              }}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleQuizCheck(step) }}
+              disabled={feedback?.checked}
+            />
+            <button className="gw-quiz-btn" onClick={() => handleQuizCheck(step)} disabled={feedback?.checked || !userAnswer && userAnswer !== 0}>
+              Vérifier
+            </button>
+          </div>
+        ) : (
+          <div className="gw-quiz-options">
+            {quiz.options.map(opt => (
+              <button key={opt.value}
+                className={`gw-quiz-option ${userAnswer === opt.value ? 'selected' : ''} ${feedback?.checked ? (opt.value === quiz.correct ? 'correct' : (userAnswer === opt.value ? 'wrong' : '')) : ''}`}
+                onClick={() => {
+                  if (feedback?.checked) return
+                  setQuizAnswers(prev => ({ ...prev, [step]: opt.value }))
+                }}
+                disabled={feedback?.checked}
+              >
+                {(() => {
+                  const parts = opt.label.split('$')
+                  return parts.map((part, i) =>
+                    i % 2 === 1 ? <InlineMath key={i} math={part} /> : part
+                  )
+                })()}
+              </button>
+            ))}
+            {userAnswer && !feedback?.checked && (
+              <button className="gw-quiz-btn" onClick={() => handleQuizCheck(step)}>Vérifier</button>
+            )}
+          </div>
+        )}
+        {feedback?.checked && (
+          <div className={`gw-quiz-feedback ${feedback.correct ? 'correct' : 'wrong'}`}>
+            <span className="gw-quiz-feedback-icon">{feedback.correct ? '✅' : '❌'}</span>
+            <span>
+              {feedback.correct ? 'Bonne réponse ! ' : 'Mauvaise réponse. '}
+              <span className="gw-quiz-explain">
+                {(() => {
+                  const parts = quiz.explanation.split('$')
+                  return parts.map((part, i) =>
+                    i % 2 === 1 ? <InlineMath key={i} math={part} /> : part
+                  )
+                })()}
+              </span>
+            </span>
+          </div>
+        )}
+      </div>
+    )
+  }
+
   return (
     <div ref={panelRef} className={`gauss-wizard-panel ${minimized ? 'minimized' : ''}`} style={{ left: isMobile ? undefined : pos.x, top: pos.y ?? undefined, bottom: pos.y ? undefined : '1.5rem' }}>
       {/* Header */}
@@ -303,6 +480,11 @@ export function GaussWizard() {
             <path d="M2 12h20" />
           </svg>
           <h3>Compagnon Théorème de Gauss</h3>
+          {quizScore.total > 0 && (
+            <span className="gw-score-badge">
+              {quizScore.correct}/{quizScore.total}
+            </span>
+          )}
         </div>
         <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
           <button className="gw-minimize" onClick={() => setMinimized(!minimized)} title={minimized ? 'Agrandir' : 'Réduire'}>
@@ -369,6 +551,8 @@ export function GaussWizard() {
               </svg>
               <span><strong>Direction déduite :</strong> <TextWithMath text={symmetryDetails.directionText} /></span>
             </div>
+
+            {renderQuizSection(1)}
           </div>
         )}
 
@@ -393,6 +577,8 @@ export function GaussWizard() {
               </svg>
               <span><strong>Déduction scalaire :</strong> <TextWithMath text={invariances.deduction} /></span>
             </div>
+
+            {renderQuizSection(2)}
           </div>
         )}
 
@@ -452,6 +638,8 @@ export function GaussWizard() {
                 </table>
               </div>
             </div>
+
+            {renderQuizSection(3)}
           </div>
         )}
 
@@ -487,6 +675,8 @@ export function GaussWizard() {
             <p className="note-text-center">
               💡 La région colorée en <strong>jaune or</strong> dans la vue 3D illustre précisément la charge <InlineMath math="Q_{\text{int}}" /> captée par votre surface de Gauss !
             </p>
+
+            {renderQuizSection(4)}
           </div>
         )}
 
@@ -528,6 +718,8 @@ export function GaussWizard() {
             <p className="note-text-center">
               💡 Le potentiel <InlineMath math="V" /> est une fonction <strong>partout continue</strong> dans l'espace, même aux traversées de nappes de charge !
             </p>
+
+            {renderQuizSection(5)}
           </div>
         )}
       </div>
