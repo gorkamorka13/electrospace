@@ -191,6 +191,7 @@ const ChargeListSection = memo(({ selectedObjectId, setSelectedObjectId }) => {
   const removeCharge = useStore((s) => s.removeCharge)
   const updateChargeQ = useStore((s) => s.updateChargeQ)
   const updateChargePosition = useStore((s) => s.updateChargePosition)
+  const pushHistory = useStore((s) => s.pushHistory)
   const toggleFreeCharge = useStore((s) => s.toggleFreeCharge)
   const resetChargePositions = useStore((s) => s.resetChargePositions)
   const addCharge = useStore((s) => s.addCharge)
@@ -201,6 +202,7 @@ const ChargeListSection = memo(({ selectedObjectId, setSelectedObjectId }) => {
   const handleChargeCoordinateChange = (id, position, axis, val) => {
     const newPos = [...position]
     newPos[axis] = val
+    pushHistory()
     updateChargePosition(id, newPos)
   }
 

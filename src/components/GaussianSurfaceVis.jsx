@@ -1,6 +1,6 @@
-import { useRef } from 'react'
+import { useRef, useMemo } from 'react'
 import * as THREE from 'three'
-import { Billboard, Text } from '@react-three/drei'
+import { Billboard, Text, Html } from '@react-three/drei'
 import { useStore } from '../store/useStore'
 
 export function GaussianSurfaceVis() {
@@ -18,7 +18,24 @@ export function GaussianSurfaceVis() {
 
   const groupRef = useRef()
 
-  if (!showGaussCompanion || charges.length > 0) return null
+  if (!showGaussCompanion) return null
+
+  // ⚠️ Warn when point charges exist — Gaussian surface visualization hidden
+  if (charges.length > 0) {
+    return (
+      <Html center>
+        <div style={{
+          background: 'rgba(245,158,11,0.9)', color: '#000',
+          padding: '12px 20px', borderRadius: 8, fontSize: 14,
+          maxWidth: 320, textAlign: 'center', fontWeight: 600,
+          border: '2px solid #f59e0b'
+        }}>
+          ⚡ Le Compagnon de Gauss est désactivé en présence de charges ponctuelles.<br/>
+          <span style={{fontSize: 12, opacity: 0.8}}>Utilisez une distribution continue (sphère, cylindre, plan…).</span>
+        </div>
+      </Html>
+    )
+  }
 
   const activeDist = distributions[0] || null
   const configType = activeDist ? activeDist.type : null
@@ -68,9 +85,20 @@ export function GaussianSurfaceVis() {
   }
 
   const arrowLen = 1.2
+  const innerRadius = activeDist?.radius || 1.5
+  const innerVolRadius = Math.min(gaussSurfaceRadius, innerRadius)
+
+  // Memoized geometries for edge wireframes (avoid recreation on every render)
+  const sphereEdgesGeo = useMemo(() => new THREE.SphereGeometry(gaussSurfaceRadius, 16, 16), [gaussSurfaceRadius])
+  const cylinderEdgesGeo = useMemo(() => new THREE.CylinderGeometry(gaussSurfaceRadius, gaussSurfaceRadius, gaussSurfaceHeight, 16), [gaussSurfaceRadius, gaussSurfaceHeight])
+  const boxEdgesGeo = useMemo(() => new THREE.BoxGeometry(gaussSurfaceWidth, gaussSurfaceHeight, gaussSurfaceDepth), [gaussSurfaceWidth, gaussSurfaceHeight, gaussSurfaceDepth])
+  const innerSphereEdgesGeo = useMemo(() => new THREE.SphereGeometry(innerVolRadius, 16, 16), [innerVolRadius])
+  const innerCylinderEdgesGeo = useMemo(() => new THREE.CylinderGeometry(innerVolRadius, innerVolRadius, gaussSurfaceHeight, 16), [innerVolRadius, gaussSurfaceHeight])
+  const innerBoxEdgesGeo = useMemo(() => new THREE.BoxGeometry(gaussSurfaceWidth, 0.1, gaussSurfaceDepth), [gaussSurfaceWidth, gaussSurfaceDepth])
 
   // Calculate plane orientations for Step 1 so that BOTH planes are centered DIRECTLY AT Point M
   const planeSize = Math.max(6, gaussSurfaceRadius * 3 || 6)
+  const planeEdgesGeo = useMemo(() => new THREE.PlaneGeometry(planeSize, planeSize), [planeSize])
   
   // Both planes are centered at Point M (relM) so that their intersection passes right through M
   let plane1Pos = [relM.x, relM.y, relM.z]
@@ -133,7 +161,7 @@ export function GaussianSurfaceVis() {
                 depthWrite={false}
               />
               <lineSegments>
-                <edgesGeometry args={[new THREE.SphereGeometry(gaussSurfaceRadius, 16, 16)]} />
+                <edgesGeometry args={[sphereEdgesGeo]} />
                 <lineBasicMaterial color={edgeColor} transparent opacity={0.4} />
               </lineSegments>
             </mesh>
@@ -150,7 +178,7 @@ export function GaussianSurfaceVis() {
                 depthWrite={false}
               />
               <lineSegments>
-                <edgesGeometry args={[new THREE.CylinderGeometry(gaussSurfaceRadius, gaussSurfaceRadius, gaussSurfaceHeight, 16)]} />
+                <edgesGeometry args={[cylinderEdgesGeo]} />
                 <lineBasicMaterial color={edgeColor} transparent opacity={0.4} />
               </lineSegments>
             </mesh>
@@ -167,7 +195,7 @@ export function GaussianSurfaceVis() {
                 depthWrite={false}
               />
               <lineSegments>
-                <edgesGeometry args={[new THREE.BoxGeometry(gaussSurfaceWidth, gaussSurfaceHeight, gaussSurfaceDepth)]} />
+                <edgesGeometry args={[boxEdgesGeo]} />
                 <lineBasicMaterial color={edgeColor} transparent opacity={0.4} />
               </lineSegments>
             </mesh>
@@ -183,7 +211,7 @@ export function GaussianSurfaceVis() {
               <sphereGeometry args={[Math.min(gaussSurfaceRadius, activeDist?.radius || 1.5), 32, 32]} />
               <meshBasicMaterial color="#f59e0b" transparent opacity={0.35} side={THREE.DoubleSide} depthWrite={false} />
               <lineSegments>
-                <edgesGeometry args={[new THREE.SphereGeometry(Math.min(gaussSurfaceRadius, activeDist?.radius || 1.5), 16, 16)]} />
+                <edgesGeometry args={[innerSphereEdgesGeo]} />
                 <lineBasicMaterial color="#fbbf24" transparent opacity={0.7} />
               </lineSegments>
             </mesh>
@@ -194,7 +222,7 @@ export function GaussianSurfaceVis() {
               <cylinderGeometry args={[Math.min(gaussSurfaceRadius, activeDist?.radius || 1.5), Math.min(gaussSurfaceRadius, activeDist?.radius || 1.5), gaussSurfaceHeight, 32]} />
               <meshBasicMaterial color="#f59e0b" transparent opacity={0.35} side={THREE.DoubleSide} depthWrite={false} />
               <lineSegments>
-                <edgesGeometry args={[new THREE.CylinderGeometry(Math.min(gaussSurfaceRadius, activeDist?.radius || 1.5), Math.min(gaussSurfaceRadius, activeDist?.radius || 1.5), gaussSurfaceHeight, 16)]} />
+                <edgesGeometry args={[innerCylinderEdgesGeo]} />
                 <lineBasicMaterial color="#fbbf24" transparent opacity={0.7} />
               </lineSegments>
             </mesh>
@@ -205,7 +233,7 @@ export function GaussianSurfaceVis() {
               <boxGeometry args={[gaussSurfaceWidth, 0.1, gaussSurfaceDepth]} />
               <meshBasicMaterial color="#f59e0b" transparent opacity={0.4} side={THREE.DoubleSide} depthWrite={false} />
               <lineSegments>
-                <edgesGeometry args={[new THREE.BoxGeometry(gaussSurfaceWidth, 0.1, gaussSurfaceDepth)]} />
+                <edgesGeometry args={[innerBoxEdgesGeo]} />
                 <lineBasicMaterial color="#fbbf24" transparent opacity={0.8} />
               </lineSegments>
             </mesh>
@@ -221,7 +249,7 @@ export function GaussianSurfaceVis() {
             <planeGeometry args={[planeSize, planeSize]} />
             <meshBasicMaterial color="#3b82f6" transparent opacity={0.2} side={THREE.DoubleSide} depthWrite={false} />
             <lineSegments>
-              <edgesGeometry args={[new THREE.PlaneGeometry(planeSize, planeSize)]} />
+              <edgesGeometry args={[planeEdgesGeo]} />
               <lineBasicMaterial color="#60a5fa" transparent opacity={0.6} />
             </lineSegments>
           </mesh>
@@ -230,7 +258,7 @@ export function GaussianSurfaceVis() {
             <planeGeometry args={[planeSize, planeSize]} />
             <meshBasicMaterial color="#ec4899" transparent opacity={0.2} side={THREE.DoubleSide} depthWrite={false} />
             <lineSegments>
-              <edgesGeometry args={[new THREE.PlaneGeometry(planeSize, planeSize)]} />
+              <edgesGeometry args={[planeEdgesGeo]} />
               <lineBasicMaterial color="#f472b6" transparent opacity={0.6} />
             </lineSegments>
           </mesh>

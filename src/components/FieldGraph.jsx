@@ -129,31 +129,44 @@ export function FieldGraph() {
     return () => window.removeEventListener('resize', onResize)
   }, [setWin])
 
-  const data = useMemo(() => {
-    if (!show) return null
+  const [data, setData] = useState(null)
+  const dataVersionRef = useRef(0)
+
+  useEffect(() => {
+    if (!show) { setData(null); return }
+    const version = ++dataVersionRef.current
     const multiplier = UNIT_FACTORS[chargeUnit] || 1e-6
-    // When distributions are active, point charges are hidden and must not contribute
     const physicalCharges = distributions.length > 0 ? [] : charges.map(c => ({ ...c, q: c.q * multiplier }))
     const { ke, rMin } = useStore.getState()
     const axisIndex = 'xyz'.indexOf(sweepAxis)
     const pos = [...testPoint]
     const pts = []
     let minVal = Infinity, maxVal = -Infinity
-    for (let i = 0; i < SAMPLES; i++) {
-      const t = (i / (SAMPLES - 1)) * (AXIS_RANGE * 2) - AXIS_RANGE
-      pos[axisIndex] = t
-      const E = calculateTotalField(physicalCharges, pos, ke, rMin, distributions)
-      const val = fieldKey === 'mag' ? E.length() : E[fieldKey[1]]
-      pts.push({ t, val })
-      if (val < minVal) minVal = val
-      if (val > maxVal) maxVal = val
+
+    const computeChunk = (deadline) => {
+      for (let i = 0; i < SAMPLES; i++) {
+        if (deadline.timeRemaining() < 1 && i < SAMPLES - 1) {
+          requestIdleCallback(computeChunk, { timeout: 50 })
+          return
+        }
+        const t = (i / (SAMPLES - 1)) * (AXIS_RANGE * 2) - AXIS_RANGE
+        pos[axisIndex] = t
+        const E = calculateTotalField(physicalCharges, pos, ke, rMin, distributions)
+        const val = fieldKey === 'mag' ? E.length() : E[fieldKey[1]]
+        pts.push({ t, val })
+        if (val < minVal) minVal = val
+        if (val > maxVal) maxVal = val
+      }
+      if (version !== dataVersionRef.current) return
+      const absMax = Math.max(Math.abs(minVal), Math.abs(maxVal), 1e-30)
+      if (fieldKey !== 'mag') { minVal = -absMax; maxVal = absMax }
+      const range = Math.max(maxVal - minVal, 1e-30)
+      const testE = calculateTotalField(physicalCharges, testPoint, ke, rMin, distributions)
+      const testVal = fieldKey === 'mag' ? testE.length() : testE[fieldKey[1]]
+      setData({ pts, minVal, maxVal, range, testPos: testPoint[axisIndex], testVal })
     }
-    const absMax = Math.max(Math.abs(minVal), Math.abs(maxVal), 1e-30)
-    if (fieldKey !== 'mag') { minVal = -absMax; maxVal = absMax }
-    const range = Math.max(maxVal - minVal, 1e-30)
-    const testE = calculateTotalField(physicalCharges, testPoint, ke, rMin, distributions)
-    const testVal = fieldKey === 'mag' ? testE.length() : testE[fieldKey[1]]
-    return { pts, minVal, maxVal, range, testPos: testPoint[axisIndex], testVal }
+
+    requestIdleCallback(computeChunk, { timeout: 100 })
   }, [show, charges, distributions, chargeUnit, testPoint, fieldKey, sweepAxis])
 
   const colors = useMemo(() => ({ mag: '#f59e0b', ex: '#ef4444', ey: '#22c55e', ez: '#3b82f6' }), [])

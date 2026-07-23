@@ -369,7 +369,6 @@ export const useStore = create((set, get) => ({
   },
 
   updateChargePosition: (id, position) => {
-    get().pushHistory()
     set((state) => ({
       charges: state.charges.map((c) => (c.id === id ? { ...c, position } : c)),
     }))

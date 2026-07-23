@@ -74,6 +74,7 @@ export function ContextMenu() {
   const freeCharges = useStore((s) => s.freeCharges)
   const updateChargeQ = useStore((s) => s.updateChargeQ)
   const updateChargePosition = useStore((s) => s.updateChargePosition)
+  const pushHistory = useStore((s) => s.pushHistory)
   const updateDistribution = useStore((s) => s.updateDistribution)
   const toggleFreeCharge = useStore((s) => s.toggleFreeCharge)
   const removeCharge = useStore((s) => s.removeCharge)
@@ -200,6 +201,7 @@ export function ContextMenu() {
   const handlePosChange = (axis, val) => {
     const newPos = [...charge.position]
     newPos[axis] = val
+    pushHistory()
     updateChargePosition(charge.id, newPos)
   }
 

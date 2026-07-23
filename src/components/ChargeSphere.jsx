@@ -5,6 +5,7 @@ import { useStore } from '../store/useStore'
 
 export function ChargeSphere({ charge }) {
   const updateChargePosition = useStore((state) => state.updateChargePosition)
+  const pushHistory = useStore((state) => state.pushHistory)
   const setDragging = useStore((state) => state.setDragging)
   const selectedObjectId = useStore((state) => state.selectedObjectId)
   const setSelectedObjectId = useStore((state) => state.setSelectedObjectId)
@@ -79,6 +80,7 @@ export function ChargeSphere({ charge }) {
       // ignore if already released
     }
     setDragging(false)
+    pushHistory()
   }
 
   // Visuals: Red for positive charges, Blue for negative charges
