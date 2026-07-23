@@ -65,8 +65,6 @@ export function PhysicsCanvas({ rootRef: _rootRef }) {
   const setActiveView = useStore((state) => state.setActiveView)
   const cameraMode = useStore((state) => state.cameraMode)
   const setCameraMode = useStore((state) => state.setCameraMode)
-  const showForces = useStore((state) => state.showForces)
-  const setShowForces = useStore((state) => state.setShowForces)
   const showFieldLines = useStore((state) => state.showFieldLines)
   const setShowFieldLines = useStore((state) => state.setShowFieldLines)
   const showThroughMLine = useStore((state) => state.showThroughMLine)
@@ -208,16 +206,6 @@ export function PhysicsCanvas({ rootRef: _rootRef }) {
                 <span style={{ fontSize: '0.7rem', fontWeight: 700 }}>{axis.toUpperCase()}</span>
               </button>
             ))}
-            <div className="controls-divider"></div>
-            <button
-              className={`camera-btn ${showForces ? 'active' : ''}`}
-              onClick={() => setShowForces(!showForces)}
-              title={showForces ? 'Masquer les forces' : 'Afficher les forces'}
-              aria-label={showForces ? 'Masquer les forces' : 'Afficher les forces'}
-              style={{ width: '36px', height: '36px', fontSize: '1.1rem', fontWeight: 'bold' }}
-            >
-              F
-            </button>
             <div className="controls-divider"></div>
             <button
               className={`camera-btn ${showFieldLines ? 'active' : ''}`}

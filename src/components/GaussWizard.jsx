@@ -3,44 +3,7 @@ import * as THREE from 'three'
 import { useStore } from '../store/useStore'
 import { calculateGaussParameters } from '../physics/gauss'
 import { formatElectricField } from '../physics/coulomb'
-
-// Rendu KaTeX natif (via window.katex du CDN dans index.html)
-function renderKaTeX(math, displayMode = false) {
-  if (typeof window !== 'undefined' && window.katex && typeof window.katex.renderToString === 'function') {
-    try {
-      return window.katex.renderToString(math, { displayMode, throwOnError: false })
-    } catch {
-      return math
-    }
-  }
-  return math
-}
-
-function InlineMath({ math }) {
-  const html = renderKaTeX(math, false)
-  return <span dangerouslySetInnerHTML={{ __html: html }} />
-}
-
-function BlockMath({ math }) {
-  const html = renderKaTeX(math, true)
-  return <div className="gw-katex-block" dangerouslySetInnerHTML={{ __html: html }} />
-}
-
-// Composant pour mélanger du texte normal et des formules LaTeX entre $...$
-function TextWithMath({ text }) {
-  if (!text) return null
-  const parts = text.split('$')
-  return (
-    <span>
-      {parts.map((part, index) => {
-        if (index % 2 === 1) {
-          return <InlineMath key={index} math={part} />
-        }
-        return part
-      })}
-    </span>
-  )
-}
+import { InlineMath, BlockMath, TextWithMath } from '../utils/math'
 
 // Component to render 2D SVG schematics of Coordinate Basis Vectors (er, eteta, ephi/ez)
 function BasisVectorDiagram({ basisType }) {
