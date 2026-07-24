@@ -4,10 +4,16 @@ import { calculateTotalField } from '../physics/coulomb'
 
 const PAD = 34
 const SAMPLES = 300
+const CHUNK_SIZE = 30  // Process 30 samples per idle callback to avoid blocking
 const AXIS_RANGE = 10
 const MIN_W = 200
 const MIN_H = 140
 const MARGIN = 10
+
+// requestIdleCallback with fallback for unsupported browsers
+const ric = typeof window !== 'undefined' && window.requestIdleCallback
+  ? (cb, opts) => window.requestIdleCallback(cb, opts)
+  : (cb) => setTimeout(() => cb({ timeRemaining: () => 50 }), 0)
 
 const FIELD_OPTIONS = [
   { key: 'ex', label: 'Ex' },
@@ -43,6 +49,7 @@ export function FieldGraph() {
   const [fieldKey, setFieldKey] = useState('ex')
   const [sweepAxis, setSweepAxis] = useState('x')
 
+  const [cursorPos, setCursorPos] = useState({ testPos: 0, testVal: 0 })
   const dragCleanupRef = useRef(null)
   const updateTestPoint = useStore((s) => s.updateTestPoint)
   const storeTestPoint = useStore((s) => s.testPoint)
@@ -132,6 +139,18 @@ export function FieldGraph() {
   const [data, setData] = useState(null)
   const dataVersionRef = useRef(0)
 
+  // Real-time cursor update: synchronously recompute test value when testPoint changes
+  useEffect(() => {
+    if (!show) return
+    const multiplier = UNIT_FACTORS[chargeUnit] || 1e-6
+    const physicalCharges = distributions.length > 0 ? [] : charges.map(c => ({ ...c, q: c.q * multiplier }))
+    const { ke, rMin } = useStore.getState()
+    const axisIndex = 'xyz'.indexOf(sweepAxis)
+    const E = calculateTotalField(physicalCharges, testPoint, ke, rMin, distributions)
+    const testVal = fieldKey === 'mag' ? E.length() : E[fieldKey[1]]
+    setCursorPos({ testPos: testPoint[axisIndex], testVal })
+  }, [show, testPoint, charges, distributions, chargeUnit, fieldKey, sweepAxis])
+
   useEffect(() => {
     if (!show) { setData(null); return }
     const version = ++dataVersionRef.current
@@ -142,13 +161,11 @@ export function FieldGraph() {
     const pos = [...testPoint]
     const pts = []
     let minVal = Infinity, maxVal = -Infinity
+    let currentIndex = 0
 
     const computeChunk = (deadline) => {
-      for (let i = 0; i < SAMPLES; i++) {
-        if (deadline.timeRemaining() < 1 && i < SAMPLES - 1) {
-          requestIdleCallback(computeChunk, { timeout: 50 })
-          return
-        }
+      const end = Math.min(currentIndex + CHUNK_SIZE, SAMPLES)
+      for (let i = currentIndex; i < end; i++) {
         const t = (i / (SAMPLES - 1)) * (AXIS_RANGE * 2) - AXIS_RANGE
         pos[axisIndex] = t
         const E = calculateTotalField(physicalCharges, pos, ke, rMin, distributions)
@@ -157,6 +174,21 @@ export function FieldGraph() {
         if (val < minVal) minVal = val
         if (val > maxVal) maxVal = val
       }
+      currentIndex = end
+
+      if (currentIndex < SAMPLES && deadline.timeRemaining() < 5) {
+        // Yield to next idle callback if we still have work and time is running low
+        ric(computeChunk, { timeout: 50 })
+        return
+      }
+
+      if (currentIndex < SAMPLES) {
+        // Continue immediately if we still have time budget
+        ric(computeChunk, { timeout: 50 })
+        return
+      }
+
+      // All samples computed — finalize
       if (version !== dataVersionRef.current) return
       const absMax = Math.max(Math.abs(minVal), Math.abs(maxVal), 1e-30)
       if (fieldKey !== 'mag') { minVal = -absMax; maxVal = absMax }
@@ -166,8 +198,9 @@ export function FieldGraph() {
       setData({ pts, minVal, maxVal, range, testPos: testPoint[axisIndex], testVal })
     }
 
-    requestIdleCallback(computeChunk, { timeout: 100 })
-  }, [show, charges, distributions, chargeUnit, testPoint, fieldKey, sweepAxis])
+    ric(computeChunk, { timeout: 100 })
+  }, [show, charges, distributions, chargeUnit, fieldKey, sweepAxis])
+  // Note: testPoint intentionally NOT in deps above — we don't restart async calc on every drag frame
 
   const colors = useMemo(() => ({ mag: '#f59e0b', ex: '#ef4444', ey: '#22c55e', ez: '#3b82f6' }), [])
 
@@ -249,7 +282,8 @@ export function FieldGraph() {
     ctx.lineWidth = 1.8
     ctx.stroke()
 
-    const cx = xScale(data.testPos)
+    // Use real-time cursorPos for the yellow cursor line
+    const cx = xScale(cursorPos.testPos)
     ctx.beginPath()
     ctx.moveTo(cx, PAD)
     ctx.lineTo(cx, PAD + plotH)
@@ -268,8 +302,8 @@ export function FieldGraph() {
     ctx.restore()
     ctx.fillStyle = infoColor
     ctx.font = '12px monospace'
-    ctx.fillText(`M: ${FIELD_OPTIONS.find(o => o.key === fieldKey)?.label}=${data.testVal.toExponential(2)} V/m`, PAD + 4, PAD + plotH - 4)
-  }, [show, data, w, h, fieldKey, colors, theme, sweepAxis])
+    ctx.fillText(`M: ${FIELD_OPTIONS.find(o => o.key === fieldKey)?.label}=${cursorPos.testVal.toExponential(2)} V/m`, PAD + 4, PAD + plotH - 4)
+  }, [show, data, w, h, fieldKey, colors, theme, sweepAxis, cursorPos])
 
   const winRefState = useRef(win)
   winRefState.current = win

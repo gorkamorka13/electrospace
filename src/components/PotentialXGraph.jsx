@@ -4,10 +4,16 @@ import { calculateTotalPotential } from '../physics/coulomb'
 
 const PAD = 34
 const SAMPLES = 300
+const CHUNK_SIZE = 30  // Process 30 samples per idle callback to avoid blocking
 const AXIS_RANGE = 10
 const MIN_W = 200
 const MIN_H = 140
 const MARGIN = 10
+
+// requestIdleCallback with fallback for unsupported browsers
+const ric = typeof window !== 'undefined' && window.requestIdleCallback
+  ? (cb, opts) => window.requestIdleCallback(cb, opts)
+  : (cb) => setTimeout(() => cb({ timeRemaining: () => 50 }), 0)
 
 function clampPos(x, y, w, h) {
   const mw = window.innerWidth, mh = window.innerHeight
@@ -33,6 +39,7 @@ export function PotentialXGraph() {
   const theme = useStore((s) => s.theme)
   const [potAxis, setPotAxis] = useState('x')
 
+  const [cursorPos, setCursorPos] = useState({ testPos: 0, testV: 0 })
   const dragCleanupRef = useRef(null)
   const updateTestPoint = useStore((s) => s.updateTestPoint)
   const storeTestPoint = useStore((s) => s.testPoint)
@@ -119,30 +126,68 @@ export function PotentialXGraph() {
     return () => window.removeEventListener('resize', onResize)
   }, [setWin])
 
-  const data = useMemo(() => {
-    if (!show) return null
+  // Real-time cursor update: synchronously recompute test value when testPoint changes
+  useEffect(() => {
+    if (!show) return
     const multiplier = UNIT_FACTORS[chargeUnit] || 1e-6
-    // When distributions are active, point charges are hidden and must not contribute
+    const physicalCharges = distributions.length > 0 ? [] : charges.map(c => ({ ...c, q: c.q * multiplier }))
+    const { ke, rMin } = useStore.getState()
+    const axisIdx = potAxis === 'x' ? 0 : potAxis === 'y' ? 1 : 2
+    const V = calculateTotalPotential(physicalCharges, testPoint, ke, rMin, distributions)
+    setCursorPos({ testPos: testPoint[axisIdx], testV: V })
+  }, [show, testPoint, charges, distributions, chargeUnit, potAxis])
+
+  const [data, setData] = useState(null)
+  const dataVersionRef = useRef(0)
+
+  useEffect(() => {
+    if (!show) { setData(null); return }
+    const version = ++dataVersionRef.current
+    const multiplier = UNIT_FACTORS[chargeUnit] || 1e-6
     const physicalCharges = distributions.length > 0 ? [] : charges.map(c => ({ ...c, q: c.q * multiplier }))
     const { ke, rMin } = useStore.getState()
     const axisIdx = potAxis === 'x' ? 0 : potAxis === 'y' ? 1 : 2
     const pos = [...testPoint]
     const pts = []
     let minV = Infinity, maxV = -Infinity
-    for (let i = 0; i < SAMPLES; i++) {
-      const t = (i / (SAMPLES - 1)) * (AXIS_RANGE * 2) - AXIS_RANGE
-      pos[axisIdx] = t
-      const V = calculateTotalPotential(physicalCharges, pos, ke, rMin, distributions)
-      pts.push({ t, V })
-      if (V < minV) minV = V
-      if (V > maxV) maxV = V
+    let currentIndex = 0
+
+    const computeChunk = (deadline) => {
+      const end = Math.min(currentIndex + CHUNK_SIZE, SAMPLES)
+      for (let i = currentIndex; i < end; i++) {
+        const t = (i / (SAMPLES - 1)) * (AXIS_RANGE * 2) - AXIS_RANGE
+        pos[axisIdx] = t
+        const V = calculateTotalPotential(physicalCharges, pos, ke, rMin, distributions)
+        pts.push({ t, V })
+        if (V < minV) minV = V
+        if (V > maxV) maxV = V
+      }
+      currentIndex = end
+
+      if (currentIndex < SAMPLES && deadline.timeRemaining() < 5) {
+        // Yield to next idle callback if we still have work and time is running low
+        ric(computeChunk, { timeout: 50 })
+        return
+      }
+
+      if (currentIndex < SAMPLES) {
+        // Continue immediately if we still have time budget
+        ric(computeChunk, { timeout: 50 })
+        return
+      }
+
+      // All samples computed — finalize
+      if (version !== dataVersionRef.current) return
+      const absMax = Math.max(Math.abs(minV), Math.abs(maxV), 1e-30)
+      minV = -absMax; maxV = absMax
+      const range = Math.max(maxV - minV, 1e-30)
+      const testV = calculateTotalPotential(physicalCharges, testPoint, ke, rMin, distributions)
+      setData({ pts, minV, maxV, range, testPos: testPoint[axisIdx], testV, axisLabel: AXIS_LABELS[potAxis] })
     }
-    const absMax = Math.max(Math.abs(minV), Math.abs(maxV), 1e-30)
-    minV = -absMax; maxV = absMax
-    const range = Math.max(maxV - minV, 1e-30)
-    const testV = calculateTotalPotential(physicalCharges, testPoint, ke, rMin, distributions)
-    return { pts, minV, maxV, range, testPos: testPoint[axisIdx], testV, axisLabel: AXIS_LABELS[potAxis] }
-  }, [show, charges, distributions, chargeUnit, testPoint, potAxis])
+
+    ric(computeChunk, { timeout: 100 })
+  }, [show, charges, distributions, chargeUnit, potAxis])
+  // Note: testPoint intentionally NOT in deps above — we don't restart async calc on every drag frame
 
   useEffect(() => {
     if (!show || !data || !canvasRef.current) return
@@ -223,7 +268,8 @@ export function PotentialXGraph() {
     ctx.lineWidth = 1.5
     ctx.stroke()
 
-    const cx = xScale(data.testPos)
+    // Use real-time cursorPos for the yellow cursor
+    const cx = xScale(cursorPos.testPos)
     ctx.beginPath()
     ctx.moveTo(cx, PAD)
     ctx.lineTo(cx, PAD + plotH)
@@ -233,7 +279,7 @@ export function PotentialXGraph() {
     ctx.stroke()
     ctx.setLineDash([])
 
-    const cy = yScale(data.testV)
+    const cy = yScale(cursorPos.testV)
     ctx.beginPath()
     ctx.arc(cx, cy, 3, 0, Math.PI * 2)
     ctx.fillStyle = '#fbbf24'
@@ -251,8 +297,8 @@ export function PotentialXGraph() {
     ctx.fillText(`V(${data.axisLabel}) passant par M`, PAD + 4, PAD + 12)
     ctx.fillStyle = infoColor
     ctx.font = '12px monospace'
-    ctx.fillText(`M: ${data.axisLabel}=${data.testPos.toFixed(2)}`, PAD + 4, PAD + plotH - 4)
-  }, [show, data, w, h, theme])
+    ctx.fillText(`M: ${data.axisLabel}=${cursorPos.testPos.toFixed(2)}  V=${cursorPos.testV.toExponential(2)} V`, PAD + 4, PAD + plotH - 4)
+  }, [show, data, w, h, theme, cursorPos])
 
   const winRefState = useRef(win)
   winRefState.current = win
