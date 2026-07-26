@@ -2,7 +2,7 @@
 
 ## Current Focus
 
-The project is at **v1.3** — core features (Phases 1-3) are complete and stable. The most recent work focused on stabilization and quality improvements as documented in the improvement analysis (2026-07-23). Fixed PotentialXGraph main thread blocking and cursor drag synchronicity issue (2026-07-24).
+The project is at **v1.3** — core features (Phases 1-3) are complete and stable. The most recent work focused on stabilization and quality improvements as documented in the improvement analysis (2026-07-23). Fixed PotentialXGraph main thread blocking and cursor drag synchronicity issue (2026-07-24). Added screenshot export of the 3D scene (2026-07-26). Removed the onboarding tour entirely (2026-07-26).
 
 ### Recent Changes (from git history)
 ```
@@ -33,14 +33,13 @@ The improvement analysis (`docs/improvements-recommendations.md` and `IMPROVEMEN
 - ✅ Main thread blocking in FieldGraph — refactored: processes 30 samples per idle callback (`CHUNK_SIZE = 30`) with `requestIdleCallback` + `setTimeout` fallback
 - ✅ Main thread blocking in PotentialXGraph — same refactoring applied (2026-07-24)
 
-**Sprint 2 — UX Core** (next):
-- Screenshot export of 3D scene
-- Fullscreen mode toggle
-- Reset camera button
-- Charge labels in 3D (CSS2DRenderer)
-- Measurement tool (distance between two points)
-- Superposition visualization (individual E_i vectors faded + total bold)
-- Onboarding tour (localStorage flag)
+**Sprint 2 — UX Core** (in progress):
+- [x] Screenshot export of 3D scene (📷 Capture button in Scènes panel, WebGL context detection, preserveDrawingBuffer)
+- [ ] Fullscreen mode toggle
+- [ ] Reset camera button
+- [ ] Charge labels in 3D (CSS2DRenderer)
+- [ ] Measurement tool (distance between two points)
+- [ ] Superposition visualization (individual E_i vectors faded + total bold)
 
 **Sprint 3 — Pedagogy** (future):
 - Quiz mode in Gauss Companion
@@ -51,7 +50,7 @@ The improvement analysis (`docs/improvements-recommendations.md` and `IMPROVEMEN
 **Sprint 4 — Advanced Physics** (future):
 - RK4 trajectory integrator
 - Marching cubes isosurfaces
-- Laplace/Poisson solver (Web Worker)
+- Laplace/Poisson solver (Web Worker) — grille 2D N×N, placement d'électrodes, relaxation Gauss-Seidel avec SOR, heatmap du potentiel, lignes de champ par gradient
 - Magnetism extension (Biot-Savart)
 
 ## Active Decisions
@@ -61,7 +60,7 @@ The improvement analysis (`docs/improvements-recommendations.md` and `IMPROVEMEN
 
 2. **Web Worker path for heavy computation**: The marching cubes algorithm and field line generation are candidates for offloading. Phase 6 will introduce Web Workers for the Laplace solver.
 
-3. **Sidebar refactoring approach**: The 759-line Sidebar is the top refactoring priority. The plan is to split into a navigable tab system (Scene / Analysis / Pedagogy / Settings panels).
+3. **Sidebar refactoring approach**: The 783-line Sidebar is the top refactoring priority. The plan is to split into a navigable tab system (Scene / Analysis / Pedagogy / Settings panels).
 
 4. **Testing strategy**: Currently only `gauss.js` and `utils.js` have tests. `coulomb.js` (896 lines) has no tests — this is a significant gap. `Sidebar.jsx` and `GaussWizard.jsx` have no component tests.
 
@@ -107,13 +106,14 @@ The improvement analysis (`docs/improvements-recommendations.md` and `IMPROVEMEN
 
 5. **PotentialXGraph cursor sync**: Same pattern as FieldGraph — the yellow cursor updates in real time via a lightweight useEffect dependent on testPoint, while the full 300-sample curve is computed asynchronously. Lesson: keep heavy computation deps separate from interactive UI state.
 
+6. **Screenshot capture**: `document.querySelector('canvas')` returns the first canvas in DOM order. Graph canvases (2D) appear before the Three.js canvas (WebGL). Must iterate all canvases and find the one with a WebGL context. Also, `preserveDrawingBuffer: true` is required on the Canvas gl config or `toDataURL()` returns an empty image.
+
 ## Next Steps (Immediate)
 
 1. Run test suite to confirm no regressions
-2. Begin Sprint 2: screenshot export, fullscreen toggle, reset camera, CSS2D charge labels, measurement tool, superposition visualization, onboarding tour
+2. Continue Sprint 2: fullscreen toggle, reset camera, CSS2D charge labels, measurement tool, superposition visualization
 3. Add component tests for `Sidebar.jsx` and `GaussWizard.jsx`
 4. Add integration tests for store + physics interaction
-5. Already completed: PotentialXGraph async chunked refactor matching FieldGraph pattern
 
 ## Open Questions
 - Should the Sidebar refactoring use React Router or a simpler tab system? Current direction: tab system without routing for simplicity.

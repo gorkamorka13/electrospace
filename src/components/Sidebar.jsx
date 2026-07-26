@@ -1,4 +1,4 @@
-import { useState, useMemo, memo } from 'react'
+import { useState, useMemo, memo, useCallback } from 'react'
 import { useStore, DIST_PARAMS } from '../store/useStore'
 import { formatElectricField, formatPotential, formatForce } from '../physics/coulomb'
 
@@ -446,6 +446,32 @@ export function Sidebar() {
     updateTestPoint(newPos)
   }
 
+  // Screenshot capture of the 3D scene — find the WebGL canvas, not 2D graph canvases
+  const captureScreenshot = useCallback(() => {
+    const canvases = document.querySelectorAll('canvas')
+    let canvas = null
+    for (const c of canvases) {
+      const ctx = c.getContext('webgl2') || c.getContext('webgl')
+      if (ctx) { canvas = c; break }
+    }
+    if (!canvas) {
+      setToast({ message: 'Impossible de capturer la scène 3D', type: 'error' })
+      return
+    }
+    try {
+      const dataUrl = canvas.toDataURL('image/png')
+      const link = document.createElement('a')
+      link.download = `electrospace-${Date.now()}.png`
+      link.href = dataUrl
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      setToast({ message: 'Capture d\'écran téléchargée', type: 'success' })
+    } catch (err) {
+      setToast({ message: 'Erreur lors de la capture : ' + err.message, type: 'error' })
+    }
+  }, [setToast])
+
   return (
     <aside className={`sidebar ${sidebarOpen ? '' : 'closed'}`}
       onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}
@@ -494,6 +520,9 @@ export function Sidebar() {
                     }}
                   />
                 </label>
+                <button className="btn-text scene-btn" onClick={captureScreenshot}>
+                  <span aria-hidden="true">📷</span> Capture
+                </button>
               </div>
             </CollapsibleSection>
 
@@ -622,11 +651,11 @@ export function Sidebar() {
               </div>
             </CollapsibleSection>
 
-            <CollapsibleSection title="Champ Élect &amp; Potentiel en M">
+            <CollapsibleSection title="Champ Élect & Potentiel en M">
               <FieldAndPotential testPoint={testPoint} />
             </CollapsibleSection>
 
-            <CollapsibleSection title="Forces &amp; Graphiques">
+            <CollapsibleSection title="Forces & Graphiques">
               <div className="flex-col gap-3" style={{ padding: '0.3rem 0' }}>
                 <label className="toggle-row">
                   <input type="checkbox" checked={showForces} onChange={(e) => setShowForces(e.target.checked)} />

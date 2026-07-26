@@ -347,7 +347,7 @@ export function PhysicsCanvas({ rootRef: _rootRef }) {
       <GaussWizard />
 
       <Canvas
-        gl={{ antialias: true }}
+        gl={{ antialias: true, preserveDrawingBuffer: true }}
         shadows="pcf"
         onPointerMissed={() => {}}
       >
@@ -503,6 +503,10 @@ export function PhysicsCanvas({ rootRef: _rootRef }) {
           dampingFactor={0.05}
           makeDefault
           enabled={!isDragging}
+          onStart={() => {
+            // Cancel camera animation as soon as the user interacts with the mouse
+            animationTarget.current = null
+          }}
           onChange={() => {
             if (!animationTarget.current && !useStore.getState().isDragging) {
               if (useStore.getState().activeView !== null) {

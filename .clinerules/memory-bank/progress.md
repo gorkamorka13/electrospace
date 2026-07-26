@@ -2,7 +2,7 @@
 
 ## Current Status: v1.3 — Stabilization Phase
 
-The project has completed Phases 1-3 of the 6-phase roadmap. Most Sprint 1 stabilization items have been resolved. Current focus is on the remaining performance issue and Sprint 2 UX features.
+The project has completed Phases 1-3 of the 6-phase roadmap. Most Sprint 1 stabilization items have been resolved. Sprint 2 UX work has begun — screenshot export of the 3D scene is now implemented. The onboarding tour has been removed entirely.
 
 ---
 
@@ -74,11 +74,13 @@ The project has completed Phases 1-3 of the 6-phase roadmap. Most Sprint 1 stabi
 - ✅ Context menu bounds checking (clampX/clampY)
 - ✅ Import error handling via Toast notifications
 - ✅ KaTeX helpers extracted to shared `utils/math.jsx`
+- ✅ Screenshot export of 3D scene (WebGL canvas capture via "📷 Capture" button in Scènes panel)
 
 ### Performance
 - ✅ FieldGraph async chunked computation via `requestIdleCallback` with `CHUNK_SIZE = 30`
 - ✅ PotentialXGraph async chunked computation via `requestIdleCallback` with `CHUNK_SIZE = 30`
 - ✅ Real-time cursor update on both graphs decoupled from heavy curve computation
+- ✅ `preserveDrawingBuffer: true` on Canvas for screenshot capture
 
 ### Testing
 - ✅ Gauss theorem unit tests (`gauss.test.js`)
@@ -100,12 +102,12 @@ The project has completed Phases 1-3 of the 6-phase roadmap. Most Sprint 1 stabi
 - ❌ 3D extrusion of drawn shapes
 
 ### Phase 6: Laplace/Poisson Solver (❌ Not Started)
-- ❌ 2D grid (N×N) with configurable resolution
-- ❌ Electrode placement by user
-- ❌ Gauss-Seidel relaxation algorithm
-- ❌ Web Worker for background computation
-- ❌ Heatmap visualization of potential
-- ❌ Field lines from gradient of potential
+- ❌ 2D grid (N×N) with configurable resolution — grille carrée superposée sur un plan de coupe, chaque cellule stocke V(i,j)
+- ❌ Electrode placement by user — l'utilisateur dessine des régions à potentiel fixe (conditions de Dirichlet)
+- ❌ Gauss-Seidel relaxation algorithm — itérations V(i,j) = moyenne des 4 voisins, avec SOR pour accélération
+- ❌ Web Worker for background computation — évite le blocage de l'interface pendant les milliers d'itérations
+- ❌ Heatmap visualization of potential — carte de couleurs (rouge = haut, bleu = bas) superposée sur le plan
+- ❌ Field lines from gradient of potential — lignes de champ calculées par différences finies du gradient
 
 ### Major Features Missing
 - ❌ Side-by-side distribution comparison (Sprint 3)
@@ -115,10 +117,8 @@ The project has completed Phases 1-3 of the 6-phase roadmap. Most Sprint 1 stabi
 - ❌ Magnetism extension (Biot-Savart, Lorentz force) (Sprint 4)
 - ❌ i18n / English language toggle
 - ❌ Auto-save to localStorage
-- ❌ Onboarding tour for first-time users
 
 ### UX Improvements Needed
-- ❌ Screenshot export of 3D scene
 - ❌ Fullscreen mode toggle
 - ❌ Reset camera button
 - ❌ Charge labels in 3D (CSS2DRenderer)
@@ -135,11 +135,10 @@ The project has completed Phases 1-3 of the 6-phase roadmap. Most Sprint 1 stabi
 ## Known Issues
 
 ### 🟡 Moderate Issues
-1. **Single distribution limit** — `addDistribution` (useStore.js:461) replaces existing distributions with `[dist]` — no warning or toast shown to user.
-2. **KaTeX CDN dependency** — `index.html` loads KaTeX from `cdn.jsdelivr.net`. `math.jsx` uses `window.katex` — no offline fallback if CDN unavailable.
+1. **KaTeX CDN dependency** — `index.html` loads KaTeX from `cdn.jsdelivr.net`. `math.jsx` uses `window.katex` — no offline fallback if CDN unavailable.
 
 ### 🟢 Minor Issue
-1. **Sidebar monolith** — 759 lines, hard to maintain and navigate (though tabbed structure exists).
+1. **Sidebar monolith** — 783 lines, hard to maintain and navigate (though tabbed structure exists).
 
 ---
 
@@ -154,6 +153,8 @@ The project has completed Phases 1-3 of the 6-phase roadmap. Most Sprint 1 stabi
 | v1.2 | Gauss Companion wizard | Phase 4 implementation, 5-step pedagogical tool |
 | v1.3 | Stabilization sprint | Bug fixes, tests, toast system, KaTeX extraction, UX polish |
 | 2026-07-24 | Async chunked computation for graph components | Eliminates main thread blocking during cursor drag on FieldGraph and PotentialXGraph |
+| 2026-07-26 | Screenshot export of 3D scene | WebGL canvas capture with `preserveDrawingBuffer: true`, WebGL context detection to skip 2D graph canvases |
+| 2026-07-26 | Onboarding tour removed | User requested removal of the feature |
 | Future | Web Workers for heavy computation | Main thread blocking identified as performance bottleneck |
 
 ---
@@ -173,13 +174,12 @@ The project has completed Phases 1-3 of the 6-phase roadmap. Most Sprint 1 stabi
 - ✅ **Main thread blocking in PotentialXGraph** — same refactoring applied (2026-07-24)
 
 ### Sprint 2 — UX Core
-- [ ] Screenshot export of 3D scene
+- [x] Screenshot export of 3D scene (📷 Capture button in Scènes panel)
 - [ ] Fullscreen mode toggle
 - [ ] Reset camera button
 - [ ] Charge labels in 3D (CSS2DRenderer)
 - [ ] Measurement tool (distance between two points)
 - [ ] Superposition visualization (individual E_i vectors faded + total bold)
-- [ ] Onboarding tour (localStorage flag)
 
 ### Sprint 3 — Pedagogy
 - [ ] Multi-point measurement table (M1…M5)
