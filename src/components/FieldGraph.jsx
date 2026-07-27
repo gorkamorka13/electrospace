@@ -157,7 +157,7 @@ export function FieldGraph() {
     const physicalCharges = distributions.length > 0 ? [] : charges.map(c => ({ ...c, q: c.q * multiplier }))
     const { ke, rMin } = useStore.getState()
     const axisIndex = 'xyz'.indexOf(sweepAxis)
-    const pos = [...testPoint]
+    const pos = [0, 0, 0]
     const pts = []
     let minVal = Infinity, maxVal = -Infinity
     let currentIndex = 0

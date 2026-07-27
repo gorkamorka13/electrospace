@@ -56,7 +56,7 @@ export function ElectricFieldArrow() {
     // 3. Update arrow orientation, length and color
     const dir = E.clone().normalize()
     arrowRef.current.setDirection(dir)
-    
+
     // Smooth head length and width proportional to the rendering length
     const headLength = Math.min(renderLength * 0.25, 0.7)
     const headWidth = Math.min(renderLength * 0.12, 0.25)

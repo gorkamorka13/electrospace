@@ -341,7 +341,7 @@ export function PotentialXGraph() {
       }}
     >
       <div className="pg-header">
-        <span className="pg-title">V({AXIS_LABELS[potAxis]}) au centre</span>
+        <span className="pg-title">V({AXIS_LABELS[potAxis]}) passant par M</span>
         <select value={potAxis} onChange={(e) => setPotAxis(e.target.value)} className="pg-axis-select">
           {AXIS_KEYS.map(k => <option key={k} value={k}>Axe {AXIS_LABELS[k]}</option>)}
         </select>

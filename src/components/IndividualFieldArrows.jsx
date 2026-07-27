@@ -1,7 +1,6 @@
 import { useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
-import { Billboard, Text } from '@react-three/drei'
 import { useStore } from '../store/useStore'
 import { calculateFieldFromCharge } from '../physics/coulomb'
 import { UNIT_FACTORS } from '../store/useStore'
@@ -10,20 +9,18 @@ import { UNIT_FACTORS } from '../store/useStore'
  * IndividualArrowItem — renders one faded arrow per charge (Ei) at test point M.
  * Only visible when showIndividualFields is true and no distributions are active.
  */
-function IndividualArrowItem({ chargeId, chargeName }) {
+function IndividualArrowItem({ chargeId }) {
   const arrowRef = useRef()
-  const billboardRef = useRef()
 
   useFrame(() => {
     const state = useStore.getState()
     const { charges, distributions, chargeUnit, ke, rMin, eMax, vectorScale, theme, testPoint, showIndividualFields } = state
 
-    if (!showIndividualFields || !arrowRef.current || !billboardRef.current) return
+    if (!showIndividualFields || !arrowRef.current) return
 
     // Hide when distributions are active
     if (distributions.length > 0) {
       arrowRef.current.visible = false
-      billboardRef.current.visible = false
       return
     }
 
@@ -31,7 +28,6 @@ function IndividualArrowItem({ chargeId, chargeName }) {
     const charge = charges.find(c => c.id === chargeId)
     if (!charge) {
       arrowRef.current.visible = false
-      billboardRef.current.visible = false
       return
     }
 
@@ -48,7 +44,6 @@ function IndividualArrowItem({ chargeId, chargeName }) {
 
     if (length < 1e-25) {
       arrowRef.current.visible = false
-      billboardRef.current.visible = false
       return
     }
 
@@ -57,12 +52,10 @@ function IndividualArrowItem({ chargeId, chargeName }) {
 
     if (renderLength < 0.01) {
       arrowRef.current.visible = false
-      billboardRef.current.visible = false
       return
     }
 
     arrowRef.current.visible = true
-    billboardRef.current.visible = true
 
     const dir = Ei.clone().normalize()
     arrowRef.current.setDirection(dir)
@@ -84,13 +77,6 @@ function IndividualArrowItem({ chargeId, chargeName }) {
       arrowRef.current.cone.material.transparent = true
       arrowRef.current.cone.material.opacity = 0.3
     }
-
-    // Position billboard at arrow midpoint + world-up offset
-    const textPos = new THREE.Vector3(...testPoint)
-      .add(dir.clone().multiplyScalar(renderLength * 0.5))
-      .add(new THREE.Vector3(0, 0.45, 0))
-
-    billboardRef.current.position.copy(textPos)
   })
 
   // Initial dummy values — useFrame updates these immediately
@@ -98,26 +84,11 @@ function IndividualArrowItem({ chargeId, chargeName }) {
   const baseColor = '#00ff66'
 
   return (
-    <>
-      <arrowHelper
-        ref={arrowRef}
-        args={[new THREE.Vector3(1, 0, 0), new THREE.Vector3(...initialPoint), 0.5, baseColor]}
-        visible={false}
-      />
-      <Billboard ref={billboardRef} visible={false}>
-          <Text
-            fontSize={0.28}
-            color={baseColor}
-            anchorX="center"
-            anchorY="middle"
-            opacity={0.3}
-            outlineColor="#070a13"
-            outlineWidth={0.03}
-        >
-          {`E${chargeName || ''}`}
-        </Text>
-      </Billboard>
-    </>
+    <arrowHelper
+      ref={arrowRef}
+      args={[new THREE.Vector3(1, 0, 0), new THREE.Vector3(...initialPoint), 0.5, baseColor]}
+      visible={false}
+    />
   )
 }
 
@@ -140,7 +111,6 @@ export function IndividualFieldArrows() {
         <IndividualArrowItem
           key={charge.id}
           chargeId={charge.id}
-          chargeName={charge.name}
         />
       ))}
     </group>
