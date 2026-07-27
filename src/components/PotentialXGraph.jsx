@@ -294,7 +294,7 @@ export function PotentialXGraph() {
     ctx.fillStyle = infoColor
     ctx.font = '12px monospace'
     ctx.fillText(`M: ${data.axisLabel}=${cursorPos.testPos.toFixed(2)}  V=${cursorPos.testV.toExponential(2)} V`, PAD + 4, PAD + plotH - 4)
-  }, [show, data, w, h, theme])
+  }, [show, data, w, h, theme, cursorPos])
 
   const winRefState = useRef(win)
   useEffect(() => { winRefState.current = win }, [win])

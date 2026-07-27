@@ -300,7 +300,7 @@ export function FieldGraph() {
     ctx.fillStyle = infoColor
     ctx.font = '12px monospace'
     ctx.fillText(`M: ${FIELD_OPTIONS.find(o => o.key === fieldKey)?.label}=${cursorPos.testVal.toExponential(2)} V/m`, PAD + 4, PAD + plotH - 4)
-  }, [show, data, fieldKey, colors, theme, sweepAxis])
+  }, [show, data, fieldKey, colors, theme, sweepAxis, cursorPos])
 
   const winRefState = useRef(win)
   useEffect(() => { winRefState.current = win }, [win])
