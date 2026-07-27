@@ -149,6 +149,7 @@ export function FieldGraph() {
     const testVal = fieldKey === 'mag' ? E.length() : E[fieldKey[1]]
     return { testPos: testPoint[axisIndex], testVal }
   }, [show, testPoint, charges, distributions, chargeUnit, fieldKey, sweepAxis])
+  const cursorPosRef = useRef(cursorPos)
 
   useEffect(() => {
     if (!show) { setData(null); return }
@@ -299,12 +300,10 @@ export function FieldGraph() {
     ctx.fillStyle = infoColor
     ctx.font = '12px monospace'
     ctx.fillText(`M: ${FIELD_OPTIONS.find(o => o.key === fieldKey)?.label}=${cursorPos.testVal.toExponential(2)} V/m`, PAD + 4, PAD + plotH - 4)
-  }, [show, data, w, h, fieldKey, colors, theme, sweepAxis, cursorPos])
+  }, [show, data, fieldKey, colors, theme, sweepAxis])
 
-  useEffect(() => {
-    winRefState.current = win
-  }, [win])
   const winRefState = useRef(win)
+  useEffect(() => { winRefState.current = win }, [win])
 
   const exportPng = useCallback(() => {
     const canvas = canvasRef.current

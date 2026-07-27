@@ -125,8 +125,8 @@ export function PotentialXGraph() {
     return () => window.removeEventListener('resize', onResize)
   }, [setWin])
 
-  // Real-time cursor position derived from testPoint — no setState in effects
-  const cursorPos = useMemo(() => {
+  // Real-time cursor position derived from testPoint — inline, no hook
+  const cursorPos = (() => {
     if (!show) return { testPos: 0, testV: 0 }
     const multiplier = UNIT_FACTORS[chargeUnit] || 1e-6
     const physicalCharges = distributions.length > 0 ? [] : charges.map(c => ({ ...c, q: c.q * multiplier }))
@@ -134,7 +134,7 @@ export function PotentialXGraph() {
     const axisIdx = potAxis === 'x' ? 0 : potAxis === 'y' ? 1 : 2
     const V = calculateTotalPotential(physicalCharges, testPoint, ke, rMin, distributions)
     return { testPos: testPoint[axisIdx], testV: V }
-  }, [show, testPoint, charges, distributions, chargeUnit, potAxis])
+  })()
 
   const [data, setData] = useState(null)
   const dataVersionRef = useRef(0)
@@ -294,12 +294,10 @@ export function PotentialXGraph() {
     ctx.fillStyle = infoColor
     ctx.font = '12px monospace'
     ctx.fillText(`M: ${data.axisLabel}=${cursorPos.testPos.toFixed(2)}  V=${cursorPos.testV.toExponential(2)} V`, PAD + 4, PAD + plotH - 4)
-  }, [show, data, w, h, theme, cursorPos])
+  }, [show, data, w, h, theme])
 
-  useEffect(() => {
-    winRefState.current = win
-  }, [win])
   const winRefState = useRef(win)
+  useEffect(() => { winRefState.current = win }, [win])
 
   const exportPng = useCallback(() => {
     const canvas = canvasRef.current
