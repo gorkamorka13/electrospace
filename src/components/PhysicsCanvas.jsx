@@ -21,6 +21,7 @@ import { FieldGraph } from './FieldGraph'
 import { PotentialXGraph } from './PotentialXGraph'
 import { GaussianSurfaceVis } from './GaussianSurfaceVis'
 import { GaussWizard } from './GaussWizard'
+import { IndividualFieldArrows } from './IndividualFieldArrows'
 
 function CameraController({ animationTarget, controlsRef }) {
   const { camera } = useThree()
@@ -471,6 +472,9 @@ export function PhysicsCanvas({ rootRef: _rootRef }) {
 
         {/* Test Point M */}
         <TestPoint />
+
+        {/* Superposition: individual field vectors (faded) — toggled via showIndividualFields */}
+        <IndividualFieldArrows />
 
         {/* Electric Field Vector Arrow at M */}
         <ElectricFieldArrow />

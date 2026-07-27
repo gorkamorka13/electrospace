@@ -105,6 +105,7 @@ export const useStore = create((set, get) => ({
   potentialGraphAxis: 'x',
   showPotentialXGraph: false,
   showFieldGraph: false,
+  showIndividualFields: false,
 
   // Contexte menu
   contextMenu: null,
@@ -498,6 +499,7 @@ export const useStore = create((set, get) => ({
   setShowPotentialGraph: (v) => set({ showPotentialGraph: v }),
   setShowPotentialXGraph: (v) => set({ showPotentialXGraph: v }),
   setShowFieldGraph: (v) => set({ showFieldGraph: v }),
+  setShowIndividualFields: (v) => set({ showIndividualFields: v }),
   setPotentialGraphAxis: (v) => set({ potentialGraphAxis: v }),
 
   // Gauss Companion Actions

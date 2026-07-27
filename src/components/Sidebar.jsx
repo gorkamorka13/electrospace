@@ -403,6 +403,8 @@ export function Sidebar() {
   const setShowFieldGraph = useStore((s) => s.setShowFieldGraph)
   const showPotentialXGraph = useStore((s) => s.showPotentialXGraph)
   const setShowPotentialXGraph = useStore((s) => s.setShowPotentialXGraph)
+  const showIndividualFields = useStore((s) => s.showIndividualFields)
+  const setShowIndividualFields = useStore((s) => s.setShowIndividualFields)
 
   // Settings tab
   const chargeUnit = useStore((s) => s.chargeUnit)
@@ -673,6 +675,10 @@ export function Sidebar() {
                 <label className="toggle-row">
                   <input type="checkbox" checked={showPotentialXGraph} onChange={(e) => setShowPotentialXGraph(e.target.checked)} />
                   <span>Afficher le graphique V(x)</span>
+                </label>
+                <label className="toggle-row">
+                  <input type="checkbox" checked={showIndividualFields} onChange={(e) => setShowIndividualFields(e.target.checked)} />
+                  <span>Superposition des champs E<sub>i</sub></span>
                 </label>
               </div>
               <CoulombForces />
