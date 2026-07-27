@@ -39,7 +39,6 @@ export function PotentialXGraph() {
   const theme = useStore((s) => s.theme)
   const [potAxis, setPotAxis] = useState('x')
 
-  const [cursorPos, setCursorPos] = useState({ testPos: 0, testV: 0 })
   const dragCleanupRef = useRef(null)
   const updateTestPoint = useStore((s) => s.updateTestPoint)
   const storeTestPoint = useStore((s) => s.testPoint)
@@ -98,7 +97,7 @@ export function PotentialXGraph() {
   const [win, setWinRaw] = useState(() => {
     const saved = typeof window !== 'undefined' ? localStorage.getItem('pgxWin') : null
     let parsed = null
-    if (saved) { try { parsed = JSON.parse(saved) } catch(e) {} }
+    if (saved) { try { parsed = JSON.parse(saved) } catch { /* ignore parse errors */ } }
     const defW = window.innerWidth < 768 ? Math.min(220, window.innerWidth - 30) : 300
     const defH = 180
     if (parsed && typeof parsed.x === 'number') {
@@ -126,15 +125,15 @@ export function PotentialXGraph() {
     return () => window.removeEventListener('resize', onResize)
   }, [setWin])
 
-  // Real-time cursor update: synchronously recompute test value when testPoint changes
-  useEffect(() => {
-    if (!show) return
+  // Real-time cursor position derived from testPoint — no setState in effects
+  const cursorPos = useMemo(() => {
+    if (!show) return { testPos: 0, testV: 0 }
     const multiplier = UNIT_FACTORS[chargeUnit] || 1e-6
     const physicalCharges = distributions.length > 0 ? [] : charges.map(c => ({ ...c, q: c.q * multiplier }))
     const { ke, rMin } = useStore.getState()
     const axisIdx = potAxis === 'x' ? 0 : potAxis === 'y' ? 1 : 2
     const V = calculateTotalPotential(physicalCharges, testPoint, ke, rMin, distributions)
-    setCursorPos({ testPos: testPoint[axisIdx], testV: V })
+    return { testPos: testPoint[axisIdx], testV: V }
   }, [show, testPoint, charges, distributions, chargeUnit, potAxis])
 
   const [data, setData] = useState(null)
@@ -165,18 +164,15 @@ export function PotentialXGraph() {
       currentIndex = end
 
       if (currentIndex < SAMPLES && deadline.timeRemaining() < 5) {
-        // Yield to next idle callback if we still have work and time is running low
         ric(computeChunk, { timeout: 50 })
         return
       }
 
       if (currentIndex < SAMPLES) {
-        // Continue immediately if we still have time budget
         ric(computeChunk, { timeout: 50 })
         return
       }
 
-      // All samples computed — finalize
       if (version !== dataVersionRef.current) return
       const absMax = Math.max(Math.abs(minV), Math.abs(maxV), 1e-30)
       minV = -absMax; maxV = absMax
@@ -268,7 +264,7 @@ export function PotentialXGraph() {
     ctx.lineWidth = 1.5
     ctx.stroke()
 
-    // Use real-time cursorPos for the yellow cursor
+    // Yellow cursor from derived position
     const cx = xScale(cursorPos.testPos)
     ctx.beginPath()
     ctx.moveTo(cx, PAD)
@@ -300,8 +296,10 @@ export function PotentialXGraph() {
     ctx.fillText(`M: ${data.axisLabel}=${cursorPos.testPos.toFixed(2)}  V=${cursorPos.testV.toExponential(2)} V`, PAD + 4, PAD + plotH - 4)
   }, [show, data, w, h, theme, cursorPos])
 
+  useEffect(() => {
+    winRefState.current = win
+  }, [win])
   const winRefState = useRef(win)
-  winRefState.current = win
 
   const exportPng = useCallback(() => {
     const canvas = canvasRef.current
@@ -365,7 +363,7 @@ export function PotentialXGraph() {
           e.preventDefault()
           e.stopPropagation()
           const target = e.currentTarget
-          try { target.setPointerCapture(e.pointerId) } catch {}
+          try { target.setPointerCapture(e.pointerId) } catch (err) { console.error('setPointerCapture failed:', err) }
           const cur = winRefState.current
           const sw = cur.w, sh = cur.h
           const sx = e.clientX, sy = e.clientY
@@ -374,12 +372,12 @@ export function PotentialXGraph() {
             return { ...prev, w: Math.max(MIN_W, Math.min(mw - prev.x - MARGIN, sw + ev.clientX - sx)), h: Math.max(MIN_H, Math.min(mh - prev.y - MARGIN, sh + ev.clientY - sy)) }
           }) }
           const up = (ev) => {
-            try { target.releasePointerCapture(ev.pointerId) } catch {}
+            try { target.releasePointerCapture(ev.pointerId) } catch (err) { console.error('releasePointerCapture failed:', err) }
             window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', up); dragCleanupRef.current = null
           }
           window.addEventListener('pointermove', mv); window.addEventListener('pointerup', up)
           dragCleanupRef.current = () => {
-            try { target.releasePointerCapture(e.pointerId) } catch {}
+            try { target.releasePointerCapture(e.pointerId) } catch (err) { console.error('releasePointerCapture failed:', err) }
             window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', up)
           }
         }}

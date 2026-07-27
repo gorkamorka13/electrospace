@@ -21,18 +21,10 @@ export function Equipotentials3D() {
   const chargeUnit = useStore((state) => state.chargeUnit)
   const geoCacheRef = useRef([])
 
-  useEffect(() => {
-    return () => {
-      geoCacheRef.current.forEach(g => g.geometry.dispose())
-      geoCacheRef.current = []
-    }
-  }, [])
-
+  // Pure computation — no ref access during render
   const geometries = useMemo(() => {
-    geoCacheRef.current.forEach(g => g.geometry.dispose())
-
-    if (!showEquipotentials3D) { geoCacheRef.current = []; return [] }
-    if (charges.length === 0 && distributions.length === 0) { geoCacheRef.current = []; return [] }
+    if (!showEquipotentials3D) return []
+    if (charges.length === 0 && distributions.length === 0) return []
 
     const multiplier = UNIT_FACTORS[chargeUnit] || 1e-6
     const physicalCharges = distributions.length > 0 ? [] : charges.map(c => ({ ...c, q: c.q * multiplier }))
@@ -40,7 +32,7 @@ export function Equipotentials3D() {
 
     const gridData = sample3DGrid(BOUNDS, MC_RESOLUTION, physicalCharges, ke, rMin, distributions)
     const range = gridData.maxV - gridData.minV
-    if (range < 1e-30) { geoCacheRef.current = []; return [] }
+    if (range < 1e-30) return []
 
     const results = []
     for (let i = 1; i <= MC_NUM_LEVELS; i++) {
@@ -50,9 +42,28 @@ export function Equipotentials3D() {
         results.push({ geometry: geo, color: LEVEL_COLORS[(i - 1) % LEVEL_COLORS.length], opacity: 0.15 + 0.08 * i })
       }
     }
-    geoCacheRef.current = results
     return results
   }, [charges, distributions, showEquipotentials3D, chargeUnit])
+
+  // Ref management — only runs after render, not during
+  useEffect(() => {
+    // Dispose previous geometries
+    geoCacheRef.current.forEach(g => g.geometry.dispose())
+    geoCacheRef.current = geometries
+
+    // Cleanup on unmount or before next effect run
+    return () => {
+      geometries.forEach(g => g.geometry.dispose())
+    }
+  }, [geometries])
+
+  // Initial cleanup on unmount
+  useEffect(() => {
+    return () => {
+      geoCacheRef.current.forEach(g => g.geometry.dispose())
+      geoCacheRef.current = []
+    }
+  }, [])
 
   if (!showEquipotentials3D || geometries.length === 0) return null
 

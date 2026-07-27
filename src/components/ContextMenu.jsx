@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from 'react'
-import { useStore, UNIT_FACTORS, DIST_PARAMS } from '../store/useStore'
+import { useStore, DIST_PARAMS } from '../store/useStore'
 
 function toSigFigs(v, n) {
   if (v === 0) return '0'

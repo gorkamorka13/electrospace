@@ -84,7 +84,7 @@ export function TestPoint() {
     e.stopPropagation()
     try {
       e.target.releasePointerCapture(e.pointerId)
-    } catch (_err) {
+    } catch {
       // ignore if already released
     }
     setDragging(false)

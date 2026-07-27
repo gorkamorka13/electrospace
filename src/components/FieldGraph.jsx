@@ -49,7 +49,6 @@ export function FieldGraph() {
   const [fieldKey, setFieldKey] = useState('ex')
   const [sweepAxis, setSweepAxis] = useState('x')
 
-  const [cursorPos, setCursorPos] = useState({ testPos: 0, testVal: 0 })
   const dragCleanupRef = useRef(null)
   const updateTestPoint = useStore((s) => s.updateTestPoint)
   const storeTestPoint = useStore((s) => s.testPoint)
@@ -108,7 +107,7 @@ export function FieldGraph() {
   const [win, setWinRaw] = useState(() => {
     const saved = typeof window !== 'undefined' ? localStorage.getItem('efWin') : null
     let parsed = null
-    if (saved) { try { parsed = JSON.parse(saved) } catch(e) {} }
+    if (saved) { try { parsed = JSON.parse(saved) } catch { /* ignore parse errors */ } }
     const defW = window.innerWidth < 768 ? Math.min(220, window.innerWidth - 30) : 300
     const defH = 180
     if (parsed && typeof parsed.x === 'number') {
@@ -139,16 +138,16 @@ export function FieldGraph() {
   const [data, setData] = useState(null)
   const dataVersionRef = useRef(0)
 
-  // Real-time cursor update: synchronously recompute test value when testPoint changes
-  useEffect(() => {
-    if (!show) return
+  // Real-time cursor position derived from testPoint — no setState in effects
+  const cursorPos = useMemo(() => {
+    if (!show) return { testPos: 0, testVal: 0 }
     const multiplier = UNIT_FACTORS[chargeUnit] || 1e-6
     const physicalCharges = distributions.length > 0 ? [] : charges.map(c => ({ ...c, q: c.q * multiplier }))
     const { ke, rMin } = useStore.getState()
     const axisIndex = 'xyz'.indexOf(sweepAxis)
     const E = calculateTotalField(physicalCharges, testPoint, ke, rMin, distributions)
     const testVal = fieldKey === 'mag' ? E.length() : E[fieldKey[1]]
-    setCursorPos({ testPos: testPoint[axisIndex], testVal })
+    return { testPos: testPoint[axisIndex], testVal }
   }, [show, testPoint, charges, distributions, chargeUnit, fieldKey, sweepAxis])
 
   useEffect(() => {
@@ -177,18 +176,15 @@ export function FieldGraph() {
       currentIndex = end
 
       if (currentIndex < SAMPLES && deadline.timeRemaining() < 5) {
-        // Yield to next idle callback if we still have work and time is running low
         ric(computeChunk, { timeout: 50 })
         return
       }
 
       if (currentIndex < SAMPLES) {
-        // Continue immediately if we still have time budget
         ric(computeChunk, { timeout: 50 })
         return
       }
 
-      // All samples computed — finalize
       if (version !== dataVersionRef.current) return
       const absMax = Math.max(Math.abs(minVal), Math.abs(maxVal), 1e-30)
       if (fieldKey !== 'mag') { minVal = -absMax; maxVal = absMax }
@@ -282,7 +278,7 @@ export function FieldGraph() {
     ctx.lineWidth = 1.8
     ctx.stroke()
 
-    // Use real-time cursorPos for the yellow cursor line
+    // Yellow cursor line showing current test point position
     const cx = xScale(cursorPos.testPos)
     ctx.beginPath()
     ctx.moveTo(cx, PAD)
@@ -305,8 +301,10 @@ export function FieldGraph() {
     ctx.fillText(`M: ${FIELD_OPTIONS.find(o => o.key === fieldKey)?.label}=${cursorPos.testVal.toExponential(2)} V/m`, PAD + 4, PAD + plotH - 4)
   }, [show, data, w, h, fieldKey, colors, theme, sweepAxis, cursorPos])
 
+  useEffect(() => {
+    winRefState.current = win
+  }, [win])
   const winRefState = useRef(win)
-  winRefState.current = win
 
   const exportPng = useCallback(() => {
     const canvas = canvasRef.current
@@ -375,7 +373,7 @@ export function FieldGraph() {
           e.preventDefault()
           e.stopPropagation()
           const target = e.currentTarget
-          try { target.setPointerCapture(e.pointerId) } catch {}
+          try { target.setPointerCapture(e.pointerId) } catch (err) { console.error('setPointerCapture failed:', err) }
           const cur = winRefState.current
           const sw = cur.w, sh = cur.h
           const sx = e.clientX, sy = e.clientY
@@ -384,7 +382,7 @@ export function FieldGraph() {
             return { ...prev, w: Math.max(MIN_W, Math.min(mw - prev.x - MARGIN, sw + ev.clientX - sx)), h: Math.max(MIN_H, Math.min(mh - prev.y - MARGIN, sh + ev.clientY - sy)) }
           }) }
           const up = (ev) => {
-            try { target.releasePointerCapture(ev.pointerId) } catch {}
+            try { target.releasePointerCapture(ev.pointerId) } catch (err) { console.error('releasePointerCapture failed:', err) }
             window.removeEventListener('pointermove', mv)
             window.removeEventListener('pointerup', up)
             dragCleanupRef.current = null
@@ -392,7 +390,7 @@ export function FieldGraph() {
           window.addEventListener('pointermove', mv)
           window.addEventListener('pointerup', up)
           dragCleanupRef.current = () => {
-            try { target.releasePointerCapture(e.pointerId) } catch {}
+            try { target.releasePointerCapture(e.pointerId) } catch (err) { console.error('releasePointerCapture failed:', err) }
             window.removeEventListener('pointermove', mv)
             window.removeEventListener('pointerup', up)
           }

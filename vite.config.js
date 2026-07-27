@@ -5,10 +5,10 @@ import { execSync } from 'child_process'
 
 import { cloudflare } from "@cloudflare/vite-plugin";
 
-let gitVersion = ''
+let gitVersion
 try {
   gitVersion = execSync('git rev-parse --short HEAD', { encoding: 'utf8' }).trim()
-} catch (e) {
+} catch {
   gitVersion = 'unknown'
 }
 

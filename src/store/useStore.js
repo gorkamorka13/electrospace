@@ -222,6 +222,7 @@ export const useStore = create((set, get) => ({
       testPoint: state.testPoint,
       charges: state.charges.map(c => ({ q: c.q, position: c.position, name: c.name })),
       distributions: state.distributions.map(d => {
+        // eslint-disable-next-line no-unused-vars
         const { id, ...rest } = d
         return rest
       }),
@@ -249,7 +250,7 @@ export const useStore = create((set, get) => ({
         name: c.name ?? String.fromCharCode(65 + i),
       }))
       const chargeInitialPositions = Object.fromEntries(charges.map((c) => [c.id, [...c.position]]))
-      const distributions = (data.distributions || []).map((d, i) => {
+      const distributions = (data.distributions || []).map((d) => {
         // backward compat: ensure sphere and cylinder have both hollow and innerRadius
         if (d.type === 'sphere' || d.type === 'cylinder') {
           const hasHollow = 'hollow' in d
@@ -381,6 +382,7 @@ export const useStore = create((set, get) => ({
   removeCharge: (id) => {
     get().pushHistory()
     set((state) => {
+      // eslint-disable-next-line no-unused-vars
       const { [id]: _, ...rest } = state.chargeInitialPositions || {}
       return {
         charges: state.charges.filter((c) => c.id !== id),

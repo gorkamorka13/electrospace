@@ -11,7 +11,6 @@ function App() {
   const toggleSidebar = useStore((state) => state.toggleSidebar)
   const setSidebarOpen = useStore((state) => state.setSidebarOpen)
   const theme = useStore((state) => state.theme)
-  const showHelp = useStore((state) => state.showHelp)
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme)
@@ -92,7 +91,7 @@ function App() {
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [])
-  
+
   return (
     <>
     <div ref={rootRef} className="app-container">

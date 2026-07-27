@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import { calculateTotalPotential, KE_REAL } from './coulomb'
+import { calculateTotalPotential } from './coulomb'
 
 const edgeTable = new Uint16Array([
   0x0, 0x109, 0x203, 0x30a, 0x406, 0x50f, 0x605, 0x70c,

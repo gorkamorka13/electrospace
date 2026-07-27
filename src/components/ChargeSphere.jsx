@@ -16,7 +16,7 @@ export function ChargeSphere({ charge }) {
   const snapEnabled = useStore((state) => state.snapEnabled)
   const snapSize = useStore((state) => state.snapSize)
   const theme = useStore((state) => state.theme)
-  
+
   const meshRef = useRef()
   const coordTipTimeout = useRef(null)
   const [showCoordTip, setShowCoordTip] = useState(false)
@@ -82,7 +82,7 @@ export function ChargeSphere({ charge }) {
     e.stopPropagation()
     try {
       e.target.releasePointerCapture(e.pointerId)
-    } catch (_err) {
+    } catch {
       // ignore if already released
     }
     setDragging(false)
@@ -166,7 +166,7 @@ export function ChargeSphere({ charge }) {
             </Text>
           </Billboard>
         )}
-        
+
         {/* Neon selection ring under the charge */}
         {isSelected && (
           <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -radius - 0.05, 0]}>

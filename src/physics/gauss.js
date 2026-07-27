@@ -2,7 +2,7 @@ import * as THREE from 'three'
 import { KE_REAL } from './coulomb'
 
 export function calculateGaussParameters(state) {
-  const { distributions, charges, gaussSurfaceType, gaussSurfaceRadius, gaussSurfaceHeight, gaussSurfaceWidth, gaussSurfaceDepth, gaussCenter, chargeUnit, ke, rMin } = state
+  const { distributions, charges, gaussSurfaceType, gaussSurfaceRadius, gaussSurfaceHeight, gaussSurfaceWidth, gaussSurfaceDepth, gaussCenter, chargeUnit } = state
 
   const activeDist = distributions[0] || null
   const configName = activeDist ? activeDist.type : 'charges'
@@ -10,6 +10,8 @@ export function calculateGaussParameters(state) {
   const hollow = activeDist?.hollow || false
   const sigma = activeDist?.density || 0
   const lambda = activeDist?.density || 0
+  // volumeCharge is reserved for future volumetric distributions
+  // eslint-disable-next-line no-unused-vars
   const volumeCharge = activeDist?.density || 0
 
   const r_g = gaussSurfaceRadius
@@ -56,7 +58,7 @@ export function calculateGaussParameters(state) {
     }
     area = 4 * Math.PI * r_g * r_g
   } else if (configName === 'cylinder' && activeDist) {
-    const { axis, radius, innerRadius = 0, e_ext = 0, e_int = 0 } = activeDist
+    const { radius, innerRadius = 0, e_ext = 0, e_int = 0 } = activeDist
     const a = innerRadius || 0
     const b = radius
     if (hollow) {
@@ -179,7 +181,9 @@ export function calculateGaussParameters(state) {
       ]
     }
 
+    // eslint-disable-next-line no-useless-assignment
     let vFieldFormula = ""
+    // eslint-disable-next-line no-useless-assignment
     let vValue = 0
 
     if (r_g < R) {
@@ -196,11 +200,11 @@ export function calculateGaussParameters(state) {
     }
 
     gaussStep4Detail = {
-      qIntFormula: r_g < R 
-        ? (hollow ? "$Q_{\\text{int}} = 0 \\text{ (sphère creuse à l'intérieur)}$" : `$Q_{\\text{int}} = Q \\cdot \\left(\\frac{r}{R}\\right)^3 = ${(qInt * 1e9).toFixed(3)} \\text{ nC}$`) 
+      qIntFormula: r_g < R
+        ? (hollow ? "$Q_{\\text{int}} = 0 \\text{ (sphère creuse à l'intérieur)}$" : `$Q_{\\text{int}} = Q \\cdot \\left(\\frac{r}{R}\\right)^3 = ${(qInt * 1e9).toFixed(3)} \\text{ nC}$`)
         : `$Q_{\\text{int}} = Q_{\\text{total}} = ${(qInt * 1e9).toFixed(3)} \\text{ nC}$`,
-      eFieldFormula: r_g < R 
-        ? (hollow ? "$E(r) = 0 \\text{ V/m}$" : "$E(r) = \\frac{k_e Q r}{R^3}$") 
+      eFieldFormula: r_g < R
+        ? (hollow ? "$E(r) = 0 \\text{ V/m}$" : "$E(r) = \\frac{k_e Q r}{R^3}$")
         : "$E(r) = \\frac{k_e Q}{r^2}$",
       vectorResult: `\\vec{E}(M) = ${eField.toExponential(2)} \\, \\vec{e}_r \\text{ V/m}`,
       vFieldFormula,
@@ -211,7 +215,7 @@ export function calculateGaussParameters(state) {
       relation: "$E(r) = -\\frac{dV}{dr} \\implies V(r) = -\\int E(r) \\, dr + C$",
       extIntegration: "Pour $r \\ge R$ : $V_{\\text{ext}}(r) = -\\int \\frac{k_e Q}{r^2} \\, dr = \\frac{k_e Q}{r} + C_{\\text{ext}}$",
       extBoundary: "Condition à l'infini : $\\lim_{r \\to \\infty} V_{\\text{ext}}(r) = 0 \\implies C_{\\text{ext}} = 0$",
-      intIntegration: hollow 
+      intIntegration: hollow
         ? "Pour $r < R$ : $E_{\\text{int}}(r) = 0 \\implies V_{\\text{int}}(r) = C_{\\text{int}}$"
         : "Pour $r < R$ : $E_{\\text{int}}(r) = \\frac{k_e Q r}{R^3} \\implies V_{\\text{int}}(r) = -\\frac{k_e Q r^2}{2 R^3} + C_{\\text{int}}$",
       continuity: "Raccordement par Continuité en $r = R$ : $V_{\\text{int}}(R) = V_{\\text{ext}}(R)$",
@@ -222,7 +226,7 @@ export function calculateGaussParameters(state) {
       finalValueStr: `$V(M) = ${Math.abs(vValue) >= 1000 ? (vValue / 1000).toFixed(2) + ' \\text{ kV}' : vValue.toFixed(2) + ' \\text{ V}'}$`
     }
 
-    return { 
+    return {
       qInt, flux, area, eField, configName, R, hollow, r_g, h_g, w_g, sigma, lambda, Q,
       symmetryDetails, invariances, surfaceAnalysis, gaussStep4Detail, gaussStep5Detail
     }
@@ -256,7 +260,9 @@ export function calculateGaussParameters(state) {
       ]
     }
 
+    // eslint-disable-next-line no-useless-assignment
     let vFieldFormula = ""
+    // eslint-disable-next-line no-useless-assignment
     let vValue = 0
 
     if (r_g < R) {
@@ -273,11 +279,11 @@ export function calculateGaussParameters(state) {
     }
 
     gaussStep4Detail = {
-      qIntFormula: r_g < R 
-        ? (hollow ? "$Q_{\\text{int}} = 0 \\text{ (creux)}$" : `$Q_{\\text{int}} = \\lambda_{\\text{eff}} h \\cdot \\left(\\frac{r}{R}\\right)^2 = ${(qInt * 1e9).toFixed(3)} \\text{ nC}$`) 
+      qIntFormula: r_g < R
+        ? (hollow ? "$Q_{\\text{int}} = 0 \\text{ (creux)}$" : `$Q_{\\text{int}} = \\lambda_{\\text{eff}} h \\cdot \\left(\\frac{r}{R}\\right)^2 = ${(qInt * 1e9).toFixed(3)} \\text{ nC}$`)
         : `$Q_{\\text{int}} = \\lambda h = ${(qInt * 1e9).toFixed(3)} \\text{ nC}$`,
-      eFieldFormula: r_g < R 
-        ? (hollow ? "$E(r) = 0 \\text{ V/m}$" : "$E(r) = \\frac{2 k_e \\lambda r}{R^2}$") 
+      eFieldFormula: r_g < R
+        ? (hollow ? "$E(r) = 0 \\text{ V/m}$" : "$E(r) = \\frac{2 k_e \\lambda r}{R^2}$")
         : "$E(r) = \\frac{2 k_e \\lambda}{r}$",
       vectorResult: `\\vec{E}(M) = ${eField.toExponential(2)} \\, \\vec{e}_r \\text{ V/m}`,
       vFieldFormula,
@@ -288,7 +294,7 @@ export function calculateGaussParameters(state) {
       relation: "$E(r) = -\\frac{dV}{dr} \\implies V(r) = -\\int E(r) \\, dr + C$",
       extIntegration: "Pour $r \\ge R$ : $V_{\\text{ext}}(r) = -\\int \\frac{2 k_e \\lambda}{r} \\, dr = -2 k_e \\lambda \\ln(r) + C_{\\text{ext}}$",
       extBoundary: "Référence de potentiel fixée à la surface $r = R$ : $V(R) = 0 \\implies C_{\\text{ext}} = 2 k_e \\lambda \\ln(R)$",
-      intIntegration: hollow 
+      intIntegration: hollow
         ? "Pour $r < R$ : $E_{\\text{int}}(r) = 0 \\implies V_{\\text{int}}(r) = C_{\\text{int}}$"
         : "Pour $r < R$ : $E_{\\text{int}}(r) = \\frac{2 k_e \\lambda r}{R^2} \\implies V_{\\text{int}}(r) = -\\frac{k_e \\lambda r^2}{R^2} + C_{\\text{int}}$",
       continuity: "Raccordement par Continuité du Potentiel en $r = R$ : $V_{\\text{int}}(R) = V_{\\text{ext}}(R) = 0$",
@@ -299,7 +305,7 @@ export function calculateGaussParameters(state) {
       finalValueStr: `$V(M) = ${Math.abs(vValue) >= 1000 ? (vValue / 1000).toFixed(2) + ' \\text{ kV}' : vValue.toFixed(2) + ' \\text{ V}'}$`
     }
 
-    return { 
+    return {
       qInt, flux, area, eField, configName, R, hollow, r_g, h_g, w_g, sigma, lambda, Q,
       symmetryDetails, invariances, surfaceAnalysis, gaussStep4Detail, gaussStep5Detail
     }
@@ -356,7 +362,7 @@ export function calculateGaussParameters(state) {
       finalValueStr: `$V(M) = ${Math.abs(vValue) >= 1000 ? (vValue / 1000).toFixed(2) + ' \\text{ kV}' : vValue.toFixed(2) + ' \\text{ V}'}$`
     }
 
-    return { 
+    return {
       qInt, flux, area, eField, configName, R, hollow, r_g, h_g, w_g, sigma, lambda, Q,
       symmetryDetails, invariances, surfaceAnalysis, gaussStep4Detail, gaussStep5Detail
     }
@@ -373,7 +379,7 @@ export function calculateGaussParameters(state) {
     finalValueStr: "V(M)"
   }
 
-  return { 
+  return {
     qInt, flux, area, eField, configName, R, hollow, r_g, h_g, w_g, sigma, lambda, Q,
     symmetryDetails, invariances, surfaceAnalysis, gaussStep4Detail, gaussStep5Detail
   }

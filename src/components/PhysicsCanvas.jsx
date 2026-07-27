@@ -1,3 +1,4 @@
+/* global __GIT_VERSION__ */
 import { useState, useRef } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { OrbitControls, Billboard, Text, PerspectiveCamera, OrthographicCamera } from '@react-three/drei'

@@ -2,7 +2,7 @@ import { useMemo } from 'react'
 import { Line } from '@react-three/drei'
 import * as THREE from 'three'
 import { useStore, UNIT_FACTORS } from '../store/useStore'
-import { calculateTotalPotential, KE_REAL } from '../physics/coulomb'
+import { calculateTotalPotential } from '../physics/coulomb'
 
 const GRID = 64
 const WORLD_SIZE = 20

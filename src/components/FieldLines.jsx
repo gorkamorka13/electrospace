@@ -1,6 +1,5 @@
 import { useMemo } from 'react'
 import { Line } from '@react-three/drei'
-import * as THREE from 'three'
 import { useStore, UNIT_FACTORS } from '../store/useStore'
 import { traceFieldLine, getDistributionSeeds } from '../physics/coulomb'
 import { fibonacciSphere } from '../physics/utils'
