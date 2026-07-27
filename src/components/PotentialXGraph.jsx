@@ -146,7 +146,7 @@ export function PotentialXGraph() {
     const physicalCharges = distributions.length > 0 ? [] : charges.map(c => ({ ...c, q: c.q * multiplier }))
     const { ke, rMin } = useStore.getState()
     const axisIdx = potAxis === 'x' ? 0 : potAxis === 'y' ? 1 : 2
-    const pos = [...testPoint]
+    const pos = [0, 0, 0]
     const pts = []
     let minV = Infinity, maxV = -Infinity
     let currentIndex = 0
@@ -340,10 +340,10 @@ export function PotentialXGraph() {
         dragCleanupRef.current = () => { window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', up) }
       }}
     >
-      <div className="pg-header">
-        <span className="pg-title">V({AXIS_LABELS[potAxis]}) passant par M</span>
+<div className="pg-header">
+        <span className="pg-title">V({potAxis}) — balayage depuis l'origine</span>
         <select value={potAxis} onChange={(e) => setPotAxis(e.target.value)} className="pg-axis-select">
-          {AXIS_KEYS.map(k => <option key={k} value={k}>Axe {AXIS_LABELS[k]}</option>)}
+          {AXIS_KEYS.map(k => <option key={k} value={k}>{AXIS_LABELS[k]}</option>)}
         </select>
         <span className="pg-test-val" style={{ color: '#4ade80' }}>{data.testV.toExponential(2)} V</span>
         <button className="pg-export-btn" onClick={exportPng} title="Exporter PNG">🖼</button>
