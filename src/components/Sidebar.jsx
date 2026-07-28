@@ -130,7 +130,10 @@ const CoulombForces = memo(() => {
   const setShowForces = useStore((s) => s.setShowForces)
   const distributions = useStore((s) => s.distributions)
 
-  if (distributions.length > 0 || !showForces || charges.length < 2) return null
+  if (!showForces || charges.length < 2) return null
+  if (distributions.length > 0) {
+    return <p className="text-muted" style={{ fontSize: '0.85rem', padding: '0.5rem 0' }}>Forces désactivées avec des distributions de charge.</p>
+  }
 
   return (
     <CollapsibleSection title="Forces de Coulomb" defaultOpen={false}
@@ -376,6 +379,7 @@ const TABS = [
 
 export function Sidebar() {
   const [activeTab, setActiveTab] = useState('scene')
+  const [formula, setFormula] = useState('charge')
 
   // Stable action selectors
   const exportScene = useStore((s) => s.exportScene)
@@ -681,8 +685,8 @@ export function Sidebar() {
 
             <CollapsibleSection title="Forces & Graphiques">
               <div className="flex-col gap-3" style={{ padding: '0.3rem 0' }}>
-                <label className="toggle-row">
-                  <input type="checkbox" checked={showForces} onChange={(e) => setShowForces(e.target.checked)} />
+                <label className="toggle-row" style={distributions.length > 0 ? { opacity: 0.4, pointerEvents: 'none' } : {}}>
+                  <input type="checkbox" checked={showForces} disabled={distributions.length > 0} onChange={(e) => setShowForces(e.target.checked)} />
                   <span>Afficher les forces de Coulomb</span>
                 </label>
                 <label className="toggle-row">
@@ -697,8 +701,8 @@ export function Sidebar() {
                   <input type="checkbox" checked={showPotentialXGraph} onChange={(e) => setShowPotentialXGraph(e.target.checked)} />
                   <span>Afficher le graphique V(x)</span>
                 </label>
-                <label className="toggle-row">
-                  <input type="checkbox" checked={showIndividualFields} onChange={(e) => setShowIndividualFields(e.target.checked)} />
+                <label className="toggle-row" style={distributions.length > 0 ? { opacity: 0.4, pointerEvents: 'none' } : {}}>
+                  <input type="checkbox" checked={showIndividualFields} disabled={distributions.length > 0} onChange={(e) => setShowIndividualFields(e.target.checked)} />
                   <span>Superposition des champs E<sub>i</sub></span>
                 </label>
               </div>
@@ -733,6 +737,159 @@ export function Sidebar() {
                 )
               })()}
             </CollapsibleSection>
+
+            <CollapsibleSection title="Formules Électrostatique" defaultOpen={false}>
+              {(() => {
+                const FORMULAS = {
+                  charge: {
+                    label: 'Charge ponctuelle',
+                    content: (
+                      <div className="formula-content">
+                        <p><strong>Champ électrique :</strong></p>
+                        <p className="formula">E = k · |q| / r²</p>
+                        <p><strong>Potentiel électrique :</strong></p>
+                        <p className="formula">V = k · q / r</p>
+                        <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                          k = 8.99×10⁹ N·m²/C² — Constante de Coulomb
+                        </p>
+                      </div>
+                    ),
+                  },
+                  line: {
+                    label: 'Fil infini (ligne)',
+                    content: (
+                      <div className="formula-content">
+                        <p><strong>Champ électrique :</strong></p>
+                        <p className="formula">E = λ / (2π · ε₀ · r)</p>
+                        <p><strong>Potentiel :</strong></p>
+                        <p className="formula">V(r) = (λ / 2π·ε₀) · ln(r₀ / r)</p>
+                        <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                          λ — densité linéique (C/m), r — distance au fil
+                        </p>
+                      </div>
+                    ),
+                  },
+                  plane: {
+                    label: 'Plan infini',
+                    content: (
+                      <div className="formula-content">
+                        <p><strong>Champ électrique :</strong></p>
+                        <p className="formula">E = σ / (2 · ε₀)</p>
+                        <p><strong>(indépendant de la distance)</strong></p>
+                        <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                          σ — densité surfacique (C/m²)
+                        </p>
+                      </div>
+                    ),
+                  },
+                  ring: {
+                    label: 'Anneau (cercle) — axe',
+                    content: (
+                      <div className="formula-content">
+                        <p><strong>Champ électrique sur l\'axe :</strong></p>
+                        <p className="formula">E = k · Q · z / (z² + R²)^(3/2)</p>
+                        <p><strong>Potentiel sur l\'axe :</strong></p>
+                        <p className="formula">V = k · Q / √(z² + R²)</p>
+                        <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                          R — rayon, z — distance au centre sur l&apos;axe
+                        </p>
+                      </div>
+                    ),
+                  },
+                  sphere_hollow: {
+                    label: 'Sphère creuse',
+                    content: (
+                      <div className="formula-content">
+                        <p><strong>À l\'intérieur (r &lt; R) :</strong></p>
+                        <p className="formula">E = 0 &nbsp;&nbsp; V = k · Q / R</p>
+                        <p><strong>À l\'extérieur (r ≥ R) :</strong></p>
+                        <p className="formula">E = k · Q / r²</p>
+                        <p className="formula">V = k · Q / r</p>
+                        <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                          Comme une charge ponctuelle Q au centre
+                        </p>
+                      </div>
+                    ),
+                  },
+                  sphere_solid: {
+                    label: 'Sphère pleine',
+                    content: (
+                      <div className="formula-content">
+                        <p><strong>À l\'intérieur (r &lt; R) :</strong></p>
+                        <p className="formula">E = k · Q · r / R³</p>
+                        <p className="formula">V = (k·Q / 2R) · (3 − r²/R²)</p>
+                        <p><strong>À l\'extérieur (r ≥ R) :</strong></p>
+                        <p className="formula">E = k · Q / r² &nbsp;&nbsp; V = k · Q / r</p>
+                        <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                          ρ = 3Q / (4πR³) — densité volumique uniforme
+                        </p>
+                      </div>
+                    ),
+                  },
+                  disk: {
+                    label: 'Disque — axe',
+                    content: (
+                      <div className="formula-content">
+                        <p><strong>Champ électrique sur l\'axe :</strong></p>
+                        <p className="formula">E = (σ / 2ε₀) · [1 − z / √(z² + R²)]</p>
+                        <p><strong>Potentiel sur l\'axe :</strong></p>
+                        <p className="formula">V = (σ / 2ε₀) · [√(z² + R²) − z]</p>
+                        <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                          σ — densité surfacique, z — distance sur l&apos;axe
+                        </p>
+                      </div>
+                    ),
+                  },
+                  cylinder: {
+                    label: 'Cylindre infini',
+                    content: (
+                      <div className="formula-content">
+                        <p><strong>À l\'extérieur (r ≥ R) :</strong></p>
+                        <p className="formula">E = λ / (2π · ε₀ · r)</p>
+                        <p><strong>À l\'intérieur (r &lt; R, plein uniforme) :</strong></p>
+                        <p className="formula">E = ρ · r / (2 · ε₀)</p>
+                        <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                          λ — densité linéique, ρ — densité volumique
+                        </p>
+                      </div>
+                    ),
+                  },
+                  dipole: {
+                    label: 'Dipôle électrique (lointain)',
+                    content: (
+                      <div className="formula-content">
+                        <p><strong>Champ sur l\'axe (r ≫ d) :</strong></p>
+                        <p className="formula">E = 2 · k · p / r³</p>
+                        <p><strong>Champ transverse (r ≫ d) :</strong></p>
+                        <p className="formula">E = k · p / r³</p>
+                        <p><strong>Potentiel :</strong></p>
+                        <p className="formula">V = k · p · cos θ / r²</p>
+                        <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                          p = q·d — moment dipolaire
+                        </p>
+                      </div>
+                    ),
+                  },
+                }
+                return (
+                  <div style={{ padding: '0.5rem 0' }}>
+                    <select
+                      value={formula}
+                      onChange={(e) => setFormula(e.target.value)}
+                      className="formula-select"
+                      style={{ width: '100%', padding: '0.4rem', borderRadius: '6px', fontSize: '0.85rem' }}
+                    >
+                      {Object.entries(FORMULAS).map(([key, f]) => (
+                        <option key={key} value={key}>{f.label}</option>
+                      ))}
+                    </select>
+                    <div style={{ marginTop: '0.75rem', padding: '0.5rem', background: 'var(--bg-secondary)', borderRadius: '6px', lineHeight: '1.6' }}>
+                      {FORMULAS[formula].content}
+                    </div>
+                  </div>
+                )
+              })()}
+            </CollapsibleSection>
           </div>
         )}
 
@@ -746,10 +903,10 @@ export function Sidebar() {
                     {theme === 'dark' ? '☀️ Clair' : '🌙 Sombre'}
                   </button>
                 </div>
-                <div className="flex-row:sb">
+                <div className="flex-row:sb" style={distributions.length > 0 ? { opacity: 0.4 } : {}}>
                   <span className="label">Forces de Coulomb</span>
                   <label className="switch-sm">
-                    <input type="checkbox" checked={showForces} onChange={(e) => setShowForces(e.target.checked)} />
+                    <input type="checkbox" checked={showForces} disabled={distributions.length > 0} onChange={(e) => setShowForces(e.target.checked)} />
                     <span className="switch-slider-sm" />
                   </label>
                 </div>

@@ -1,4 +1,4 @@
-import { useRef, useMemo } from 'react'
+import { useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { Billboard, Text } from '@react-three/drei'
@@ -115,17 +115,11 @@ function SingleChargeArrow({ slotIndex }) {
 export function ForceArrows() {
   const showForces = useStore((state) => state.showForces)
   const charges = useStore((state) => state.charges)
-  const selectedObjectId = useStore((state) => state.selectedObjectId)
+  const distributions = useStore((state) => state.distributions)
 
-  const selectedCharge = useMemo(() => {
-    if (!selectedObjectId || selectedObjectId === 'testPoint') return null
-    return charges.find((c) => c.id === selectedObjectId) || null
-  }, [charges, selectedObjectId])
+  if (!showForces || distributions.length > 0 || charges.length < 2) return null
 
-  if (!showForces || !selectedCharge) return null
-
-  const slotIndex = charges.indexOf(selectedCharge)
-  if (slotIndex < 0 || slotIndex >= MAX_CHARGES) return null
-
-  return <SingleChargeArrow key={selectedCharge.id} slotIndex={slotIndex} />
+  return charges.slice(0, MAX_CHARGES).map((c, i) => (
+    <SingleChargeArrow key={c.id} slotIndex={i} />
+  ))
 }

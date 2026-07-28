@@ -5,7 +5,7 @@ import { traceFieldLine, getDistributionSeeds } from '../physics/coulomb'
 import { fibonacciSphere } from '../physics/utils'
 
 const LINE_COLOR_CHARGE = '#fbbf24'
-const LINE_COLOR_DIST = '#a78bfa'
+const LINE_COLOR_DIST = '#f97316'
 
 export function FieldLines() {
   const charges = useStore((state) => state.charges)
