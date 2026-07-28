@@ -38,6 +38,9 @@ export function PotentialXGraph() {
   const testPoint = useStore((s) => s.testPoint)
   const theme = useStore((s) => s.theme)
   const [potAxis, setPotAxis] = useState('x')
+  const [axisRange, setAxisRange] = useState(AXIS_RANGE)
+  const axisRangeRef = useRef(axisRange)
+  useEffect(() => { axisRangeRef.current = axisRange }, [axisRange])
 
   const updateTestPoint = useStore((s) => s.updateTestPoint)
   const storeTestPoint = useStore((s) => s.testPoint)
@@ -79,7 +82,8 @@ export function PotentialXGraph() {
     canvas.setPointerCapture(e.pointerId)
     canvasDragRef.current = true
     const axisIdx = potAxis === 'x' ? 0 : potAxis === 'y' ? 1 : 2
-    const t = Math.max(-AXIS_RANGE, Math.min(AXIS_RANGE, ((px - PAD) / plotW) * (AXIS_RANGE * 2) - AXIS_RANGE))
+    const curAR = axisRangeRef.current
+    const t = Math.max(-curAR, Math.min(curAR, ((px - PAD) / plotW) * (curAR * 2) - curAR))
     const newPos = [...storeTestPoint]
     newPos[axisIdx] = t
     updateTestPoint(newPos)
@@ -94,7 +98,8 @@ export function PotentialXGraph() {
     const plotW = canvas.width - PAD * 2
     const px = e.clientX - rect.left
     const axisIdx = potAxis === 'x' ? 0 : potAxis === 'y' ? 1 : 2
-    const t = Math.max(-AXIS_RANGE, Math.min(AXIS_RANGE, ((px - PAD) / plotW) * (AXIS_RANGE * 2) - AXIS_RANGE))
+    const curAR = axisRangeRef.current
+    const t = Math.max(-curAR, Math.min(curAR, ((px - PAD) / plotW) * (curAR * 2) - curAR))
     const newPos = [...useStore.getState().testPoint]
     newPos[axisIdx] = t
     updateTestPoint(newPos)
@@ -167,7 +172,7 @@ export function PotentialXGraph() {
     const computeChunk = (deadline) => {
       const end = Math.min(currentIndex + CHUNK_SIZE, SAMPLES)
       for (let i = currentIndex; i < end; i++) {
-        const t = (i / (SAMPLES - 1)) * (AXIS_RANGE * 2) - AXIS_RANGE
+        const t = (i / (SAMPLES - 1)) * (axisRange * 2) - axisRange
         pos[axisIdx] = t
         const V = calculateTotalPotential(physicalCharges, pos, ke, rMin, distributions)
         pts.push({ t, V })
@@ -195,7 +200,7 @@ export function PotentialXGraph() {
     }
 
     ric(computeChunk, { timeout: 100 })
-  }, [show, charges, distributions, chargeUnit, potAxis])
+  }, [show, charges, distributions, chargeUnit, potAxis, axisRange])
   // Note: testPoint intentionally NOT in deps above — we don't restart async calc on every drag frame
 
   useEffect(() => {
@@ -236,7 +241,7 @@ export function PotentialXGraph() {
       ctx.stroke()
     }
 
-    const xScale = (t) => PAD + ((t + AXIS_RANGE) / (AXIS_RANGE * 2)) * plotW
+    const xScale = (t) => PAD + ((t + axisRange) / (axisRange * 2)) * plotW
     const yScale = (v) => PAD + (1 - (v - data.minV) / data.range) * plotH
 
     const axisY = yScale(0)
@@ -254,8 +259,9 @@ export function PotentialXGraph() {
     ctx.fillStyle = labelColor
     ctx.font = '11px monospace'
     ctx.fillText('0', axisX - 4, axisY + 14)
-    for (let tick = -10; tick <= 10; tick += 2.5) {
-      if (tick === 0) continue
+    const tickStep = axisRange <= 2 ? 0.5 : axisRange <= 5 ? 1 : axisRange <= 10 ? 2.5 : axisRange <= 20 ? 5 : 10
+    for (let tick = -axisRange; tick <= axisRange; tick += tickStep) {
+      if (Math.abs(tick) < 1e-9) continue
       const tx = xScale(tick)
       ctx.beginPath()
       ctx.moveTo(tx, axisY - 3)
@@ -307,7 +313,7 @@ export function PotentialXGraph() {
     ctx.fillStyle = infoColor
     ctx.font = '12px monospace'
     ctx.fillText(`M: ${data.axisLabel}=${cursorPos.testPos.toFixed(2)}  V=${cursorPos.testV.toExponential(2)} V`, PAD + 4, PAD + plotH - 4)
-  }, [show, data, w, h, theme, cursorPos])
+  }, [show, data, w, h, theme, cursorPos, axisRange])
 
   const winRefState = useRef(win)
   useEffect(() => { winRefState.current = win }, [win])
@@ -345,6 +351,11 @@ export function PotentialXGraph() {
     link.click()
     URL.revokeObjectURL(link.href)
   }, [data, potAxis])
+
+  const handleWheel = useCallback((e) => {
+    e.preventDefault()
+    setAxisRange(prev => Math.max(0.5, Math.min(50, prev + e.deltaY * 0.01)))
+  }, [])
 
   if (!show || !data) return null
 
@@ -428,6 +439,7 @@ export function PotentialXGraph() {
           onPointerDown={handleCanvasPointerDown}
           onPointerMove={handleCanvasPointerMove}
           onPointerUp={handleCanvasPointerUp}
+          onWheel={handleWheel}
           style={{ cursor: 'pointer' }}
         />
       </div>

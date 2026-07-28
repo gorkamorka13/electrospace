@@ -48,6 +48,9 @@ export function FieldGraph() {
   const theme = useStore((s) => s.theme)
   const [fieldKey, setFieldKey] = useState('ex')
   const [sweepAxis, setSweepAxis] = useState('x')
+  const [axisRange, setAxisRange] = useState(AXIS_RANGE)
+  const axisRangeRef = useRef(axisRange)
+  useEffect(() => { axisRangeRef.current = axisRange }, [axisRange])
 
   const updateTestPoint = useStore((s) => s.updateTestPoint)
   const storeTestPoint = useStore((s) => s.testPoint)
@@ -89,7 +92,8 @@ export function FieldGraph() {
     canvas.setPointerCapture(e.pointerId)
     canvasDragRef.current = true
     const axisIdx = 'xyz'.indexOf(sweepAxis)
-    const t = Math.max(-AXIS_RANGE, Math.min(AXIS_RANGE, ((px - PAD) / plotW) * (AXIS_RANGE * 2) - AXIS_RANGE))
+    const curAR = axisRangeRef.current
+    const t = Math.max(-curAR, Math.min(curAR, ((px - PAD) / plotW) * (curAR * 2) - curAR))
     const newPos = [...storeTestPoint]
     newPos[axisIdx] = t
     updateTestPoint(newPos)
@@ -104,7 +108,8 @@ export function FieldGraph() {
     const plotW = canvas.width - PAD * 2
     const px = e.clientX - rect.left
     const axisIdx = 'xyz'.indexOf(sweepAxis)
-    const t = Math.max(-AXIS_RANGE, Math.min(AXIS_RANGE, ((px - PAD) / plotW) * (AXIS_RANGE * 2) - AXIS_RANGE))
+    const curAR = axisRangeRef.current
+    const t = Math.max(-curAR, Math.min(curAR, ((px - PAD) / plotW) * (curAR * 2) - curAR))
     const newPos = [...useStore.getState().testPoint]
     newPos[axisIdx] = t
     updateTestPoint(newPos)
@@ -179,7 +184,7 @@ export function FieldGraph() {
     const computeChunk = (deadline) => {
       const end = Math.min(currentIndex + CHUNK_SIZE, SAMPLES)
       for (let i = currentIndex; i < end; i++) {
-        const t = (i / (SAMPLES - 1)) * (AXIS_RANGE * 2) - AXIS_RANGE
+        const t = (i / (SAMPLES - 1)) * (axisRange * 2) - axisRange
         pos[axisIndex] = t
         const E = calculateTotalField(physicalCharges, pos, ke, rMin, distributions)
         const val = fieldKey === 'mag' ? E.length() : E[fieldKey[1]]
@@ -209,7 +214,7 @@ export function FieldGraph() {
     }
 
     ric(computeChunk, { timeout: 100 })
-  }, [show, charges, distributions, chargeUnit, fieldKey, sweepAxis])
+  }, [show, charges, distributions, chargeUnit, fieldKey, sweepAxis, axisRange])
   // Note: testPoint intentionally NOT in deps above — we don't restart async calc on every drag frame
 
   const colors = useMemo(() => ({ mag: '#f59e0b', ex: '#ef4444', ey: '#22c55e', ez: '#3b82f6' }), [])
@@ -251,7 +256,7 @@ export function FieldGraph() {
       ctx.stroke()
     }
 
-    const xScale = (t) => PAD + ((t + AXIS_RANGE) / (AXIS_RANGE * 2)) * plotW
+    const xScale = (t) => PAD + ((t + axisRange) / (axisRange * 2)) * plotW
     const yScale = (v) => PAD + (1 - (v - data.minVal) / data.range) * plotH
 
     const axisY = yScale(0)
@@ -269,8 +274,9 @@ export function FieldGraph() {
     ctx.fillStyle = labelColor
     ctx.font = '11px monospace'
     ctx.fillText('0', axisX - 4, axisY + 14)
-    for (let tick = -10; tick <= 10; tick += 2.5) {
-      if (tick === 0) continue
+    const tickStep = axisRange <= 2 ? 0.5 : axisRange <= 5 ? 1 : axisRange <= 10 ? 2.5 : axisRange <= 20 ? 5 : 10
+    for (let tick = -axisRange; tick <= axisRange; tick += tickStep) {
+      if (Math.abs(tick) < 1e-9) continue
       const tx = xScale(tick)
       ctx.beginPath()
       ctx.moveTo(tx, axisY - 3)
@@ -303,6 +309,12 @@ export function FieldGraph() {
     ctx.stroke()
     ctx.setLineDash([])
 
+    const cy = yScale(cursorPos.testVal)
+    ctx.beginPath()
+    ctx.arc(cx, cy, 3, 0, Math.PI * 2)
+    ctx.fillStyle = '#fbbf24'
+    ctx.fill()
+
     ctx.save()
     ctx.translate(PAD - 14, PAD + plotH / 2)
     ctx.rotate(-Math.PI / 2)
@@ -313,7 +325,7 @@ export function FieldGraph() {
     ctx.fillStyle = infoColor
     ctx.font = '12px monospace'
     ctx.fillText(`M: ${FIELD_OPTIONS.find(o => o.key === fieldKey)?.label}=${cursorPos.testVal.toExponential(2)} V/m`, PAD + 4, PAD + plotH - 4)
-  }, [show, data, fieldKey, colors, theme, sweepAxis, cursorPos])
+  }, [show, data, fieldKey, colors, theme, sweepAxis, cursorPos, axisRange])
 
   const winRefState = useRef(win)
   useEffect(() => { winRefState.current = win }, [win])
@@ -351,6 +363,11 @@ export function FieldGraph() {
     link.click()
     URL.revokeObjectURL(link.href)
   }, [data, sweepAxis, fieldKey])
+
+  const handleWheel = useCallback((e) => {
+    e.preventDefault()
+    setAxisRange(prev => Math.max(0.5, Math.min(50, prev + e.deltaY * 0.01)))
+  }, [])
 
   if (!show || !data) return null
 
@@ -432,6 +449,7 @@ export function FieldGraph() {
           onPointerDown={handleCanvasPointerDown}
           onPointerMove={handleCanvasPointerMove}
           onPointerUp={handleCanvasPointerUp}
+          onWheel={handleWheel}
           style={{ cursor: 'pointer' }}
         />
       </div>
