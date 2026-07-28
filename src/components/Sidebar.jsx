@@ -2,6 +2,7 @@
 import { useState, useMemo, memo, useCallback } from 'react'
 import { useStore, DIST_PARAMS } from '../store/useStore'
 import { formatElectricField, formatPotential, formatForce } from '../physics/coulomb'
+import { InlineMath, BlockMath, TextWithMath } from '../utils/math'
 
 function CoordInput({ value, onChange, label }) {
   const [raw, setRaw] = useState(null)
@@ -746,11 +747,11 @@ export function Sidebar() {
                     content: (
                       <div className="formula-content">
                         <p><strong>Champ électrique :</strong></p>
-                        <p className="formula">E = k · |q| / r²</p>
+                        <BlockMath math="E = k\,\frac{|q|}{r^2}" />
                         <p><strong>Potentiel électrique :</strong></p>
-                        <p className="formula">V = k · q / r</p>
+                        <BlockMath math="V = k\,\frac{q}{r}" />
                         <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                          k = 8.99×10⁹ N·m²/C² — Constante de Coulomb
+                          <InlineMath math="k = 8.99 \times 10^9\ \text{N·m}^2/\text{C}^2" /> — Constante de Coulomb
                         </p>
                       </div>
                     ),
@@ -760,11 +761,11 @@ export function Sidebar() {
                     content: (
                       <div className="formula-content">
                         <p><strong>Champ électrique :</strong></p>
-                        <p className="formula">E = λ / (2π · ε₀ · r)</p>
+                        <BlockMath math="E = \frac{\lambda}{2\pi\varepsilon_0\,r}" />
                         <p><strong>Potentiel :</strong></p>
-                        <p className="formula">V(r) = (λ / 2π·ε₀) · ln(r₀ / r)</p>
+                        <BlockMath math="V(r) = \frac{\lambda}{2\pi\varepsilon_0}\,\ln\!\left(\frac{r_0}{r}\right)" />
                         <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                          λ — densité linéique (C/m), r — distance au fil
+                          <InlineMath math="\lambda" /> — densité linéique (C/m), <InlineMath math="r" /> — distance au fil
                         </p>
                       </div>
                     ),
@@ -774,10 +775,10 @@ export function Sidebar() {
                     content: (
                       <div className="formula-content">
                         <p><strong>Champ électrique :</strong></p>
-                        <p className="formula">E = σ / (2 · ε₀)</p>
+                        <BlockMath math="E = \frac{\sigma}{2\varepsilon_0}" />
                         <p><strong>(indépendant de la distance)</strong></p>
                         <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                          σ — densité surfacique (C/m²)
+                          <InlineMath math="\sigma" /> — densité surfacique (C/m²)
                         </p>
                       </div>
                     ),
@@ -787,11 +788,11 @@ export function Sidebar() {
                     content: (
                       <div className="formula-content">
                         <p><strong>Champ électrique sur l\'axe :</strong></p>
-                        <p className="formula">E = k · Q · z / (z² + R²)^(3/2)</p>
+                        <BlockMath math="E = k\,\frac{Q\,z}{(z^2 + R^2)^{3/2}}" />
                         <p><strong>Potentiel sur l\'axe :</strong></p>
-                        <p className="formula">V = k · Q / √(z² + R²)</p>
+                        <BlockMath math="V = \frac{k\,Q}{\sqrt{z^2 + R^2}}" />
                         <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                          R — rayon, z — distance au centre sur l&apos;axe
+                          <InlineMath math="R" /> — rayon, <InlineMath math="z" /> — distance au centre sur l&apos;axe
                         </p>
                       </div>
                     ),
@@ -800,13 +801,12 @@ export function Sidebar() {
                     label: 'Sphère creuse',
                     content: (
                       <div className="formula-content">
-                        <p><strong>À l\'intérieur (r &lt; R) :</strong></p>
-                        <p className="formula">E = 0 &nbsp;&nbsp; V = k · Q / R</p>
-                        <p><strong>À l\'extérieur (r ≥ R) :</strong></p>
-                        <p className="formula">E = k · Q / r²</p>
-                        <p className="formula">V = k · Q / r</p>
+                        <p><strong>À l\'intérieur (<InlineMath math="r &lt; R" />) :</strong></p>
+                        <BlockMath math="E = 0 \qquad V = \frac{k\,Q}{R}" />
+                        <p><strong>À l\'extérieur (<InlineMath math="r \ge R" />) :</strong></p>
+                        <BlockMath math="E = \frac{k\,Q}{r^2} \qquad V = \frac{k\,Q}{r}" />
                         <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                          Comme une charge ponctuelle Q au centre
+                          Comme une charge ponctuelle <InlineMath math="Q" /> au centre
                         </p>
                       </div>
                     ),
@@ -815,13 +815,13 @@ export function Sidebar() {
                     label: 'Sphère pleine',
                     content: (
                       <div className="formula-content">
-                        <p><strong>À l\'intérieur (r &lt; R) :</strong></p>
-                        <p className="formula">E = k · Q · r / R³</p>
-                        <p className="formula">V = (k·Q / 2R) · (3 − r²/R²)</p>
-                        <p><strong>À l\'extérieur (r ≥ R) :</strong></p>
-                        <p className="formula">E = k · Q / r² &nbsp;&nbsp; V = k · Q / r</p>
+                        <p><strong>À l\'intérieur (<InlineMath math="r &lt; R" />) :</strong></p>
+                        <BlockMath math="E = \frac{k\,Q\,r}{R^3}" />
+                        <BlockMath math="V = \frac{k\,Q}{2R}\left(3 - \frac{r^2}{R^2}\right)" />
+                        <p><strong>À l\'extérieur (<InlineMath math="r \ge R" />) :</strong></p>
+                        <BlockMath math="E = \frac{k\,Q}{r^2} \qquad V = \frac{k\,Q}{r}" />
                         <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                          ρ = 3Q / (4πR³) — densité volumique uniforme
+                          <InlineMath math="\rho = \frac{3Q}{4\pi R^3}" /> — densité volumique uniforme
                         </p>
                       </div>
                     ),
@@ -831,11 +831,11 @@ export function Sidebar() {
                     content: (
                       <div className="formula-content">
                         <p><strong>Champ électrique sur l\'axe :</strong></p>
-                        <p className="formula">E = (σ / 2ε₀) · [1 − z / √(z² + R²)]</p>
+                        <BlockMath math="E = \frac{\sigma}{2\varepsilon_0}\left[1 - \frac{z}{\sqrt{z^2 + R^2}}\right]" />
                         <p><strong>Potentiel sur l\'axe :</strong></p>
-                        <p className="formula">V = (σ / 2ε₀) · [√(z² + R²) − z]</p>
+                        <BlockMath math="V = \frac{\sigma}{2\varepsilon_0}\left[\sqrt{z^2 + R^2} - z\right]" />
                         <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                          σ — densité surfacique, z — distance sur l&apos;axe
+                          <InlineMath math="\sigma" /> — densité surfacique, <InlineMath math="z" /> — distance sur l&apos;axe
                         </p>
                       </div>
                     ),
@@ -844,12 +844,12 @@ export function Sidebar() {
                     label: 'Cylindre infini',
                     content: (
                       <div className="formula-content">
-                        <p><strong>À l\'extérieur (r ≥ R) :</strong></p>
-                        <p className="formula">E = λ / (2π · ε₀ · r)</p>
-                        <p><strong>À l\'intérieur (r &lt; R, plein uniforme) :</strong></p>
-                        <p className="formula">E = ρ · r / (2 · ε₀)</p>
+                        <p><strong>À l\'extérieur (<InlineMath math="r \ge R" />) :</strong></p>
+                        <BlockMath math="E = \frac{\lambda}{2\pi\varepsilon_0\,r}" />
+                        <p><strong>À l\'intérieur (<InlineMath math="r &lt; R" />, plein uniforme) :</strong></p>
+                        <BlockMath math="E = \frac{\rho\,r}{2\varepsilon_0}" />
                         <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                          λ — densité linéique, ρ — densité volumique
+                          <InlineMath math="\lambda" /> — densité linéique, <InlineMath math="\rho" /> — densité volumique
                         </p>
                       </div>
                     ),
@@ -858,14 +858,14 @@ export function Sidebar() {
                     label: 'Dipôle électrique (lointain)',
                     content: (
                       <div className="formula-content">
-                        <p><strong>Champ sur l\'axe (r ≫ d) :</strong></p>
-                        <p className="formula">E = 2 · k · p / r³</p>
-                        <p><strong>Champ transverse (r ≫ d) :</strong></p>
-                        <p className="formula">E = k · p / r³</p>
+                        <p><strong>Champ sur l\'axe (<InlineMath math="r \gg d" />) :</strong></p>
+                        <BlockMath math="E = \frac{2k\,p}{r^3}" />
+                        <p><strong>Champ transverse (<InlineMath math="r \gg d" />) :</strong></p>
+                        <BlockMath math="E = \frac{k\,p}{r^3}" />
                         <p><strong>Potentiel :</strong></p>
-                        <p className="formula">V = k · p · cos θ / r²</p>
+                        <BlockMath math="V = \frac{k\,p\cos\theta}{r^2}" />
                         <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                          p = q·d — moment dipolaire
+                          <InlineMath math="p = q\cdot d" /> — moment dipolaire
                         </p>
                       </div>
                     ),

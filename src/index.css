@@ -2856,15 +2856,8 @@ body, html, #root {
 .formula-content p {
   margin: 0.3rem 0;
 }
-.formula {
-  font-family: 'Times New Roman', serif;
-  font-size: 1.05rem;
-  font-style: italic;
-  color: var(--accent);
-  padding: 0.2rem 0.5rem;
-  background: var(--bg-primary);
-  border-radius: 4px;
-  letter-spacing: 0.02em;
+.formula-content .gw-katex-block {
+  margin: 0.3rem 0 0.6rem;
 }
 .formula-select {
   background: var(--bg-primary);
