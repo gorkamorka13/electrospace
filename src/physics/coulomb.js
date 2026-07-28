@@ -52,6 +52,8 @@ function elV(Vsum, dq, pos, targetPos, ke, rMin) {
   return Vsum + (ke * dq) / r
 }/* ---------- Line ---------- */
 
+/* ---------- Analytical finite line segment (along y-axis, centered at origin) ---------- */
+
 function lineFieldAnalytical(px, py, pz, half, lambda, ke, rMin) {
   const E = new THREE.Vector3()
   const R2 = Math.max(px * px + pz * pz, 1e-20)
@@ -70,10 +72,6 @@ function lineFieldAnalytical(px, py, pz, half, lambda, ke, rMin) {
   return E
 }
 
-export function calculateFieldFromLine(dist, targetPos, ke = KE_REAL, rMin = 0.5) {
-  return lineFieldAnalytical(targetPos[0], targetPos[1], targetPos[2], dist.length / 2, dist.density, ke, rMin)
-}
-
 function linePotentialAnalytical(px, py, pz, half, lambda, ke, rMin) {
   const R2 = Math.max(px * px + pz * pz, 1e-20)
   const y1 = -half, y2 = half
@@ -84,6 +82,56 @@ function linePotentialAnalytical(px, py, pz, half, lambda, ke, rMin) {
   const s1 = Math.sqrt(R2 + u1c * u1c)
   const s2 = Math.sqrt(R2 + u2c * u2c)
   return ke * lambda * Math.log((u1c + s1) / (u2c + s2))
+}
+
+/* ---------- General finite line segment in 3D (local frame) ---------- */
+
+function segmentFieldLocal(E, start, end, lambda, target, ke, rMin) {
+  // start, end, target are THREE.Vector3 in local frame
+  // Segment direction and center
+  const dir = new THREE.Vector3().subVectors(end, start)
+  const len = dir.length()
+  if (len < 1e-12) return E
+  const half = len / 2
+  const center = new THREE.Vector3().addVectors(start, end).multiplyScalar(0.5)
+  const yAxis = dir.clone().normalize()
+  // Build orthonormal basis: yAxis along segment, xAxis and zAxis perpendicular
+  const up = Math.abs(yAxis.y) > 0.9 ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 1, 0)
+  const xAxis = new THREE.Vector3().crossVectors(up, yAxis).normalize()
+  const zAxis = new THREE.Vector3().crossVectors(yAxis, xAxis).normalize()
+  // Target in segment coordinates
+  const rel = new THREE.Vector3().subVectors(target, center)
+  const px = rel.dot(xAxis)
+  const py = rel.dot(yAxis)
+  const pz = rel.dot(zAxis)
+  // Analytical field in segment coordinates (segment along y)
+  const segE = lineFieldAnalytical(px, py, pz, half, lambda, ke, rMin)
+  // Transform back to local frame
+  E.addScaledVector(xAxis, segE.x)
+  E.addScaledVector(yAxis, segE.y)
+  E.addScaledVector(zAxis, segE.z)
+  return E
+}
+
+function segmentPotentialLocal(start, end, lambda, target, ke, rMin) {
+  const dir = new THREE.Vector3().subVectors(end, start)
+  const len = dir.length()
+  if (len < 1e-12) return 0
+  const half = len / 2
+  const center = new THREE.Vector3().addVectors(start, end).multiplyScalar(0.5)
+  const yAxis = dir.clone().normalize()
+  const up = Math.abs(yAxis.y) > 0.9 ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 1, 0)
+  const xAxis = new THREE.Vector3().crossVectors(up, yAxis).normalize()
+  const zAxis = new THREE.Vector3().crossVectors(yAxis, xAxis).normalize()
+  const rel = new THREE.Vector3().subVectors(target, center)
+  const px = rel.dot(xAxis)
+  const py = rel.dot(yAxis)
+  const pz = rel.dot(zAxis)
+  return linePotentialAnalytical(px, py, pz, half, lambda, ke, rMin)
+}
+
+export function calculateFieldFromLine(dist, targetPos, ke = KE_REAL, rMin = 0.5) {
+  return lineFieldAnalytical(targetPos[0], targetPos[1], targetPos[2], dist.length / 2, dist.density, ke, rMin)
 }
 
 export function calculatePotentialFromLine(dist, targetPos, ke = KE_REAL, rMin = 0.5) {
@@ -258,61 +306,149 @@ export function calculatePotentialFromDisk(dist, targetPos, ke = KE_REAL, rMin =
   return V
 }
 
-/* ---------- Circle (ring / circular line charge) ---------- */
+/* ---------- Complete elliptic integrals (K(k), E(k)) using AGM ---------- */
+
+function ellipticK(k) {
+  // Complete elliptic integral of the first kind K(k) via AGM
+  // Valid for 0 <= k < 1
+  if (k < 1e-15) return Math.PI / 2
+  if (k > 0.999999) return 8  // near-singular clamp
+  let a = 1.0, b = Math.sqrt(1 - k * k), c = k
+  while (c > 1e-15) {
+    const an = (a + b) / 2
+    const bn = Math.sqrt(a * b)
+    const cn = (a - b) / 2
+    a = an; b = bn; c = cn
+  }
+  return Math.PI / (2 * a)
+}
+
+function ellipticE(k) {
+  // Complete elliptic integral of the second kind E(k) via AGM + series
+  // Valid for 0 <= k < 1
+  if (k < 1e-15) return Math.PI / 2
+  if (k > 0.999999) return 1.0  // near-singular limit
+  let a = 1.0, b = Math.sqrt(1 - k * k), c = k
+  let s = 0.0
+  let pow2 = 1.0
+  while (c > 1e-15) {
+    const an = (a + b) / 2
+    const bn = Math.sqrt(a * b)
+    const cn = (a - b) / 2
+    s += pow2 * c * c
+    pow2 *= 2
+    a = an; b = bn; c = cn
+  }
+  return (Math.PI / 2) * (1 - s) / a
+}
+
+/* ---------- Circle (ring / circular line charge) — exact via elliptic integrals ---------- */
 
 export function calculateFieldFromCircle(dist, targetPos, ke = KE_REAL, rMin = 0.5) {
   const { density: lambda, center, normal, radius } = dist
-  const E = new THREE.Vector3()
+  const R = radius
+  const Q = lambda * 2 * Math.PI * R // total charge
+
+  // Build frame: z = normal (symmetry axis), xy plane = ring plane
   const frame = makeLocalFrame(center, new THREE.Vector3(...normal))
-  const NC = 36
-  const da = (2 * Math.PI) / NC
-  for (let i = 0; i < NC; i++) {
-    const a = (i + 0.5) * da
-    const local = new THREE.Vector3(radius * Math.cos(a), radius * Math.sin(a), 0)
-    elE(E, lambda * radius * da, worldFromLocal(local, frame), targetPos, ke, rMin)
+
+  // Express target position in local coordinates
+  const P = new THREE.Vector3(...targetPos)
+  const local = new THREE.Vector3().copy(P).sub(frame.origin)
+  const z = local.dot(frame.z)          // axial distance (along symmetry axis)
+  const rho = Math.sqrt(Math.max(0, local.dot(frame.x) * local.dot(frame.x) + local.dot(frame.y) * local.dot(frame.y)))  // radial distance from axis
+
+  const E = new THREE.Vector3()
+
+  // On-axis: analytical formula (rho ≈ 0)
+  if (rho < 1e-12) {
+    const denom = Math.sqrt(z * z + R * R)
+    const Ex = ke * Q * z / (denom * denom * denom)
+    return new THREE.Vector3(Ex * frame.z.x, Ex * frame.z.y, Ex * frame.z.z)
   }
+
+  // Off-axis: exact formulas using elliptic integrals
+  const sumR = R + rho
+  const diffR = R - rho
+  const k2 = 4 * R * rho / (sumR * sumR + z * z)
+  if (k2 >= 1 || k2 <= 0) {
+    // Fallback: numerical integration for extreme cases
+    const NC = 72
+    const da = (2 * Math.PI) / NC
+    for (let i = 0; i < NC; i++) {
+      const a = (i + 0.5) * da
+      const loc = new THREE.Vector3(R * Math.cos(a), R * Math.sin(a), 0)
+      elE(E, lambda * R * da, worldFromLocal(loc, frame), targetPos, ke, rMin)
+    }
+    return E
+  }
+
+  const k = Math.sqrt(k2)
+  const Kk = ellipticK(k)
+  const Ek = ellipticE(k)
+
+  const sqrtSum = Math.sqrt(sumR * sumR + z * z)
+  const denom = (diffR * diffR + z * z)
+
+  // E_rho component
+  const Erho = ke * Q / (Math.PI * rho * sqrtSum) * ((R * R + rho * rho + z * z) / denom * Ek - Kk)
+
+  // E_z component
+  const Ez = ke * Q * z / (Math.PI * sqrtSum * sqrtSum * sqrtSum) * ((R * R - rho * rho - z * z) / denom * Ek + Kk)
+
+  // Transform back to world coordinates
+  E.x = Erho * (rho > 1e-12 ? local.x / rho : 0) + Ez * frame.z.x
+  E.y = Erho * (rho > 1e-12 ? local.y / rho : 0) + Ez * frame.z.y
+  E.z = Erho * (rho > 1e-12 ? local.z / rho : 0) + Ez * frame.z.z
+
   return E
 }
 
 export function calculatePotentialFromCircle(dist, targetPos, ke = KE_REAL, rMin = 0.5) {
   const { density: lambda, center, normal, radius } = dist
-  let V = 0
+  const R = radius
+  const Q = lambda * 2 * Math.PI * R // total charge
+
   const frame = makeLocalFrame(center, new THREE.Vector3(...normal))
-  const NC = 36
-  const da = (2 * Math.PI) / NC
-  for (let i = 0; i < NC; i++) {
-    const a = (i + 0.5) * da
-    const local = new THREE.Vector3(radius * Math.cos(a), radius * Math.sin(a), 0)
-    V = elV(V, lambda * radius * da, worldFromLocal(local, frame), targetPos, ke, rMin)
+  const P = new THREE.Vector3(...targetPos)
+  const local = new THREE.Vector3().copy(P).sub(frame.origin)
+  const z = local.dot(frame.z)
+  const rho = Math.sqrt(Math.max(0, local.dot(frame.x) * local.dot(frame.x) + local.dot(frame.y) * local.dot(frame.y)))
+
+  // On-axis: analytical formula
+  if (rho < 1e-12) {
+    return ke * Q / Math.sqrt(z * z + R * R)
   }
-  return V
+
+  // Off-axis: exact formula using elliptic integral K(k)
+  const sumR = R + rho
+  const k2 = 4 * R * rho / (sumR * sumR + z * z)
+  if (k2 >= 1 || k2 <= 0) {
+    // Fallback: numerical integration
+    let V = 0
+    const NC = 72
+    const da = (2 * Math.PI) / NC
+    for (let i = 0; i < NC; i++) {
+      const a = (i + 0.5) * da
+      const loc = new THREE.Vector3(R * Math.cos(a), R * Math.sin(a), 0)
+      V = elV(V, lambda * R * da, worldFromLocal(loc, frame), targetPos, ke, rMin)
+    }
+    return V
+  }
+
+  const k = Math.sqrt(k2)
+  const Kk = ellipticK(k)
+  return ke * Q / (Math.PI * Math.sqrt(sumR * sumR + z * z)) * Kk
 }
 
-/* ---------- Frame (rectangular wire loop) ---------- */
-
-function addLineSegmentE(E, start, end, lambda, nSeg, frame, targetPos, ke, rMin) {
-  for (let i = 0; i < nSeg; i++) {
-    const t = (i + 0.5) / nSeg
-    const local = new THREE.Vector3().lerpVectors(start, end, t)
-    const dq = lambda * start.distanceTo(end) / nSeg
-    elE(E, dq, worldFromLocal(local, frame), targetPos, ke, rMin)
-  }
-}
-
-function addLineSegmentV(V, start, end, lambda, nSeg, frame, targetPos, ke, rMin) {
-  for (let i = 0; i < nSeg; i++) {
-    const t = (i + 0.5) / nSeg
-    const local = new THREE.Vector3().lerpVectors(start, end, t)
-    const dq = lambda * start.distanceTo(end) / nSeg
-    V = elV(V, dq, worldFromLocal(local, frame), targetPos, ke, rMin)
-  }
-  return V
-}
+/* ---------- Frame (rectangular wire loop) — exact analytical ---------- */
 
 export function calculateFieldFromFrame(dist, targetPos, ke = KE_REAL, rMin = 0.5) {
   const { density: lambda, center, normal, width, height } = dist
   const E = new THREE.Vector3()
   const frame = makeLocalFrame(center, new THREE.Vector3(...normal))
+  const P = new THREE.Vector3(...targetPos)
+  const local = new THREE.Vector3().copy(P).sub(frame.origin)
   const hw = width / 2, hh = height / 2
   const corners = [
     new THREE.Vector3(-hw, -hh, 0),
@@ -320,17 +456,26 @@ export function calculateFieldFromFrame(dist, targetPos, ke = KE_REAL, rMin = 0.
     new THREE.Vector3( hw,  hh, 0),
     new THREE.Vector3(-hw,  hh, 0),
   ]
-  const nPerSide = Math.max(Math.ceil(Math.max(width, height) / 0.5), 4)
+  // 4 sides as exact analytical segments
   for (let i = 0; i < 4; i++) {
-    addLineSegmentE(E, corners[i], corners[(i + 1) % 4], lambda, nPerSide, frame, targetPos, ke, rMin)
+    segmentFieldLocal(E, corners[i], corners[(i + 1) % 4], lambda, local, ke, rMin)
   }
-  return E
+  // Transform from local frame to world
+  const Ex = E.dot(frame.x)
+  const Ey = E.dot(frame.y)
+  const Ez = E.dot(frame.z)
+  return new THREE.Vector3(
+    Ex * frame.x.x + Ey * frame.y.x + Ez * frame.z.x,
+    Ex * frame.x.y + Ey * frame.y.y + Ez * frame.z.y,
+    Ex * frame.x.z + Ey * frame.y.z + Ez * frame.z.z
+  )
 }
 
 export function calculatePotentialFromFrame(dist, targetPos, ke = KE_REAL, rMin = 0.5) {
   const { density: lambda, center, normal, width, height } = dist
-  let V = 0
   const frame = makeLocalFrame(center, new THREE.Vector3(...normal))
+  const P = new THREE.Vector3(...targetPos)
+  const local = new THREE.Vector3().copy(P).sub(frame.origin)
   const hw = width / 2, hh = height / 2
   const corners = [
     new THREE.Vector3(-hw, -hh, 0),
@@ -338,9 +483,9 @@ export function calculatePotentialFromFrame(dist, targetPos, ke = KE_REAL, rMin 
     new THREE.Vector3( hw,  hh, 0),
     new THREE.Vector3(-hw,  hh, 0),
   ]
-  const nPerSide = Math.max(Math.ceil(Math.max(width, height) / 0.5), 4)
+  let V = 0
   for (let i = 0; i < 4; i++) {
-    V = addLineSegmentV(V, corners[i], corners[(i + 1) % 4], lambda, nPerSide, frame, targetPos, ke, rMin)
+    V += segmentPotentialLocal(corners[i], corners[(i + 1) % 4], lambda, local, ke, rMin)
   }
   return V
 }

@@ -413,7 +413,9 @@ export function FieldGraph() {
       }}
     >
       <div className="pg-header">
-        <span className="pg-title">E({sweepAxis})</span>
+        <span className="pg-title">
+          E({sweepAxis})<span className="pg-title-full"> — balayage selon {sweepAxis.toUpperCase()}</span>
+        </span>
         <select value={sweepAxis} onChange={(e) => setSweepAxis(e.target.value)} className="pg-axis-select">
           {SWEEP_OPTIONS.map(o => <option key={o.key} value={o.key}>{o.label}</option>)}
         </select>

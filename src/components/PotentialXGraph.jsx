@@ -412,7 +412,9 @@ export function PotentialXGraph() {
       }}
     >
 <div className="pg-header">
-        <span className="pg-title">V({potAxis})</span>
+        <span className="pg-title">
+          V({potAxis})<span className="pg-title-full"> — balayage selon {potAxis.toUpperCase()}</span>
+        </span>
         <select value={potAxis} onChange={(e) => setPotAxis(e.target.value)} className="pg-axis-select">
           {AXIS_KEYS.map(k => <option key={k} value={k}>{AXIS_LABELS[k]}</option>)}
         </select>
