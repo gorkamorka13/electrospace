@@ -258,11 +258,7 @@ export const useStore = create((set, get) => ({
       activeView: state.activeView,
       testPoint: state.testPoint,
       charges: state.charges.map(c => ({ q: c.q, position: c.position, name: c.name })),
-      distributions: state.distributions.map(d => {
-        // eslint-disable-next-line no-unused-vars
-        const { id, ...rest } = d
-        return rest
-      }),
+      distributions: state.distributions.map(({ id: _id, ...rest }) => rest),
     }
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
@@ -419,7 +415,6 @@ export const useStore = create((set, get) => ({
   removeCharge: (id) => {
     get().pushHistory()
     set((state) => {
-      // eslint-disable-next-line no-unused-vars
       const { [id]: _, ...rest } = state.chargeInitialPositions || {}
       return {
         charges: state.charges.filter((c) => c.id !== id),

@@ -10,9 +10,7 @@ export function calculateGaussParameters(state) {
   const hollow = activeDist?.hollow || false
   const sigma = activeDist?.density || 0
   const lambda = activeDist?.density || 0
-  // volumeCharge is reserved for future volumetric distributions
-  // eslint-disable-next-line no-unused-vars
-  const volumeCharge = activeDist?.density || 0
+  // volumeCharge reserved for future volumetric distributions
 
   const r_g = gaussSurfaceRadius
   const h_g = gaussSurfaceHeight
@@ -177,14 +175,12 @@ export function calculateGaussParameters(state) {
     surfaceAnalysis = {
       surfaceType: 'sphere',
       fluxDecomposition: [
-        { face: "Sphère de Gauss de rayon r", dotProduct: "E ∥ dS (E · dS = E · dS)", eConst: "E(r) est uniforme sur la sphère", fluxTerm: "Φ = E(r) ∮ dS = E(r) · (4π r²)" }
+        { face: "Sphère de Gauss de rayon r", dotProduct: "E ∥ dS (E · dS = E · dS)", eConst: "E(r) est uniforme sur la sphère",       fluxTerm: "Φ = E(r) ∮ dS = E(r) · (4π r²)" }
       ]
     }
 
-    // eslint-disable-next-line no-useless-assignment
-    let vFieldFormula = ""
-    // eslint-disable-next-line no-useless-assignment
-    let vValue = 0
+    let vFieldFormula
+    let vValue
 
     if (r_g < R) {
       if (hollow) {
@@ -260,10 +256,8 @@ export function calculateGaussParameters(state) {
       ]
     }
 
-    // eslint-disable-next-line no-useless-assignment
-    let vFieldFormula = ""
-    // eslint-disable-next-line no-useless-assignment
-    let vValue = 0
+    let vFieldFormula
+    let vValue
 
     if (r_g < R) {
       if (hollow) {
