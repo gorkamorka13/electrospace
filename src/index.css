@@ -1566,6 +1566,7 @@ body, html, #root {
 .gw-body {
   padding: 1rem;
   overflow-y: auto;
+  overflow-x: hidden;
   flex: 1;
 }
 
@@ -2395,6 +2396,52 @@ body, html, #root {
   font-weight: 600;
 }
 
+/* ---------- Responsive overflow fixes ---------- */
+.table-responsive {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  max-width: 100%;
+}
+.gw-katex-block {
+  overflow-x: auto;
+  overflow-y: hidden;
+  max-width: 100%;
+}
+.gw-dot-table {
+  table-layout: fixed;
+  width: 100%;
+}
+.gw-dot-table th,
+.gw-dot-table td {
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+}
+.gw-final-vector-card,
+.gw-derivation-box,
+.gw-info-card,
+.gw-rule-box .rule-item,
+.gw-success-alert,
+.gw-warning-alert,
+.gw-quiz-feedback,
+.gw-step-content p {
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+}
+.gw-quiz-option {
+  word-break: break-word;
+}
+@media (max-width: 480px) {
+  .gw-step-content p,
+  .gw-info-card,
+  .gw-rule-box .rule-item,
+  .gw-derivation-box p,
+  .gw-final-vector-card .vector-val {
+    font-size: 0.7rem;
+  }
+  .gw-dot-table {
+    font-size: 0.65rem;
+  }
+}
 /* ---------- Quiz Section (Auto-évaluation Gauss) ---------- */
 .gw-quiz-section {
   margin-top: 1rem;

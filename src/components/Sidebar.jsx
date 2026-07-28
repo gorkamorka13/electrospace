@@ -751,7 +751,7 @@ export function Sidebar() {
                         <p><strong>Potentiel électrique :</strong></p>
                         <BlockMath math="V = k\,\frac{q}{r}" />
                         <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                          <InlineMath math="k = 8.99 \times 10^9\ \text{N·m}^2/\text{C}^2" /> — Constante de Coulomb
+                          <InlineMath math="k = 8.99\times10^{9}\ \mathrm{N{\cdot}m^{2}{\cdot}C^{-2}}" /> — Constante de Coulomb
                         </p>
                       </div>
                     ),
@@ -889,6 +889,28 @@ export function Sidebar() {
                   </div>
                 )
               })()}
+            </CollapsibleSection>
+
+            <CollapsibleSection title="Équations de Maxwell" defaultOpen={false}>
+              <div className="formula-content" style={{ padding: '0.5rem 0' }}>
+                <p style={{ fontSize: '0.78rem', fontWeight: 600, marginBottom: '0.3rem' }}>Forme différentielle</p>
+                <BlockMath math="\vec{\nabla}\cdot\vec{E} = \frac{\rho}{\varepsilon_0}" />
+                <BlockMath math="\vec{\nabla}\cdot\vec{B} = 0" />
+                <BlockMath math="\vec{\nabla}\times\vec{E} = -\frac{\partial\vec{B}}{\partial t}" />
+                <BlockMath math="\vec{\nabla}\times\vec{B} = \mu_0\!\left(\vec{J} + \varepsilon_0\frac{\partial\vec{E}}{\partial t}\right)" />
+
+                <p style={{ fontSize: '0.78rem', fontWeight: 600, marginTop: '0.8rem', marginBottom: '0.3rem' }}>Forme intégrale</p>
+                <BlockMath math="\oint_{\Sigma}\vec{E}\cdot d\vec{S} = \frac{Q_{\text{int}}}{\varepsilon_0}" />
+                <BlockMath math="\oint_{\Sigma}\vec{B}\cdot d\vec{S} = 0" />
+                <BlockMath math="\oint_{\Gamma}\vec{E}\cdot d\vec{l} = -\frac{d}{dt}\iint_{\Sigma}\vec{B}\cdot d\vec{S}" />
+                <BlockMath math="\oint_{\Gamma}\vec{B}\cdot d\vec{l} = \mu_0\!\left(I + \varepsilon_0\frac{d}{dt}\iint_{\Sigma}\vec{E}\cdot d\vec{S}\right)" />
+
+                <p style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '0.5rem', lineHeight: '1.4' }}>
+                  <InlineMath math="\vec{E}" /> — champ électrique, <InlineMath math="\vec{B}" /> — champ magnétique,<br />
+                  <InlineMath math="\rho" /> — densité de charge, <InlineMath math="\vec{J}" /> — densité de courant,<br />
+                  <InlineMath math="\varepsilon_0" /> — permittivité du vide, <InlineMath math="\mu_0" /> — perméabilité du vide
+                </p>
+              </div>
             </CollapsibleSection>
           </div>
         )}
