@@ -458,7 +458,7 @@ export function FieldGraph() {
           e.preventDefault()
           e.stopPropagation()
           const target = e.currentTarget
-          try { target.setPointerCapture(e.pointerId) } catch (err) { console.error('setPointerCapture failed:', err) }
+          try { target.setPointerCapture(e.pointerId) } catch {}
           const cur = winRefState.current
           const sw = cur.w, sh = cur.h
           const sx = e.clientX, sy = e.clientY
@@ -467,7 +467,7 @@ export function FieldGraph() {
             return { ...prev, w: Math.max(MIN_W, Math.min(mw - prev.x - MARGIN, sw + ev.clientX - sx)), h: Math.max(MIN_H, Math.min(mh - prev.y - MARGIN, sh + ev.clientY - sy)) }
           }) }
           const up = (ev) => {
-            try { target.releasePointerCapture(ev.pointerId) } catch (err) { console.error('releasePointerCapture failed:', err) }
+            try { target.releasePointerCapture(ev.pointerId) } catch {}
             window.removeEventListener('pointermove', mv)
             window.removeEventListener('pointerup', up)
             resizeCleanupRef.current = null
@@ -475,7 +475,7 @@ export function FieldGraph() {
           window.addEventListener('pointermove', mv)
           window.addEventListener('pointerup', up)
           resizeCleanupRef.current = () => {
-            try { target.releasePointerCapture(e.pointerId) } catch (err) { console.error('releasePointerCapture failed:', err) }
+            try { target.releasePointerCapture(e.pointerId) } catch {}
             window.removeEventListener('pointermove', mv)
             window.removeEventListener('pointerup', up)
           }
