@@ -986,10 +986,7 @@ export function Sidebar() {
         )}
       </div>
 
-      <div className="sidebar-footer">
-        <div>© 2026 Michel ESPARSA</div>
-        <div>{__GIT_VERSION__}</div>
-      </div>
+
     </aside>
   )
 }
