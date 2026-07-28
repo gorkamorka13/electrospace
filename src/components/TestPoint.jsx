@@ -57,8 +57,13 @@ export function TestPoint() {
       plane.setFromNormalAndCoplanarPoint(new THREE.Vector3(0, 0, 1), new THREE.Vector3(0, 0, currentPos[2]))
     } else if (activeView === 'side') {
       plane.setFromNormalAndCoplanarPoint(new THREE.Vector3(1, 0, 0), new THREE.Vector3(currentPos[0], 0, 0))
-    } else {
+    } else if (activeView === 'top') {
       plane.setFromNormalAndCoplanarPoint(new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, currentPos[1], 0))
+    } else {
+      const origin = new THREE.Vector3(...currentPos)
+      const camDir = new THREE.Vector3()
+      e.camera.getWorldDirection(camDir)
+      plane.setFromNormalAndCoplanarPoint(camDir, origin)
     }
 
     const targetPos = new THREE.Vector3()
@@ -69,8 +74,10 @@ export function TestPoint() {
         finalPos = [snap(targetPos.x), snap(targetPos.y), currentPos[2]]
       } else if (activeView === 'side') {
         finalPos = [currentPos[0], snap(targetPos.y), snap(targetPos.z)]
-      } else {
+      } else if (activeView === 'top') {
         finalPos = [snap(targetPos.x), currentPos[1], snap(targetPos.z)]
+      } else {
+        finalPos = [snap(targetPos.x), snap(targetPos.y), snap(targetPos.z)]
       }
       const locked = useStore.getState().lockedAxes
       if (locked.x) finalPos[0] = currentPos[0]
