@@ -49,16 +49,29 @@ export function FieldGraph() {
   const [fieldKey, setFieldKey] = useState('ex')
   const [sweepAxis, setSweepAxis] = useState('x')
 
-  const dragCleanupRef = useRef(null)
   const updateTestPoint = useStore((s) => s.updateTestPoint)
   const storeTestPoint = useStore((s) => s.testPoint)
   const canvasDragRef = useRef(false)
 
+  // Separate cleanup refs for each drag operation
+  const windowDragRef = useRef({ x: 0, y: 0, rafScheduled: false, dragging: false })
+  const windowDragCleanupRef = useRef(null)
+  const canvasDragCleanupRef = useRef(null)
+  const resizeCleanupRef = useRef(null)
+
   useEffect(() => {
     return () => {
-      if (dragCleanupRef.current) {
-        dragCleanupRef.current()
-        dragCleanupRef.current = null
+      if (windowDragCleanupRef.current) {
+        windowDragCleanupRef.current()
+        windowDragCleanupRef.current = null
+      }
+      if (canvasDragCleanupRef.current) {
+        canvasDragCleanupRef.current()
+        canvasDragCleanupRef.current = null
+      }
+      if (resizeCleanupRef.current) {
+        resizeCleanupRef.current()
+        resizeCleanupRef.current = null
       }
     }
   }, [])
@@ -305,6 +318,19 @@ export function FieldGraph() {
   const winRefState = useRef(win)
   useEffect(() => { winRefState.current = win }, [win])
 
+  // Schedule rAF-based window position update via CSS transform
+  const scheduleWindowRaf = useCallback(() => {
+    if (windowDragRef.current.rafScheduled) return
+    windowDragRef.current.rafScheduled = true
+    requestAnimationFrame(() => {
+      windowDragRef.current.rafScheduled = false
+      if (windowDragRef.current.dragging && winRef.current) {
+        winRef.current.style.transform = `translate3d(${windowDragRef.current.x}px, ${windowDragRef.current.y}px, 0)`
+        scheduleWindowRaf() // re-arm for next frame
+      }
+    })
+  }, [])
+
   const exportPng = useCallback(() => {
     const canvas = canvasRef.current
     if (!canvas) return
@@ -336,18 +362,58 @@ export function FieldGraph() {
         if (!header) return
         e.preventDefault()
         e.stopPropagation()
+        // Pointer capture ensures we get pointermove even outside the element
+        try { header.setPointerCapture(e.pointerId) } catch (err) { /* pointer capture not available */ }
         const cur = winRefState.current
-        const offX = e.clientX - cur.x
-        const offY = e.clientY - cur.y
-        const mv = (ev) => { setWinRaw(prev => { const c = clampPos(ev.clientX - offX, ev.clientY - offY, prev.w, prev.h); return { ...c, w: prev.w, h: prev.h } }) }
-        const up = () => { window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', up); dragCleanupRef.current = null }
-        window.addEventListener('pointermove', mv)
+        const startX = cur.x
+        const startY = cur.y
+        const startMouseX = e.clientX
+        const startMouseY = e.clientY
+        windowDragRef.current.dragging = true
+        windowDragRef.current.x = 0  // delta from start, not absolute
+        windowDragRef.current.y = 0
+        // Clear any previous CSS transform so left/top are used as base
+        if (winRef.current) winRef.current.style.transform = ''
+        const mv = (ev) => {
+          const cw = winRefState.current.w
+          const ch = winRefState.current.h
+          const dx = ev.clientX - startMouseX
+          const dy = ev.clientY - startMouseY
+          const clampedDx = Math.max(MARGIN - startX, Math.min(dx, window.innerWidth - cw - MARGIN - startX))
+          const clampedDy = Math.max(MARGIN - startY, Math.min(dy, window.innerHeight - ch - MARGIN - startY))
+          windowDragRef.current.x = clampedDx
+          windowDragRef.current.y = clampedDy
+          scheduleWindowRaf()
+        }
+        const up = () => {
+          windowDragRef.current.dragging = false
+          try { header.releasePointerCapture(e.pointerId) } catch (err) { /* ok */ }
+          window.removeEventListener('pointermove', mv)
+          window.removeEventListener('pointerup', up)
+          windowDragCleanupRef.current = null
+          const cw = winRefState.current.w
+          const ch = winRefState.current.h
+          const finalX = Math.max(MARGIN, Math.min(startX + windowDragRef.current.x, window.innerWidth - cw - MARGIN))
+          const finalY = Math.max(MARGIN, Math.min(startY + windowDragRef.current.y, window.innerHeight - ch - MARGIN))
+          if (winRef.current) {
+            winRef.current.style.transform = ''
+            winRef.current.style.left = finalX + 'px'
+            winRef.current.style.top = finalY + 'px'
+          }
+          setWinRaw({ x: finalX, y: finalY, w: cw, h: ch })
+        }
+        window.addEventListener('pointermove', mv, { passive: true })
         window.addEventListener('pointerup', up)
-        dragCleanupRef.current = () => { window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', up) }
+        windowDragCleanupRef.current = () => {
+          windowDragRef.current.dragging = false
+          try { header.releasePointerCapture(e.pointerId) } catch (err) { /* ok */ }
+          window.removeEventListener('pointermove', mv)
+          window.removeEventListener('pointerup', up)
+        }
       }}
     >
       <div className="pg-header">
-        <span className="pg-title">E({sweepAxis}) — balayage depuis l'origine</span>
+        <span className="pg-title">E({sweepAxis})</span>
         <select value={sweepAxis} onChange={(e) => setSweepAxis(e.target.value)} className="pg-axis-select">
           {SWEEP_OPTIONS.map(o => <option key={o.key} value={o.key}>{o.label}</option>)}
         </select>
@@ -384,11 +450,11 @@ export function FieldGraph() {
             try { target.releasePointerCapture(ev.pointerId) } catch (err) { console.error('releasePointerCapture failed:', err) }
             window.removeEventListener('pointermove', mv)
             window.removeEventListener('pointerup', up)
-            dragCleanupRef.current = null
+            resizeCleanupRef.current = null
           }
           window.addEventListener('pointermove', mv)
           window.addEventListener('pointerup', up)
-          dragCleanupRef.current = () => {
+          resizeCleanupRef.current = () => {
             try { target.releasePointerCapture(e.pointerId) } catch (err) { console.error('releasePointerCapture failed:', err) }
             window.removeEventListener('pointermove', mv)
             window.removeEventListener('pointerup', up)
