@@ -453,7 +453,7 @@ export const useStore = create((set, get) => ({
       const defaults = {
         line: { length: 10, density: 1e-9 },
         cylinder: { center: [0, 0, 0], axis: [0, 1, 0], radius: 2, height: 5, density: 1e-6, hollow: false, innerRadius: 0, e_ext: 0, e_int: 0 },
-        plane: { center: [0, 0, 0], normal: [1, 0, 0], width: 8, height: 8, density: 1e-9 },
+        plane: { center: [0, 0, 0], normal: [1, 0, 0], width: 10, height: 10, density: 1e-9 },
         disk: { center: [0, 0, 0], normal: [1, 0, 0], radius: 2, density: 1e-9 },
         circle: { center: [0, 0, 0], normal: [1, 0, 0], radius: 2, density: 1e-9 },
         frame: { center: [0, 0, 0], normal: [1, 0, 0], width: 4, height: 4, density: 1e-9 },
@@ -544,8 +544,8 @@ export const DIST_PARAMS = {
   plane: [
     { key: 'center', label: 'Centre', type: 'vec3' },
     { key: 'normal', label: 'Normale', type: 'vec3' },
-    { key: 'width', label: 'Largeur (m)', type: 'number', step: 0.1, min: 0.1 },
-    { key: 'height', label: 'Hauteur (m)', type: 'number', step: 0.1, min: 0.1 },
+    { key: 'width', label: 'Largeur (m)', type: 'range' },
+    { key: 'height', label: 'Hauteur (m)', type: 'range' },
     { key: 'density', label: 'σ (C/m²)', type: 'number', step: 1e-10, min: 1e-12 },
   ],
   disk: [

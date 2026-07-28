@@ -607,7 +607,7 @@ export function Sidebar() {
                           return (
                             <div key={param.key} className="dist-param-row">
                               <span className="label dist-param-label">{param.label}</span>
-                              <input type="range" min={1} max={100} step={1}
+                              <input type="range" min={1} max={200} step={1}
                                 value={val ?? 0}
                                 onChange={(e) => updateDistribution(d.id, { [param.key]: parseFloat(e.target.value) })}
                                 className="slider" style={{ flex: 1, margin: '0 4px' }} />

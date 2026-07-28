@@ -233,23 +233,37 @@ export function calculatePotentialFromCylinder(dist, targetPos, ke = KE_REAL, rM
 /* ---------- Plane (infinite) ---------- */
 
 export function calculateFieldFromPlane(dist, targetPos, ke = KE_REAL, rMin = 0.5) {
-  const { density: sigma, center, normal } = dist
-  const n = new THREE.Vector3(...normal).normalize()
-  const P = new THREE.Vector3(...targetPos)
-  const C = new THREE.Vector3(...center)
-  const d = new THREE.Vector3().subVectors(P, C).dot(n)
-  const dClamped = Math.max(Math.abs(d), rMin) * (d >= 0 ? 1 : -1)
-  const E = n.clone().multiplyScalar(2 * Math.PI * ke * sigma * (dClamped >= 0 ? 1 : -1))
+  const { density: sigma, center, normal, width, height } = dist
+  const frame = makeLocalFrame(center, normal)
+  const E = new THREE.Vector3()
+  const NR = 20, NS = 20
+  const dw = width / NR, dh = height / NS
+  for (let ir = 0; ir < NR; ir++) {
+    const lx = (ir + 0.5) * dw - width / 2
+    for (let is = 0; is < NS; is++) {
+      const ly = (is + 0.5) * dh - height / 2
+      const dq = sigma * dw * dh
+      elE(E, dq, worldFromLocal(new THREE.Vector3(lx, ly, 0), frame), targetPos, ke, rMin)
+    }
+  }
   return E
 }
 
 export function calculatePotentialFromPlane(dist, targetPos, ke = KE_REAL, rMin = 0.5) {
-  const { density: sigma, center, normal } = dist
-  const n = new THREE.Vector3(...normal).normalize()
-  const P = new THREE.Vector3(...targetPos)
-  const C = new THREE.Vector3(...center)
-  const d = Math.abs(new THREE.Vector3().subVectors(P, C).dot(n))
-  return -2 * Math.PI * ke * sigma * d
+  const { density: sigma, center, normal, width, height } = dist
+  const frame = makeLocalFrame(center, normal)
+  let V = 0
+  const NR = 20, NS = 20
+  const dw = width / NR, dh = height / NS
+  for (let ir = 0; ir < NR; ir++) {
+    const lx = (ir + 0.5) * dw - width / 2
+    for (let is = 0; is < NS; is++) {
+      const ly = (is + 0.5) * dh - height / 2
+      const dq = sigma * dw * dh
+      V = elV(V, dq, worldFromLocal(new THREE.Vector3(lx, ly, 0), frame), targetPos, ke, rMin)
+    }
+  }
+  return V
 }
 
 /* ---------- Disk ---------- */
