@@ -1,9 +1,10 @@
 import * as THREE from 'three'
+import { useMemo } from 'react'
 import { useStore } from '../store/useStore'
 import { makeLocalFrame } from '../physics/utils'
 
 const DIST_COLOR = '#9b59b6'
-const DIST_OPACITY = 0.35
+const DIST_OPACITY = 0.5
 
 const ctxMenuDist = (dist, open) => (e) => {
   e.stopPropagation()
@@ -26,7 +27,7 @@ function CylinderVis({ dist }) {
   const openContextMenu = useStore((s) => s.openContextMenu)
   const frame = makeLocalFrame(dist.center, dist.axis)
   const quat = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), frame.z)
-  
+
   const showGauss = useStore((state) => state.showGaussCompanion && state.gaussStep >= 3)
   const r_g = useStore((state) => state.gaussSurfaceRadius)
   const h_g = useStore((state) => state.gaussSurfaceHeight)
@@ -168,7 +169,7 @@ function PlaneVis({ dist }) {
   const openContextMenu = useStore((s) => s.openContextMenu)
   const frame = makeLocalFrame(dist.center, dist.normal)
   const quat = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), frame.z)
-  
+
   const showGauss = useStore((state) => state.showGaussCompanion && state.gaussStep >= 3)
   const w_g = useStore((state) => state.gaussSurfaceWidth)
   const h_g = useStore((state) => state.gaussSurfaceHeight)
@@ -208,7 +209,7 @@ function DiskVis({ dist }) {
   const openContextMenu = useStore((s) => s.openContextMenu)
   const frame = makeLocalFrame(dist.center, dist.normal)
   const quat = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), frame.z)
-  
+
   const showGauss = useStore((state) => state.showGaussCompanion && state.gaussStep >= 3)
   const r_g = useStore((state) => state.gaussSurfaceRadius)
   const highlightColor = '#fbbf24'
@@ -256,19 +257,21 @@ function RingVis({ dist }) {
 
 function FrameVis({ dist }) {
   const frame = makeLocalFrame(dist.center, dist.normal)
-  const quat = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), frame.z)
-  const hw = dist.width / 2, hh = dist.height / 2
-  const pts = new Float32Array([
-    -hw, -hh, 0,  hw, -hh, 0,
-    hw, -hh, 0,   hw,  hh, 0,
-    hw,  hh, 0,  -hw,  hh, 0,
-    -hw,  hh, 0, -hw, -hh, 0,
-  ])
+  const quat = useMemo(() => new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), frame.z), [frame.z])
+  const geometry = useMemo(() => {
+    const hw = dist.width / 2, hh = dist.height / 2
+    const pts = new Float32Array([
+      -hw, -hh, 0,  hw, -hh, 0,
+      hw, -hh, 0,   hw,  hh, 0,
+      hw,  hh, 0,  -hw,  hh, 0,
+      -hw,  hh, 0, -hw, -hh, 0,
+    ])
+    const geo = new THREE.BufferGeometry()
+    geo.setAttribute('position', new THREE.BufferAttribute(pts, 3))
+    return geo
+  }, [dist.width, dist.height])
   return (
-    <lineSegments position={frame.origin} quaternion={quat}>
-      <bufferGeometry>
-        <bufferAttribute attach="attributes-position" count={8} array={pts} itemSize={3} />
-      </bufferGeometry>
+    <lineSegments position={frame.origin} quaternion={quat} geometry={geometry}>
       <lineBasicMaterial color={DIST_COLOR} transparent opacity={0.6} />
     </lineSegments>
   )

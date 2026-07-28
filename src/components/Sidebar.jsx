@@ -583,15 +583,36 @@ export function Sidebar() {
                             <div key={param.key} className="dist-param-row" style={{ gap: '0.25rem' }}>
                               <span className="label dist-param-label" style={{ minWidth: 'auto', marginRight: '0.25rem' }}>{param.label}</span>
                               <span className="label" style={{ fontSize: '0.6rem', whiteSpace: 'nowrap' }}>{param.outerLabel}</span>
+                              <input type="range" min={param.key === 'e_ext' ? 0 : 1} max={10} step={0.1}
+                                value={outerVal}
+                                onChange={(e) => updateDistribution(d.id, { [param.key]: parseFloat(e.target.value) })}
+                                className="slider" style={{ flex: 1, margin: '0 2px', height: '4px' }} />
                               <DistInput value={outerVal} onChange={(v) => updateDistribution(d.id, { [param.key]: v })}
-                                className="dist-param-input" style={{ width: '3rem' }} />
+                                className="dist-param-input" style={{ width: '2.5rem' }} />
                               {!hideInner && (
                                 <>
                                   <span className="label" style={{ fontSize: '0.6rem', whiteSpace: 'nowrap' }}>{param.innerLabel}</span>
+                                  <input type="range" min={0} max={outerVal} step={0.1}
+                                    value={innerVal}
+                                    onChange={(e) => updateDistribution(d.id, { [param.innerKey]: parseFloat(e.target.value) })}
+                                    className="slider" style={{ flex: 1, margin: '0 2px', height: '4px' }} />
                                   <DistInput value={innerVal} onChange={(v) => updateDistribution(d.id, { [param.innerKey]: v })}
-                                    className="dist-param-input" style={{ width: '3rem' }} />
+                                    className="dist-param-input" style={{ width: '2.5rem' }} />
                                 </>
                               )}
+                            </div>
+                          )
+                        }
+                        if (param.type === 'range') {
+                          return (
+                            <div key={param.key} className="dist-param-row">
+                              <span className="label dist-param-label">{param.label}</span>
+                              <input type="range" min={1} max={100} step={1}
+                                value={val ?? 0}
+                                onChange={(e) => updateDistribution(d.id, { [param.key]: parseFloat(e.target.value) })}
+                                className="slider" style={{ flex: 1, margin: '0 4px' }} />
+                              <DistInput value={val ?? 0} onChange={(v) => updateDistribution(d.id, { [param.key]: v })}
+                                className="dist-param-input" style={{ width: '3rem' }} />
                             </div>
                           )
                         }

@@ -458,7 +458,7 @@ export const useStore = create((set, get) => ({
         circle: { center: [0, 0, 0], normal: [1, 0, 0], radius: 2, density: 1e-9 },
         frame: { center: [0, 0, 0], normal: [1, 0, 0], width: 4, height: 4, density: 1e-9 },
         sphere: { center: [0, 0, 0], radius: 2, density: 1e-6, innerRadius: 0, hollow: false, e_ext: 0, e_int: 0 },
-        box: { center: [0, 0, 0], normal: [1, 0, 0], width: 8, height: 8, depth: 2, density: 1e-6, hollow: false },
+        box: { center: [0, 0, 0], normal: [1, 0, 0], width: 10, height: 10, depth: 2, density: 1e-6, hollow: false },
       }
       const dist = { id, type, name: DIST_TYPE_NAMES[type] || type, ...defaults[type], ...params }
       return { distributions: [dist], selectedObjectId: id }
@@ -481,6 +481,9 @@ export const useStore = create((set, get) => ({
         }
         if (merged.e_ext != null) merged.e_ext = Math.max(0, merged.e_ext)
         if (merged.e_int != null) merged.e_int = Math.max(0, merged.e_int)
+        if (merged.e_int != null && merged.e_ext != null) {
+          merged.e_int = Math.min(merged.e_int, merged.e_ext)
+        }
         return merged
       }),
     }))
@@ -533,9 +536,9 @@ export const DIST_PARAMS = {
   cylinder: [
     { key: 'center', label: 'Centre', type: 'vec3' },
     { key: 'axis', label: 'Axe', type: 'vec3' },
-    { key: 'radius', label: 'Rayon', type: 'radii', innerKey: 'innerRadius', outerLabel: 'Ext.', innerLabel: 'Int.' },
-    { key: 'e_ext', label: 'Épaisseur', type: 'radii', innerKey: 'e_int', outerLabel: 'Ext.', innerLabel: 'Int.' },
-    { key: 'height', label: 'Hauteur (m)', type: 'number', step: 0.1, min: 0.1 },
+    { key: 'radius', label: 'Rayon', type: 'radii', innerKey: 'innerRadius', outerLabel: 'Cyl. 1', innerLabel: 'Cyl. 2' },
+    { key: 'e_ext', label: 'Épaisseur', type: 'radii', innerKey: 'e_int', outerLabel: 'Cyl. 1', innerLabel: 'Cyl. 2' },
+    { key: 'height', label: 'Hauteur (m)', type: 'range' },
     { key: 'density', label: 'ρ (C/m³)', type: 'number', step: 1e-7, min: 1e-9 },
   ],
   plane: [
@@ -548,20 +551,20 @@ export const DIST_PARAMS = {
   disk: [
     { key: 'center', label: 'Centre', type: 'vec3' },
     { key: 'normal', label: 'Normale', type: 'vec3' },
-    { key: 'radius', label: 'Rayon (m)', type: 'number', step: 0.1, min: 0.1 },
+    { key: 'radius', label: 'Rayon (m)', type: 'range' },
     { key: 'density', label: 'σ (C/m²)', type: 'number', step: 1e-10, min: 1e-12 },
   ],
   circle: [
     { key: 'center', label: 'Centre', type: 'vec3' },
     { key: 'normal', label: 'Normale', type: 'vec3' },
-    { key: 'radius', label: 'Rayon (m)', type: 'number', step: 0.1, min: 0.1 },
+    { key: 'radius', label: 'Rayon (m)', type: 'range' },
     { key: 'density', label: 'λ (C/m)', type: 'number', step: 1e-10, min: 1e-12 },
   ],
   frame: [
     { key: 'center', label: 'Centre', type: 'vec3' },
     { key: 'normal', label: 'Normale', type: 'vec3' },
-    { key: 'width', label: 'Largeur (m)', type: 'number', step: 0.1, min: 0.1 },
-    { key: 'height', label: 'Hauteur (m)', type: 'number', step: 0.1, min: 0.1 },
+    { key: 'width', label: 'Largeur (m)', type: 'range' },
+    { key: 'height', label: 'Hauteur (m)', type: 'range' },
     { key: 'density', label: 'λ (C/m)', type: 'number', step: 1e-10, min: 1e-12 },
   ],
   sphere: [
@@ -573,9 +576,9 @@ export const DIST_PARAMS = {
   box: [
     { key: 'center', label: 'Centre', type: 'vec3' },
     { key: 'normal', label: 'Normale', type: 'vec3' },
-    { key: 'width', label: 'Largeur (m)', type: 'number', step: 0.1, min: 0.1 },
-    { key: 'height', label: 'Hauteur (m)', type: 'number', step: 0.1, min: 0.1 },
-    { key: 'depth', label: 'Profondeur (m)', type: 'number', step: 0.1, min: 0.1 },
+    { key: 'width', label: 'Largeur (m)', type: 'range' },
+    { key: 'height', label: 'Hauteur (m)', type: 'range' },
+    { key: 'depth', label: 'Profondeur (m)', type: 'range' },
     { key: 'density', label: 'ρ (C/m³)', type: 'number', step: 1e-7, min: 1e-9 },
   ],
 }

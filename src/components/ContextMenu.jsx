@@ -152,15 +152,37 @@ export function ContextMenu() {
               <div key={param.key} className="ctx-param-row" style={{ gap: '4px' }}>
                 <span className="ctx-param-label mini">{param.label}</span>
                 <span className="ctx-param-label" style={{ fontSize: '0.55rem' }}>{param.outerLabel}</span>
+                <input type="range" min={param.key === 'e_ext' ? 0 : 1} max={10} step={0.1}
+                  value={outerVal}
+                  onChange={(e) => updateDistribution(dist.id, { [param.key]: parseFloat(e.target.value) })}
+                  className="slider" style={{ flex: 1, margin: '0 2px', height: '4px' }} />
                 <CtxNumberInput value={outerVal} onChange={(v) => updateDistribution(dist.id, { [param.key]: v })}
-                  className="ctx-input small" style={{ width: '3rem' }} />
+                  className="ctx-input small" style={{ width: '2.5rem' }} />
                 {!hideInner && (
                   <>
                     <span className="ctx-param-label" style={{ fontSize: '0.55rem' }}>{param.innerLabel}</span>
+                    <input type="range" min={0} max={outerVal} step={0.1}
+                      value={innerVal}
+                      onChange={(e) => updateDistribution(dist.id, { [param.innerKey]: parseFloat(e.target.value) })}
+                      className="slider" style={{ flex: 1, margin: '0 2px', height: '4px' }} />
                     <CtxNumberInput value={innerVal} onChange={(v) => updateDistribution(dist.id, { [param.innerKey]: v })}
-                      className="ctx-input small" style={{ width: '3rem' }} />
+                      className="ctx-input small" style={{ width: '2.5rem' }} />
                   </>
                 )}
+              </div>
+            )
+          }
+          if (param.type === 'range') {
+            return (
+              <div key={param.key} className="ctx-param-row">
+                <span className="ctx-param-label mini">{param.label}</span>
+                <input type="range" min={1} max={100} step={1}
+                  value={dist[param.key] ?? 0}
+                  onChange={(e) => updateDistribution(dist.id, { [param.key]: parseFloat(e.target.value) })}
+                  className="slider" style={{ flex: 1, margin: '0 4px', height: '18px' }} />
+                <CtxNumberInput value={dist[param.key] ?? 0}
+                  onChange={(v) => updateDistribution(dist.id, { [param.key]: v })}
+                  className="ctx-input small" style={{ width: '3rem' }} />
               </div>
             )
           }
