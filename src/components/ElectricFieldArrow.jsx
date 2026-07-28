@@ -16,6 +16,11 @@ export function ElectricFieldArrow() {
 
     // Fetch the absolute latest store values at 60 FPS bypassing React rendering delay
     const state = useStore.getState()
+    if (!state.showTestPoint) {
+      arrowRef.current.visible = false
+      billboardRef.current.visible = false
+      return
+    }
     const currentTestPoint = state.testPoint
     const currentEMax = state.eMax
     const currentChargeUnit = state.chargeUnit

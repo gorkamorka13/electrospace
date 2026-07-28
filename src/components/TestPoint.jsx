@@ -17,6 +17,8 @@ export function TestPoint() {
   const charges = useStore((state) => state.charges)
   const distributions = useStore((state) => state.distributions)
   const chargeUnit = useStore((state) => state.chargeUnit)
+  const showTestPoint = useStore((state) => state.showTestPoint)
+  const openContextMenu = useStore((state) => state.openContextMenu)
 
   const potentialStr = useMemo(() => {
     const { ke, rMin } = useStore.getState()
@@ -33,6 +35,9 @@ export function TestPoint() {
   const meshRef = useRef()
   const coordTipTimeout = useRef(null)
   const [showCoordTip, setShowCoordTip] = useState(false)
+
+  if (!showTestPoint) return null
+
   const isSelected = selectedObjectId === 'testPoint'
 
   const handlePointerDown = (e) => {
@@ -111,6 +116,10 @@ export function TestPoint() {
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
+        onContextMenu={(e) => {
+          e.nativeEvent.preventDefault()
+          openContextMenu(e.nativeEvent.clientX, e.nativeEvent.clientY, null, 'testPoint')
+        }}
       >
         <sphereGeometry args={[isSelected ? 0.25 : 0.2, 32, 32]} />
         <meshStandardMaterial

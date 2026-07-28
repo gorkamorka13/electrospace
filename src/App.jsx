@@ -4,6 +4,7 @@ import { PhysicsCanvas } from './components/PhysicsCanvas'
 import { ContextMenu } from './components/ContextMenu'
 import { HelpModal } from './components/HelpModal'
 import { Toast } from './components/Toast'
+import { ErrorBoundary } from './components/ErrorBoundary'
 import { useStore } from './store/useStore'
 
 function App() {
@@ -49,6 +50,13 @@ function App() {
         } else {
           useStore.getState().closeContextMenu()
         }
+        return
+      }
+
+      if (e.code === 'KeyH' || key === 'h' || key === 'H') {
+        if (!e.shiftKey && !e.getModifierState('Shift')) return
+        e.preventDefault()
+        useStore.getState().setShowTestPoint(!useStore.getState().showTestPoint)
         return
       }
 
@@ -132,14 +140,18 @@ function App() {
       )}
 
       {/* 2D Dashboard & Controls */}
-      <Sidebar />
+      <ErrorBoundary>
+        <Sidebar />
+      </ErrorBoundary>
 
       {/* 3D Scene Viewport */}
       <main className="canvas-container">
         <PhysicsCanvas rootRef={rootRef} />
       </main>
     </div>
-    <ContextMenu />
+    <ErrorBoundary>
+      <ContextMenu />
+    </ErrorBoundary>
     <Toast />
     <HelpModal />
     </>

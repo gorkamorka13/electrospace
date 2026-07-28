@@ -80,6 +80,7 @@ export function ContextMenu() {
   const removeCharge = useStore((s) => s.removeCharge)
   const removeDistribution = useStore((s) => s.removeDistribution)
   const resetChargePositions = useStore((s) => s.resetChargePositions)
+  const testPoint = useStore((s) => s.testPoint)
 
   const [dragOff, setDragOff] = useState({ x: 0, y: 0 })
   const draggingRef = useRef(false)
@@ -210,6 +211,45 @@ export function ContextMenu() {
           className="ctx-action-btn ctx-btn-danger">
           Supprimer
         </button>
+      </div>
+    )
+  }
+
+  if (contextMenu.type === 'testPoint') {
+    const s = useStore.getState()
+    const E = s.getElectricField(testPoint)
+    const V = s.getPotential(testPoint)
+    const magE = Math.sqrt(E.x * E.x + E.y * E.y + E.z * E.z)
+    const fmt = (v) => {
+      if (v === 0) return '0'
+      const abs = Math.abs(v)
+      if (abs >= 0.001 && abs < 1e6) return v.toFixed(3)
+      return v.toExponential(3)
+    }
+    return (
+      <div className="ctx-menu" style={{ left: clampX + dragOff.x, top: clampY + dragOff.y }}>
+        <div className="ctx-header" onPointerDown={onHeaderPointerDown}>
+          <span className="ctx-header-name" style={{ color: '#f59e0b' }}>
+            Point M
+          </span>
+          <div className="ctx-header-actions">
+            <button onClick={closeContextMenu} className="ctx-btn ctx-btn-close" title="Fermer">&times;</button>
+          </div>
+        </div>
+        <div className="ctx-param-row">
+          <span className="ctx-param-label" style={{ color: '#c084fc' }}>V</span>
+          <span className="ctx-value">{fmt(V)} V</span>
+        </div>
+        <div className="ctx-param-row">
+          <span className="ctx-param-label" style={{ color: '#34d399' }}>|E|</span>
+          <span className="ctx-value">{fmt(magE)} V/m</span>
+        </div>
+        <div className="ctx-separator" />
+        <CoordInput value={testPoint[0]} onChange={(v) => { useStore.getState().updateTestPoint([v, testPoint[1], testPoint[2]]) }} label="X" />
+        <CoordInput value={testPoint[1]} onChange={(v) => { useStore.getState().updateTestPoint([testPoint[0], v, testPoint[2]]) }} label="Y" />
+        <CoordInput value={testPoint[2]} onChange={(v) => { useStore.getState().updateTestPoint([testPoint[0], testPoint[1], v]) }} label="Z" />
+        <div className="ctx-separator" />
+        <button onClick={() => { navigator.clipboard.writeText(`${testPoint[0].toFixed(2)}, ${testPoint[1].toFixed(2)}, ${testPoint[2].toFixed(2)}`); closeContextMenu() }} className="ctx-action-btn">Copier coordonnées</button>
       </div>
     )
   }

@@ -61,9 +61,40 @@ const MAX_HISTORY = 50
 function snapshot(state) {
   return {
     charges: JSON.parse(JSON.stringify(state.charges)),
-    chargeInitialPositions: { ...state.chargeInitialPositions },
+    chargeInitialPositions: JSON.parse(JSON.stringify(state.chargeInitialPositions)),
     freeCharges: { ...state.freeCharges },
     distributions: JSON.parse(JSON.stringify(state.distributions)),
+    testPoint: [...state.testPoint],
+    ke: state.ke,
+    rMin: state.rMin,
+    eMax: state.eMax,
+    chargeUnit: state.chargeUnit,
+    vectorScale: state.vectorScale,
+    showForces: state.showForces,
+    showFieldLines: state.showFieldLines,
+    showThroughMLine: state.showThroughMLine,
+    showEquipotentials: state.showEquipotentials,
+    showEquipotentials3D: state.showEquipotentials3D,
+    showDipoleMoment: state.showDipoleMoment,
+    showTrajectoryTrails: state.showTrajectoryTrails,
+    showPotentialGraph: state.showPotentialGraph,
+    showPotentialXGraph: state.showPotentialXGraph,
+    showFieldGraph: state.showFieldGraph,
+    showIndividualFields: state.showIndividualFields,
+    snapEnabled: state.snapEnabled,
+    snapSize: state.snapSize,
+    lockedAxes: { ...state.lockedAxes },
+    activeView: state.activeView,
+    cameraMode: state.cameraMode,
+    showGaussCompanion: state.showGaussCompanion,
+    gaussStep: state.gaussStep,
+    gaussSurfaceType: state.gaussSurfaceType,
+    gaussSurfaceRadius: state.gaussSurfaceRadius,
+    gaussSurfaceHeight: state.gaussSurfaceHeight,
+    gaussSurfaceWidth: state.gaussSurfaceWidth,
+    gaussSurfaceDepth: state.gaussSurfaceDepth,
+    gaussCenter: [...state.gaussCenter],
+    showTestPoint: state.showTestPoint,
   }
 }
 
@@ -125,6 +156,7 @@ export const useStore = create((set, get) => ({
   future: [],
   showHelp: false,
   toast: null,
+  showTestPoint: true,
 
   setDragging: (isDragging) => set({ isDragging }),
   setSelectedObjectId: (id) => set({ selectedObjectId: id }),
@@ -146,6 +178,10 @@ export const useStore = create((set, get) => ({
   setCameraMode: (cameraMode) => set({ cameraMode }),
   setChargeUnit: (chargeUnit) => set({ chargeUnit }),
   setShowHelp: (v) => set({ showHelp: v }),
+  setShowTestPoint: (v) => set((state) => ({
+    showTestPoint: v,
+    selectedObjectId: (!v && state.selectedObjectId === 'testPoint') ? null : state.selectedObjectId,
+  })),
   setToast: ({ message, type = 'error', duration = 4000 }) => {
     set({ toast: { message, type } })
     if (typeof window !== 'undefined') {
@@ -313,7 +349,7 @@ export const useStore = create((set, get) => ({
   },
 
   nudgePosition: (dx, dz) => set((state) => {
-    if (!state.selectedObjectId || state.selectedObjectId === 'testPoint') {
+    if ((!state.selectedObjectId || state.selectedObjectId === 'testPoint') && state.showTestPoint) {
       const step = state.snapEnabled ? state.snapSize : 0.1
       const [x, y, z] = state.testPoint
       const nx = x + Math.sign(dx) * step
@@ -423,26 +459,6 @@ export const useStore = create((set, get) => ({
   clearCharges: () => {
     get().pushHistory()
     set({ charges: [], freeCharges: {}, chargeInitialPositions: {} })
-  },
-
-  resetScene: () => {
-    get().pushHistory()
-    set(() => {
-      const preset = PRESETS['dipole']
-      if (!preset) return { distributions: [], freeCharges: {}, activeView: 'isometric' }
-      const charges = preset.map((c, i) => ({ ...c, id: String(i + 1) }))
-      const chargeInitialPositions = Object.fromEntries(charges.map((c) => [c.id, [...c.position]]))
-      return {
-        charges,
-        chargeInitialPositions,
-        freeCharges: {},
-        distributions: [],
-        selectedObjectId: null,
-        activeView: 'isometric',
-        showEquipotentials3D: false,
-        showTrajectoryTrails: false,
-      }
-    })
   },
 
   /* Distribution actions */

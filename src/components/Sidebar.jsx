@@ -92,12 +92,15 @@ const FieldAndPotential = memo(({ testPoint }) => {
   const charges = useStore((s) => s.charges)
   const distributions = useStore((s) => s.distributions)
   const chargeUnit = useStore((s) => s.chargeUnit)
+  const showTestPoint = useStore((s) => s.showTestPoint)
 
   const { E, V, ENorm } = useMemo(() => {
     const E = useStore.getState().getElectricField(testPoint)
     const V = useStore.getState().getPotential(testPoint)
     return { E, V, ENorm: E.length() }
   }, [charges, distributions, chargeUnit, testPoint])
+
+  if (!showTestPoint) return null
 
   return (
     <div className="data-box highlight">
@@ -193,6 +196,7 @@ const ChargeListSection = memo(({ selectedObjectId, setSelectedObjectId }) => {
   const chargeUnit = useStore((s) => s.chargeUnit)
   const freeCharges = useStore((s) => s.freeCharges)
   const clearCharges = useStore((s) => s.clearCharges)
+  const setToast = useStore((s) => s.setToast)
   const removeCharge = useStore((s) => s.removeCharge)
   const updateChargeQ = useStore((s) => s.updateChargeQ)
   const updateChargePosition = useStore((s) => s.updateChargePosition)
@@ -216,7 +220,7 @@ const ChargeListSection = memo(({ selectedObjectId, setSelectedObjectId }) => {
     <CollapsibleSection title="Charges locales"
       headerExtra={
         charges.length > 0 && (
-          <button className="btn-text" onClick={(e) => { e.stopPropagation(); clearCharges() }}>
+          <button className="btn-text" onClick={(e) => { e.stopPropagation(); if (window.confirm('Effacer toutes les charges ? (Ctrl+Z pour annuler)')) { clearCharges(); setToast({ message: 'Charges effacées — Ctrl+Z pour annuler', type: 'success' }) } }}>
             Tout effacer
           </button>
         )
@@ -231,7 +235,7 @@ const ChargeListSection = memo(({ selectedObjectId, setSelectedObjectId }) => {
         </button>
       </div>
       <div className="flex-row gap-3 mb-6">
-        <select className="preset-select" defaultValue=""
+        <select className="preset-select" defaultValue="" aria-label="Préréglages de charge"
           onChange={(e) => { if (e.target.value) loadPreset(e.target.value); e.target.value = '' }}
         >
           <option value="">Préréglages...</option>
@@ -514,7 +518,7 @@ export function Sidebar() {
                 </button>
                 <label className="btn-text scene-btn" style={{ cursor: 'pointer' }}>
                   <span aria-hidden="true">📂</span> Importer
-                  <input type="file" accept=".json" style={{ display: 'none' }}
+                  <input type="file" accept=".json" style={{ display: 'none' }} aria-label="Importer un fichier de scène"
                     onChange={(e) => {
                       const file = e.target.files?.[0]
                       if (!file) return
@@ -643,7 +647,7 @@ export function Sidebar() {
                       )}
                     </div>
                   ))}
-                  <button className="btn-text accent" onClick={clearDistributions}>
+                  <button className="btn-text accent" onClick={() => { if (window.confirm('Effacer toutes les distributions ? (Ctrl+Z pour annuler)')) { clearDistributions(); setToast({ message: 'Distributions effacées — Ctrl+Z pour annuler', type: 'success' }) } }}>
                     Tout effacer
                   </button>
                 </div>
@@ -921,7 +925,7 @@ export function Sidebar() {
               <div className="flex-col gap-4" style={{ padding: '0.8rem 1rem' }}>
                 <div className="flex-row:sb">
                   <span className="label">Thème</span>
-                  <button onClick={toggleTheme} className="theme-toggle-btn-sm">
+                  <button onClick={toggleTheme} className="theme-toggle-btn-sm" aria-label="Changer le thème (clair/sombre)">
                     {theme === 'dark' ? '☀️ Clair' : '🌙 Sombre'}
                   </button>
                 </div>

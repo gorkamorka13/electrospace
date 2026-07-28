@@ -9,6 +9,7 @@ const SHORTCUTS = [
   ['Ctrl+Z', 'Annuler la dernière action'],
   ['Ctrl+Maj+Z', 'Rétablir l\'action annulée'],
   ['?', 'Afficher/cacher cette aide'],
+  ['Maj+H', 'Afficher/cacher le point M'],
 ]
 
 export function HelpModal() {

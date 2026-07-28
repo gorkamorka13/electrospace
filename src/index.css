@@ -2681,6 +2681,14 @@ body, html, #root {
   padding: 1px;
   border-radius: 2px;
 }
+.ctx-value {
+  flex: 1;
+  font-size: 0.72rem;
+  font-family: monospace;
+  color: var(--text-primary);
+  text-align: right;
+  padding: 1px 3px;
+}
 .ctx-range {
   width: 100%;
   margin: 0;
