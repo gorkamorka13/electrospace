@@ -86,6 +86,10 @@ export function PhysicsCanvas({ rootRef: _rootRef }) {
   const sidebarOpen = useStore((state) => state.sidebarOpen)
 
   const chargeUnit = useStore((state) => state.chargeUnit)
+  const undo = useStore((state) => state.undo)
+  const redo = useStore((state) => state.redo)
+  const historyLen = useStore((state) => state.history.length)
+  const futureLen = useStore((state) => state.future.length)
 
   const controlsRef = useRef()
   const animationTarget = useRef(null)
@@ -315,15 +319,27 @@ export function PhysicsCanvas({ rootRef: _rootRef }) {
             </button>
             <div className="controls-divider"></div>
             <button
-              className="camera-btn"
-              onClick={() => useStore.getState().resetScene()}
-              title="RAZ — état initial"
-              aria-label="RAZ — état initial"
-              style={{ width: '36px', height: '36px' }}
+              className={`camera-btn`}
+              disabled={historyLen === 0}
+              onClick={() => undo()}
+              title="Annuler (Ctrl+Z)"
+              aria-label="Annuler"
+              style={{ width: '36px', height: '36px', opacity: historyLen === 0 ? 0.4 : 1 }}
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ width: '24px', height: '24px' }}>
-                <path d="M3 12a9 9 0 1 0 2-5.6" /><polyline points="3 3 3 8 8 8" />
-                <line x1="12" y1="8" x2="12" y2="16" /><line x1="9" y1="13" x2="12" y2="16" /><line x1="15" y1="13" x2="12" y2="16" />
+                <polyline points="1,4 1,10 7,10" /><path d="M3.5 15.5A9 9 0 1 0 5.5 7" />
+              </svg>
+            </button>
+            <button
+              className={`camera-btn`}
+              disabled={futureLen === 0}
+              onClick={() => redo()}
+              title="Rétablir (Ctrl+Shift+Z)"
+              aria-label="Rétablir"
+              style={{ width: '36px', height: '36px', opacity: futureLen === 0 ? 0.4 : 1 }}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ width: '24px', height: '24px' }}>
+                <polyline points="23,4 23,10 17,10" /><path d="M20.5 15.5A9 9 0 1 1 18.5 7" />
               </svg>
             </button>
             <div className="controls-divider"></div>
