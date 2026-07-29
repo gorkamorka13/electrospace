@@ -1,6 +1,7 @@
 import { useRef, useEffect, useState, useCallback } from 'react'
 import { useStore, UNIT_FACTORS } from '../store/useStore'
 import { calculateTotalPotential } from '../physics/coulomb'
+import { CustomSelect } from './CustomSelect'
 
 const PAD = 34
 const SAMPLES = 300
@@ -37,7 +38,11 @@ function triggerWindowRaf(windowDragRef, winRef) {
 }
 
 const AXIS_LABELS = { x: 'X', y: 'Y', z: 'Z' }
-const AXIS_KEYS = ['x', 'y', 'z']
+const AXIS_OPTIONS = [
+  { key: 'x', label: 'X' },
+  { key: 'y', label: 'Y' },
+  { key: 'z', label: 'Z' },
+]
 
 export function PotentialXGraph() {
   const [win, setWinRaw] = useState(() => {
@@ -435,9 +440,7 @@ export function PotentialXGraph() {
         <span className="pg-title">
           V({potAxis})<span className="pg-title-full"> — balayage selon {potAxis.toUpperCase()}</span>
         </span>
-        <select value={potAxis} onChange={(e) => setPotAxis(e.target.value)} className="pg-axis-select">
-          {AXIS_KEYS.map(k => <option key={k} value={k}>{AXIS_LABELS[k]}</option>)}
-        </select>
+        <CustomSelect value={potAxis} options={AXIS_OPTIONS} onChange={setPotAxis} />
         <span className="pg-test-val" style={{ color: '#4ade80' }}>{data.testV.toExponential(2)} V</span>
         <button className="pg-export-btn" onClick={exportPng} title="Exporter PNG">🖼</button>
         <button className="pg-export-btn" onClick={exportCsv} title="Copier CSV">📋</button>

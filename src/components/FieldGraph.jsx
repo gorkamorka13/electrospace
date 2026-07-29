@@ -1,6 +1,7 @@
 import { useRef, useEffect, useMemo, useState, useCallback } from 'react'
 import { useStore, UNIT_FACTORS } from '../store/useStore'
 import { calculateTotalField } from '../physics/coulomb'
+import { CustomSelect } from './CustomSelect'
 
 const PAD = 34
 const SAMPLES = 300
@@ -441,12 +442,8 @@ export function FieldGraph() {
         <span className="pg-title">
           E({sweepAxis})<span className="pg-title-full"> — balayage selon {sweepAxis.toUpperCase()}</span>
         </span>
-        <select value={sweepAxis} onChange={(e) => setSweepAxis(e.target.value)} className="pg-axis-select">
-          {SWEEP_OPTIONS.map(o => <option key={o.key} value={o.key}>{o.label}</option>)}
-        </select>
-        <select value={fieldKey} onChange={(e) => setFieldKey(e.target.value)} className="pg-axis-select">
-          {FIELD_OPTIONS.map(o => <option key={o.key} value={o.key}>{o.label}</option>)}
-        </select>
+        <CustomSelect value={sweepAxis} options={SWEEP_OPTIONS} onChange={setSweepAxis} />
+        <CustomSelect value={fieldKey} options={FIELD_OPTIONS} onChange={setFieldKey} />
         <span className="pg-test-val" style={{ color: colors[fieldKey] }}>{data.testVal.toExponential(2)} V/m</span>
         <button className="pg-export-btn" onClick={exportPng} title="Exporter PNG">🖼</button>
         <button className="pg-export-btn" onClick={exportCsv} title="Copier CSV">📋</button>
