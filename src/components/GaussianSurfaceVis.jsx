@@ -112,19 +112,19 @@ export function GaussianSurfaceVis() {
     const geo = new THREE.SphereGeometry(gaussSurfaceRadius, 32, 32)
     addFluxColors(geo, 'sphere', fluxSurfaceParams, gaussCenter, charges, distributions, chargeUnit, ke, rMin)
     return geo
-  }, [gaussSurfaceType, gaussStep, gaussSurfaceRadius, gaussCenter, hasChargesOnly, charges, distributions, chargeUnit, ke, rMin])
+  }, [gaussSurfaceType, gaussStep, gaussSurfaceRadius, fluxSurfaceParams, gaussCenter, hasChargesOnly, charges, distributions, chargeUnit, ke, rMin])
   const fluxCylinderGeo = useMemo(() => {
     if (gaussSurfaceType !== 'cylinder' || gaussStep < 3 || hasChargesOnly) return null
     const geo = new THREE.CylinderGeometry(gaussSurfaceRadius, gaussSurfaceRadius, gaussSurfaceHeight, 32)
     addFluxColors(geo, 'cylinder', fluxSurfaceParams, gaussCenter, charges, distributions, chargeUnit, ke, rMin)
     return geo
-  }, [gaussSurfaceType, gaussStep, gaussSurfaceRadius, gaussSurfaceHeight, gaussCenter, hasChargesOnly, charges, distributions, chargeUnit, ke, rMin])
+  }, [gaussSurfaceType, gaussStep, gaussSurfaceRadius, gaussSurfaceHeight, fluxSurfaceParams, gaussCenter, hasChargesOnly, charges, distributions, chargeUnit, ke, rMin])
   const fluxBoxGeo = useMemo(() => {
     if (gaussSurfaceType !== 'box' || gaussStep < 3 || hasChargesOnly) return null
     const geo = new THREE.BoxGeometry(gaussSurfaceWidth, gaussSurfaceHeight, gaussSurfaceDepth)
     addFluxColors(geo, 'box', fluxSurfaceParams, gaussCenter, charges, distributions, chargeUnit, ke, rMin)
     return geo
-  }, [gaussSurfaceType, gaussStep, gaussSurfaceWidth, gaussSurfaceHeight, gaussSurfaceDepth, gaussCenter, hasChargesOnly, charges, distributions, chargeUnit, ke, rMin])
+  }, [gaussSurfaceType, gaussStep, gaussSurfaceWidth, gaussSurfaceHeight, gaussSurfaceDepth, fluxSurfaceParams, gaussCenter, hasChargesOnly, charges, distributions, chargeUnit, ke, rMin])
 
   // --- Early returns (safe now, all hooks above) ---
   if (!showGaussCompanion) return null

@@ -31,7 +31,7 @@ export function calculatePotentialFromCharge(charge, targetPos, ke = KE_REAL, rM
   return (ke * charge.q) / r
 }
 
-export function calculateTotalPotential(charges, targetPos, ke = KE_REAL, rMin = 0.5, distributions = []) {
+export function calculateTotalPotential(charges, targetPos, ke = KE_REAL, rMin = 0.05, distributions = []) {
   let V = 0
   charges.forEach(c => V += calculatePotentialFromCharge(c, targetPos, ke, rMin))
   distributions.forEach(d => V += calculatePotentialFromDistribution(d, targetPos, ke, rMin))
@@ -898,7 +898,6 @@ export function getDistributionSeeds(dist, numSeeds) {
       for (let s = 0; s < 4; s++) {
         const c0 = corners[s], c1 = corners[(s + 1) % 4]
         const edge = new THREE.Vector3().subVectors(c1, c0)
-        const len = edge.length()
         const dir = edge.clone().normalize()
         const perp = new THREE.Vector3(dir.y, -dir.x, 0)
         for (let i = 0; i < nPerSide; i++) {

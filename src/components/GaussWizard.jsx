@@ -122,26 +122,28 @@ export function GaussWizard() {
   
   const gaussSurfaceType = useStore((state) => state.gaussSurfaceType)
   const setGaussSurfaceType = useStore((state) => state.setGaussSurfaceType)
-  
-  const gaussSurfaceRadius = useStore((state) => state.gaussSurfaceRadius)
   const setGaussSurfaceRadius = useStore((state) => state.setGaussSurfaceRadius)
-  
-  const gaussSurfaceHeight = useStore((state) => state.gaussSurfaceHeight)
   const setGaussSurfaceHeight = useStore((state) => state.setGaussSurfaceHeight)
-  
-  const gaussSurfaceWidth = useStore((state) => state.gaussSurfaceWidth)
-  const setGaussSurfaceWidth = useStore((state) => state.setGaussSurfaceWidth)
-  
-  const gaussSurfaceDepth = useStore((state) => state.gaussSurfaceDepth)
-  const setGaussSurfaceDepth = useStore((state) => state.setGaussSurfaceDepth)
-  
+
   const testPoint = useStore((state) => state.testPoint)
   const gaussCenter = useStore((state) => state.gaussCenter)
   const distributions = useStore((state) => state.distributions)
-  
+
   const [minimized, setMinimized] = useState(false)
   const [isMobile, setIsMobile] = useState(() => window.innerWidth <= 768)
-  const [pos, setPos] = useState(() => ({ x: Math.min(400, Math.max(0, window.innerWidth - 480)), y: null }))
+  const [pos, setPos] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('gwPos')
+      if (saved) {
+        try {
+          return JSON.parse(saved)
+        } catch (e) {
+          console.warn('Failed to parse saved gwPos:', e)
+        }
+      }
+    }
+    return { x: Math.min(400, Math.max(0, window.innerWidth - 480)), y: null }
+  })
   const [quizAnswers, setQuizAnswers] = useState({})
   const [quizFeedback, setQuizFeedback] = useState({})
   const [quizScore, setQuizScore] = useState({ correct: 0, total: 0 })
@@ -162,17 +164,8 @@ export function GaussWizard() {
   }, [])
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('gwPos')
-      if (saved) { try { setPos(JSON.parse(saved)) } catch {} }
-    }
-  }, [])
-
-  useEffect(() => {
     if (typeof window !== 'undefined') localStorage.setItem('gwPos', JSON.stringify(pos))
   }, [pos])
-
-  const charges = useStore((state) => state.charges)
   const GAUSS_COMPATIBLE = ['sphere', 'cylinder', 'line', 'plane']
   const activeDist = distributions.find(d => GAUSS_COMPATIBLE.includes(d.type)) || null
   const activeType = activeDist ? activeDist.type : null
@@ -216,8 +209,10 @@ export function GaussWizard() {
   }, [showGaussCompanion, testPoint, gaussSurfaceType, gaussCenter, setGaussSurfaceRadius, setGaussSurfaceHeight])
 
   const handlePointerDown = (e) => {
+    e.stopPropagation()
     if (e.target.closest?.('button, .gw-minimize, .gw-close')) return
     e.preventDefault()
+    useStore.getState().setDragging(true)
     const rect = panelRef.current?.getBoundingClientRect()
     if (!rect) return
     const offX = e.clientX - rect.left
@@ -226,6 +221,7 @@ export function GaussWizard() {
       setPos({ x: ev.clientX - offX, y: ev.clientY - offY })
     }
     const up = () => {
+      useStore.getState().setDragging(false)
       window.removeEventListener('pointermove', mv)
       window.removeEventListener('pointerup', up)
       dragCleanupRef.current = null
@@ -233,10 +229,13 @@ export function GaussWizard() {
     window.addEventListener('pointermove', mv)
     window.addEventListener('pointerup', up)
     dragCleanupRef.current = () => {
+      useStore.getState().setDragging(false)
       window.removeEventListener('pointermove', mv)
       window.removeEventListener('pointerup', up)
     }
   }
+
+
 
   if (!showGaussCompanion || !hasCompatibleDist) return null
 
@@ -433,7 +432,15 @@ export function GaussWizard() {
   }
 
   return (
-    <div ref={panelRef} className={`gauss-wizard-panel ${minimized ? 'minimized' : ''}`} style={{ left: isMobile ? undefined : pos.x, top: pos.y ?? undefined, bottom: pos.y ? undefined : '1.5rem' }}>
+    <div
+      ref={panelRef}
+      className={`gauss-wizard-panel ${minimized ? 'minimized' : ''}`}
+      style={{ left: isMobile ? undefined : pos.x, top: pos.y ?? undefined, bottom: pos.y ? undefined : '1.5rem' }}
+      onPointerDown={(e) => e.stopPropagation()}
+      onMouseDown={(e) => e.stopPropagation()}
+      onWheel={(e) => e.stopPropagation()}
+      onTouchStart={(e) => e.stopPropagation()}
+    >
       {/* Header */}
       <div className="gw-header" onPointerDown={handlePointerDown} style={{ cursor: 'grab' }}>
         <div className="gw-title-container">

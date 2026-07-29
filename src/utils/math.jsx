@@ -1,5 +1,4 @@
-// Rendu KaTeX natif (via window.katex du CDN dans index.html)
-export function renderKaTeX(math, displayMode = false) {
+function renderKaTeX(math, displayMode = false) {
   if (typeof window !== 'undefined' && window.katex && typeof window.katex.renderToString === 'function') {
     try {
       return window.katex.renderToString(math, { displayMode, throwOnError: false })

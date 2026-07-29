@@ -87,7 +87,10 @@ export function ContextMenu() {
   const startRef = useRef({ x: 0, y: 0, offX: 0, offY: 0 })
 
   const onHeaderPointerDown = useCallback((e) => {
+    if (e.target.closest?.('button, input')) return
     e.preventDefault()
+    e.stopPropagation()
+    useStore.getState().setDragging(true)
     draggingRef.current = true
     startRef.current = { x: e.clientX, y: e.clientY, offX: dragOff.x, offY: dragOff.y }
 
@@ -99,6 +102,7 @@ export function ContextMenu() {
     }
     const onUp = () => {
       draggingRef.current = false
+      useStore.getState().setDragging(false)
       document.removeEventListener('pointermove', onMove)
       document.removeEventListener('pointerup', onUp)
     }

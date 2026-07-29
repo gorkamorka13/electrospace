@@ -23,12 +23,12 @@ import { GaussianSurfaceVis } from './GaussianSurfaceVis'
 import { GaussWizard } from './GaussWizard'
 import { IndividualFieldArrows } from './IndividualFieldArrows'
 
-function CameraController({ animationTarget, controlsRef }) {
+function CameraController({ animationTargetRef, controlsRef }) {
   const { camera } = useThree()
 
   useFrame(() => {
-    if (animationTarget.current && controlsRef.current) {
-      const { cameraPos, lookAt } = animationTarget.current
+    if (animationTargetRef.current && controlsRef.current) {
+      const { cameraPos, lookAt } = animationTargetRef.current
       const step = 0.08
 
       camera.position.lerp(cameraPos, step)
@@ -42,7 +42,7 @@ function CameraController({ animationTarget, controlsRef }) {
         camera.position.copy(cameraPos)
         controlsRef.current.target.copy(lookAt)
         controlsRef.current.update()
-        animationTarget.current = null
+        animationTargetRef.current = null
       }
     }
   })
@@ -51,7 +51,7 @@ function CameraController({ animationTarget, controlsRef }) {
 }
 
 
-export function PhysicsCanvas({ rootRef: _rootRef }) {
+export function PhysicsCanvas({ rootRef }) {
   const charges = useStore((state) => state.charges)
   const distributions = useStore((state) => state.distributions)
   const isDragging = useStore((state) => state.isDragging)
@@ -365,6 +365,7 @@ export function PhysicsCanvas({ rootRef: _rootRef }) {
       <GaussWizard />
 
       <Canvas
+        eventSource={rootRef}
         gl={{ antialias: true, preserveDrawingBuffer: true }}
         shadows="pcf"
         onPointerMissed={() => {}}
@@ -379,7 +380,7 @@ export function PhysicsCanvas({ rootRef: _rootRef }) {
         ) : (
           <PerspectiveCamera makeDefault position={[1.7, 8, 12]} fov={50} />
         )}
-        <CameraController animationTarget={animationTarget} controlsRef={controlsRef} />
+        <CameraController animationTargetRef={animationTarget} controlsRef={controlsRef} />
 
         {/* Background Color matching our active theme */}
         <color attach="background" args={[theme === 'dark' ? '#070a13' : '#f8fafc']} />

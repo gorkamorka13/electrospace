@@ -99,7 +99,7 @@ export function Equipotentials() {
     }
 
     return lines
-  }, [charges, showEquipotentials, chargeUnit, theme])
+  }, [charges, distributions, showEquipotentials, chargeUnit, theme])
 
   if (!showEquipotentials || contours.length === 0) return null
 

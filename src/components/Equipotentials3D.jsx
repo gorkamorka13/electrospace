@@ -19,6 +19,8 @@ export function Equipotentials3D() {
   const distributions = useStore((state) => state.distributions)
   const showEquipotentials3D = useStore((state) => state.showEquipotentials3D)
   const chargeUnit = useStore((state) => state.chargeUnit)
+  const ke = useStore((state) => state.ke)
+  const rMin = useStore((state) => state.rMin)
   const geoCacheRef = useRef([])
 
   // Pure computation — no ref access during render
@@ -28,7 +30,6 @@ export function Equipotentials3D() {
 
     const multiplier = UNIT_FACTORS[chargeUnit] || 1e-6
     const physicalCharges = distributions.length > 0 ? [] : charges.map(c => ({ ...c, q: c.q * multiplier }))
-    const { ke, rMin } = useStore.getState()
 
     const gridData = sample3DGrid(BOUNDS, MC_RESOLUTION, physicalCharges, ke, rMin, distributions)
     const range = gridData.maxV - gridData.minV
@@ -43,27 +44,17 @@ export function Equipotentials3D() {
       }
     }
     return results
-  }, [charges, distributions, showEquipotentials3D, chargeUnit])
+  }, [charges, distributions, showEquipotentials3D, chargeUnit, ke, rMin])
 
-  // Ref management — only runs after render, not during
+  // Ref management — dispose previous geometries on update or unmount
   useEffect(() => {
-    // Dispose previous geometries
-    geoCacheRef.current.forEach(g => g.geometry.dispose())
+    const prevGeos = geoCacheRef.current
     geoCacheRef.current = geometries
 
-    // Cleanup on unmount or before next effect run
     return () => {
-      geometries.forEach(g => g.geometry.dispose())
+      prevGeos.forEach(g => g.geometry.dispose())
     }
   }, [geometries])
-
-  // Initial cleanup on unmount
-  useEffect(() => {
-    return () => {
-      geoCacheRef.current.forEach(g => g.geometry.dispose())
-      geoCacheRef.current = []
-    }
-  }, [])
 
   if (!showEquipotentials3D || geometries.length === 0) return null
 

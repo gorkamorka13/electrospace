@@ -36,9 +36,37 @@ function clampPos(x, y, w, h) {
   }
 }
 
+function triggerWindowRaf(windowDragRef, winRef) {
+  if (windowDragRef.current.rafScheduled) return
+  windowDragRef.current.rafScheduled = true
+  requestAnimationFrame(() => {
+    windowDragRef.current.rafScheduled = false
+    if (windowDragRef.current.dragging && winRef.current) {
+      winRef.current.style.transform = `translate3d(${windowDragRef.current.x}px, ${windowDragRef.current.y}px, 0)`
+      triggerWindowRaf(windowDragRef, winRef)
+    }
+  })
+}
+
 export function FieldGraph() {
   const canvasRef = useRef()
+  const [win, setWinRaw] = useState(() => {
+    const saved = typeof window !== 'undefined' ? localStorage.getItem('efWin') : null
+    let parsed = null
+    if (saved) { try { parsed = JSON.parse(saved) } catch { /* ignore parse errors */ } }
+    const defW = window.innerWidth < 768 ? Math.min(220, window.innerWidth - 30) : 300
+    const defH = 180
+    if (parsed && typeof parsed.x === 'number') {
+      const w = Math.min(parsed.w || defW, window.innerWidth - 2 * MARGIN)
+      const h = Math.min(parsed.h || defH, window.innerHeight - 2 * MARGIN)
+      return { ...clampPos(parsed.x, parsed.y || 60, w, h), w, h }
+    }
+    return { ...clampPos(window.innerWidth - defW - 20, 60, defW, defH), w: defW, h: defH }
+  })
   const winRef = useRef(null)
+  const windowDragCleanupRef = useRef(null)
+  const resizeCleanupRef = useRef(null)
+  const windowDragRef = useRef({ dragging: false, x: 0, y: 0, rafScheduled: false })
   const show = useStore((s) => s.showFieldGraph)
   const setShow = useStore((s) => s.setShowFieldGraph)
   const charges = useStore((s) => s.charges)
@@ -57,10 +85,7 @@ export function FieldGraph() {
   const canvasDragRef = useRef(false)
 
   // Separate cleanup refs for each drag operation
-  const windowDragRef = useRef({ x: 0, y: 0, rafScheduled: false, dragging: false })
-  const windowDragCleanupRef = useRef(null)
   const canvasDragCleanupRef = useRef(null)
-  const resizeCleanupRef = useRef(null)
 
   useEffect(() => {
     return () => {
@@ -122,19 +147,6 @@ export function FieldGraph() {
     if (canvas) canvas.releasePointerCapture(e.pointerId)
   }, [])
 
-  const [win, setWinRaw] = useState(() => {
-    const saved = typeof window !== 'undefined' ? localStorage.getItem('efWin') : null
-    let parsed = null
-    if (saved) { try { parsed = JSON.parse(saved) } catch { /* ignore parse errors */ } }
-    const defW = window.innerWidth < 768 ? Math.min(220, window.innerWidth - 30) : 300
-    const defH = 180
-    if (parsed && typeof parsed.x === 'number') {
-      const w = Math.min(parsed.w || defW, window.innerWidth - 2 * MARGIN)
-      const h = Math.min(parsed.h || defH, window.innerHeight - 2 * MARGIN)
-      return { ...clampPos(parsed.x, parsed.y || 60, w, h), w, h }
-    }
-    return { ...clampPos(window.innerWidth - defW - 20, 60, defW, defH), w: defW, h: defH }
-  })
   const { x, y, w, h } = win
   const setWin = useCallback((fn) => {
     setWinRaw(prev => {
@@ -167,10 +179,9 @@ export function FieldGraph() {
     const testVal = fieldKey === 'mag' ? E.length() : E[fieldKey[1]]
     return { testPos: testPoint[axisIndex], testVal }
   }, [show, testPoint, charges, distributions, chargeUnit, fieldKey, sweepAxis])
-  const cursorPosRef = useRef(cursorPos)
 
   useEffect(() => {
-    if (!show) { setData(null); return }
+    if (!show) return
     const version = ++dataVersionRef.current
     const multiplier = UNIT_FACTORS[chargeUnit] || 1e-6
     const physicalCharges = distributions.length > 0 ? [] : charges.map(c => ({ ...c, q: c.q * multiplier }))
@@ -214,6 +225,7 @@ export function FieldGraph() {
     }
 
     ric(computeChunk, { timeout: 100 })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [show, charges, distributions, chargeUnit, fieldKey, sweepAxis, axisRange])
   // Note: testPoint intentionally NOT in deps above — we don't restart async calc on every drag frame
 
@@ -330,19 +342,6 @@ export function FieldGraph() {
   const winRefState = useRef(win)
   useEffect(() => { winRefState.current = win }, [win])
 
-  // Schedule rAF-based window position update via CSS transform
-  const scheduleWindowRaf = useCallback(() => {
-    if (windowDragRef.current.rafScheduled) return
-    windowDragRef.current.rafScheduled = true
-    requestAnimationFrame(() => {
-      windowDragRef.current.rafScheduled = false
-      if (windowDragRef.current.dragging && winRef.current) {
-        winRef.current.style.transform = `translate3d(${windowDragRef.current.x}px, ${windowDragRef.current.y}px, 0)`
-        scheduleWindowRaf() // re-arm for next frame
-      }
-    })
-  }, [])
-
   const exportPng = useCallback(() => {
     const canvas = canvasRef.current
     if (!canvas) return
@@ -366,21 +365,28 @@ export function FieldGraph() {
 
   const handleWheel = useCallback((e) => {
     e.preventDefault()
+    e.stopPropagation()
     setAxisRange(prev => Math.max(0.5, Math.min(50, prev + e.deltaY * 0.01)))
   }, [])
+
+
 
   if (!show || !data) return null
 
   return (
     <div className="pg-window" ref={winRef} style={{ left: x, top: y, width: w, height: h }}
+      onMouseDown={(e) => e.stopPropagation()}
+      onWheel={(e) => e.stopPropagation()}
+      onTouchStart={(e) => e.stopPropagation()}
       onPointerDown={(e) => {
+        e.stopPropagation()
         if (e.target.closest?.('select, button, .pg-close, .pg-axis-select, .pg-export-btn, .pg-resize')) return
         const header = e.target.closest?.('.pg-header')
         if (!header) return
         e.preventDefault()
-        e.stopPropagation()
+        useStore.getState().setDragging(true)
         // Pointer capture ensures we get pointermove even outside the element
-        try { header.setPointerCapture(e.pointerId) } catch (err) { /* pointer capture not available */ }
+        try { header.setPointerCapture(e.pointerId) } catch { /* ignore */ }
         const cur = winRefState.current
         const startX = cur.x
         const startY = cur.y
@@ -400,11 +406,12 @@ export function FieldGraph() {
           const clampedDy = Math.max(MARGIN - startY, Math.min(dy, window.innerHeight - ch - MARGIN - startY))
           windowDragRef.current.x = clampedDx
           windowDragRef.current.y = clampedDy
-          scheduleWindowRaf()
+          triggerWindowRaf(windowDragRef, winRef)
         }
         const up = () => {
           windowDragRef.current.dragging = false
-          try { header.releasePointerCapture(e.pointerId) } catch (err) { /* ok */ }
+          useStore.getState().setDragging(false)
+          try { header.releasePointerCapture(e.pointerId) } catch { /* ignore */ }
           window.removeEventListener('pointermove', mv)
           window.removeEventListener('pointerup', up)
           windowDragCleanupRef.current = null
@@ -423,7 +430,8 @@ export function FieldGraph() {
         window.addEventListener('pointerup', up)
         windowDragCleanupRef.current = () => {
           windowDragRef.current.dragging = false
-          try { header.releasePointerCapture(e.pointerId) } catch (err) { /* ok */ }
+          useStore.getState().setDragging(false)
+          try { header.releasePointerCapture(e.pointerId) } catch { /* ignore */ }
           window.removeEventListener('pointermove', mv)
           window.removeEventListener('pointerup', up)
         }
@@ -457,8 +465,9 @@ export function FieldGraph() {
         onPointerDown={(e) => {
           e.preventDefault()
           e.stopPropagation()
+          useStore.getState().setDragging(true)
           const target = e.currentTarget
-          try { target.setPointerCapture(e.pointerId) } catch {}
+          try { target.setPointerCapture(e.pointerId) } catch { /* ignore */ }
           const cur = winRefState.current
           const sw = cur.w, sh = cur.h
           const sx = e.clientX, sy = e.clientY
@@ -467,7 +476,8 @@ export function FieldGraph() {
             return { ...prev, w: Math.max(MIN_W, Math.min(mw - prev.x - MARGIN, sw + ev.clientX - sx)), h: Math.max(MIN_H, Math.min(mh - prev.y - MARGIN, sh + ev.clientY - sy)) }
           }) }
           const up = (ev) => {
-            try { target.releasePointerCapture(ev.pointerId) } catch {}
+            useStore.getState().setDragging(false)
+            try { target.releasePointerCapture(ev.pointerId) } catch { /* ignore */ }
             window.removeEventListener('pointermove', mv)
             window.removeEventListener('pointerup', up)
             resizeCleanupRef.current = null
@@ -475,7 +485,8 @@ export function FieldGraph() {
           window.addEventListener('pointermove', mv)
           window.addEventListener('pointerup', up)
           resizeCleanupRef.current = () => {
-            try { target.releasePointerCapture(e.pointerId) } catch {}
+            useStore.getState().setDragging(false)
+            try { target.releasePointerCapture(e.pointerId) } catch { /* ignore */ }
             window.removeEventListener('pointermove', mv)
             window.removeEventListener('pointerup', up)
           }

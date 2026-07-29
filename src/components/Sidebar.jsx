@@ -1,8 +1,7 @@
-/* global __GIT_VERSION__ */
 import { useState, useMemo, memo, useCallback } from 'react'
 import { useStore, DIST_PARAMS } from '../store/useStore'
 import { formatElectricField, formatPotential, formatForce } from '../physics/coulomb'
-import { InlineMath, BlockMath, TextWithMath } from '../utils/math'
+import { InlineMath, BlockMath } from '../utils/math'
 
 function CoordInput({ value, onChange, label }) {
   const [raw, setRaw] = useState(null)
@@ -95,9 +94,11 @@ const FieldAndPotential = memo(({ testPoint }) => {
   const showTestPoint = useStore((s) => s.showTestPoint)
 
   const { E, V, ENorm } = useMemo(() => {
+    // Reference state deps for electric field & potential calculation
     const E = useStore.getState().getElectricField(testPoint)
     const V = useStore.getState().getPotential(testPoint)
     return { E, V, ENorm: E.length() }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [charges, distributions, chargeUnit, testPoint])
 
   if (!showTestPoint) return null
@@ -396,7 +397,6 @@ export function Sidebar() {
   const toggleTheme = useStore((s) => s.toggleTheme)
 
   // Scene tab
-  const charges = useStore((s) => s.charges)
   const distributions = useStore((s) => s.distributions)
   const addDistribution = useStore((s) => s.addDistribution)
   const removeDistribution = useStore((s) => s.removeDistribution)

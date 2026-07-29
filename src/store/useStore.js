@@ -258,7 +258,7 @@ export const useStore = create((set, get) => ({
       activeView: state.activeView,
       testPoint: state.testPoint,
       charges: state.charges.map(c => ({ q: c.q, position: c.position, name: c.name })),
-      distributions: state.distributions.map(({ id: _id, ...rest }) => rest),
+      distributions: state.distributions.map((d) => { const copy = { ...d }; delete copy.id; return copy }),
     }
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
@@ -415,7 +415,8 @@ export const useStore = create((set, get) => ({
   removeCharge: (id) => {
     get().pushHistory()
     set((state) => {
-      const { [id]: _, ...rest } = state.chargeInitialPositions || {}
+      const rest = { ...state.chargeInitialPositions }
+      delete rest[id]
       return {
         charges: state.charges.filter((c) => c.id !== id),
         freeCharges: Object.fromEntries(Object.entries(state.freeCharges).filter(([k]) => k !== id)),
@@ -459,7 +460,7 @@ export const useStore = create((set, get) => ({
   /* Distribution actions */
   addDistribution: (type, params = {}) => {
     get().pushHistory()
-    set((state) => {
+    set(() => {
       const id = Math.random().toString(36).substring(2, 9)
       const defaults = {
         line: { length: 10, density: 1e-9 },

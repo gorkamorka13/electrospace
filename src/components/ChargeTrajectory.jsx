@@ -10,13 +10,11 @@ export function ChargeTrajectory() {
   const frameRef = useRef(0)
   const linesRef = useRef({})
   const groupRef = useRef()
-  const seededRef = useRef(false)
-
   useEffect(() => {
+    const currentGroup = groupRef.current
     return () => {
-      const group = groupRef.current
       Object.values(linesRef.current).forEach((l) => {
-        if (group) group.remove(l)
+        if (currentGroup) currentGroup.remove(l)
         l.geometry.dispose()
         l.material.dispose()
       })
