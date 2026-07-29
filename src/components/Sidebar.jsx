@@ -395,6 +395,8 @@ export function Sidebar() {
   const sidebarOpen = useStore((s) => s.sidebarOpen)
   const theme = useStore((s) => s.theme)
   const toggleTheme = useStore((s) => s.toggleTheme)
+  const cameraMode = useStore((s) => s.cameraMode)
+  const setCameraMode = useStore((s) => s.setCameraMode)
 
   // Scene tab
   const distributions = useStore((s) => s.distributions)
@@ -921,7 +923,7 @@ export function Sidebar() {
 
         {activeTab === 'settings' && (
           <div className="tab-panel">
-            <CollapsibleSection title="Affichage">
+            <CollapsibleSection title="Affichage & Thème">
               <div className="flex-col gap-4" style={{ padding: '0.8rem 1rem' }}>
                 <div className="flex-row:sb">
                   <span className="label">Thème</span>
@@ -929,32 +931,41 @@ export function Sidebar() {
                     {theme === 'dark' ? '☀️ Clair' : '🌙 Sombre'}
                   </button>
                 </div>
-                <div className="flex-row:sb" style={distributions.length > 0 ? { opacity: 0.4 } : {}}>
-                  <span className="label">Forces de Coulomb</span>
-                  <label className="switch-sm">
-                    <input type="checkbox" checked={showForces} disabled={distributions.length > 0} onChange={(e) => setShowForces(e.target.checked)} />
-                    <span className="switch-slider-sm" />
-                  </label>
-                </div>
                 <div className="flex-row:sb">
-                  <span className="label">Lignes de champ</span>
-                  <label className="switch-sm">
-                    <input type="checkbox" checked={showFieldLines} onChange={(e) => setShowFieldLines(e.target.checked)} />
-                    <span className="switch-slider-sm" />
-                  </label>
+                  <span className="label">Mode Caméra</span>
+                  <button onClick={() => setCameraMode(cameraMode === 'perspective' ? 'orthographic' : 'perspective')} className="theme-toggle-btn-sm">
+                    {cameraMode === 'perspective' ? '🎥 Perspective' : '📐 Orthographique'}
+                  </button>
+                </div>
+                <div className="flex-col gap-2 mt-2">
+                  <span className="label">Vues rapides</span>
+                  <div className="flex-row gap-2">
+                    {[
+                      { id: 'isometric', label: 'Iso' },
+                      { id: 'top', label: 'Haut' },
+                      { id: 'front', label: 'Face' },
+                      { id: 'side', label: 'Côté' },
+                    ].map((v) => (
+                      <button key={v.id} className={`btn btn-small ${useStore.getState().activeView === v.id ? 'active' : ''}`}
+                        onClick={() => useStore.getState().setActiveView(v.id)}
+                      >
+                        {v.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
             </CollapsibleSection>
 
-            <CollapsibleSection title="Unités">
+            <CollapsibleSection title="Constantes & Unités">
               <div className="flex-col gap-3" style={{ padding: '0.8rem 1rem' }}>
-                <span className="label" style={{ display: 'block', marginBottom: '0.4rem' }}>Unité de Charge</span>
+                <span className="label" style={{ display: 'block', marginBottom: '0.2rem' }}>Unité de Charge</span>
                 <div className="flex-row gap-3" style={{ flexWrap: 'wrap' }}>
                   {[
                     { value: 'uC', label: 'µC', title: 'Microcoulomb (10⁻⁶ C)' },
                     { value: 'nC', label: 'nC', title: 'Nanocoulomb (10⁻⁹ C)' },
                     { value: 'C', label: 'C', title: 'Coulomb' },
-                    { value: 'e', label: 'e', title: 'Charge élémentaire' }
+                    { value: 'e', label: 'e⁻', title: 'Charge élémentaire' }
                   ].map((unit) => (
                     <button key={unit.value} className={`btn-unit ${chargeUnit === unit.value ? 'active' : ''}`}
                       onClick={() => setChargeUnit(unit.value)} title={unit.title}
@@ -963,12 +974,8 @@ export function Sidebar() {
                     </button>
                   ))}
                 </div>
-              </div>
-            </CollapsibleSection>
 
-            <CollapsibleSection title="Échelles">
-              <div className="flex-col gap-4" style={{ padding: '0.8rem 1rem' }}>
-                <div className="flex-col gap-2">
+                <div className="flex-col gap-2 mt-3">
                   <div className="flex-row:sb">
                     <span className="label">Échelle des flèches</span>
                     <span className="value font-mono">{vectorScale.toFixed(1)}x</span>
@@ -976,6 +983,7 @@ export function Sidebar() {
                   <input type="range" min="0.1" max="10.0" step="0.1" value={vectorScale}
                     onChange={(e) => setVectorScale(parseFloat(e.target.value))} className="slider" />
                 </div>
+
                 <div className="flex-col gap-2">
                   <div className="flex-row:sb">
                     <span className="label">Lignes de champ / charge</span>
@@ -986,11 +994,34 @@ export function Sidebar() {
                 </div>
               </div>
             </CollapsibleSection>
+
+            <CollapsibleSection title="Grille & Alignement" defaultOpen={false}>
+              <div className="flex-col gap-3" style={{ padding: '0.8rem 1rem' }}>
+                <div className="flex-row:sb">
+                  <span className="label">Magnétisme (Snap)</span>
+                  <label className="switch-sm">
+                    <input type="checkbox" checked={useStore.getState().snapEnabled}
+                      onChange={(e) => useStore.getState().setSnapEnabled(e.target.checked)} />
+                    <span className="switch-slider-sm" />
+                  </label>
+                </div>
+                <div className="flex-row:sb">
+                  <span className="label">Pas de grille</span>
+                  <select value={useStore.getState().snapSize}
+                    onChange={(e) => useStore.getState().setSnapSize(parseFloat(e.target.value))}
+                    className="formula-select" style={{ width: '80px', padding: '0.2rem' }}
+                  >
+                    <option value={0.1}>0.1 m</option>
+                    <option value={0.25}>0.25 m</option>
+                    <option value={0.5}>0.5 m</option>
+                    <option value={1.0}>1.0 m</option>
+                  </select>
+                </div>
+              </div>
+            </CollapsibleSection>
           </div>
         )}
       </div>
-
-
     </aside>
   )
 }
