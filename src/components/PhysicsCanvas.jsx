@@ -52,7 +52,7 @@ function CameraController({ animationTargetRef, controlsRef }) {
 }
 
 
-export function PhysicsCanvas({ rootRef }) {
+export function PhysicsCanvas() {
   const charges = useStore((state) => state.charges)
   const distributions = useStore((state) => state.distributions)
   const isDragging = useStore((state) => state.isDragging)
@@ -94,6 +94,7 @@ export function PhysicsCanvas({ rootRef }) {
 
   const controlsRef = useRef()
   const animationTarget = useRef(null)
+  const canvasRef = useRef()
   const [toolbarOpen, setToolbarOpen] = useState(true)
 
   const handleSetView = (viewName) => {
@@ -128,7 +129,7 @@ export function PhysicsCanvas({ rootRef }) {
 
   return (
     <ErrorBoundary>
-    <div className="canvas-inner">
+    <div ref={canvasRef} className="canvas-inner">
       {/* Toolbar toggle + 3D Camera Switching Controls */}
       <div className={`camera-wrapper ${sidebarOpen ? 'sidebar-open' : ''}`}>
         <button
@@ -367,7 +368,7 @@ export function PhysicsCanvas({ rootRef }) {
       <GaussWizard />
 
       <Canvas
-        eventSource={rootRef}
+        eventSource={canvasRef}
         gl={{ antialias: true, preserveDrawingBuffer: true }}
         shadows="pcf"
         onPointerMissed={() => {}}

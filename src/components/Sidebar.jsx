@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo, memo, useCallback } from 'react'
+import { useState, useMemo, memo, useCallback } from 'react'
 import { useStore, DIST_PARAMS } from '../store/useStore'
 import { formatElectricField, formatPotential, formatForce } from '../physics/coulomb'
 import { InlineMath, BlockMath } from '../utils/math'
@@ -376,16 +376,6 @@ const TABS = [
 export function Sidebar() {
   const [activeTab, setActiveTab] = useState('scene')
   const [formula, setFormula] = useState('charge')
-  const sidebarRef = useRef(null)
-
-  // Prevent pointerdown events from reaching OrbitControls (eventSource=rootRef wraps sidebar)
-  useEffect(() => {
-    const el = sidebarRef.current
-    if (!el) return
-    const handler = (e) => e.stopPropagation()
-    el.addEventListener('pointerdown', handler)
-    return () => el.removeEventListener('pointerdown', handler)
-  }, [])
 
   // Stable action selectors
   const exportScene = useStore((s) => s.exportScene)
@@ -503,7 +493,7 @@ export function Sidebar() {
   }, [exportScene, setToast])
 
   return (
-    <aside ref={sidebarRef} className={`sidebar ${sidebarOpen ? '' : 'closed'}`}
+    <aside className={`sidebar ${sidebarOpen ? '' : 'closed'}`}
       onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}
     >
       <div className="sidebar-brand">

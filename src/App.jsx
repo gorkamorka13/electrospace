@@ -146,7 +146,7 @@ function App() {
 
       {/* 3D Scene Viewport */}
       <main className="canvas-container">
-        <PhysicsCanvas rootRef={rootRef} />
+        <PhysicsCanvas />
       </main>
     </div>
     <ErrorBoundary>
