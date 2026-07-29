@@ -234,7 +234,19 @@ export function calculatePotentialFromCylinder(dist, targetPos, ke = KE_REAL, rM
 
 export function calculateFieldFromPlane(dist, targetPos, ke = KE_REAL, rMin = 0.5) {
   const { density: sigma, center, normal, width, height } = dist
-  const frame = makeLocalFrame(center, normal)
+  const C = new THREE.Vector3(...center)
+  const P = new THREE.Vector3(...targetPos)
+  const n = new THREE.Vector3(...normal).normalize()
+  const dz = new THREE.Vector3().subVectors(P, C).dot(n)
+  const dPerp = Math.sqrt(Math.max(0, new THREE.Vector3().subVectors(P, C).lengthSq() - dz * dz))
+  if (dPerp < 1e-10) {
+    const halfW = width / 2
+    const halfH = height / 2
+    const absZ = Math.abs(dz)
+    const ez = 4 * ke * sigma * Math.atan(halfW * halfH / (absZ * Math.sqrt(halfW * halfW + halfH * halfH + dz * dz)))
+    return n.clone().multiplyScalar(dz >= 0 ? ez : -ez)
+  }
+  const frame = makeLocalFrame(center, new THREE.Vector3(...normal))
   const E = new THREE.Vector3()
   const NR = 20, NS = 20
   const dw = width / NR, dh = height / NS
