@@ -486,6 +486,15 @@ export function Sidebar() {
     }
   }, [setToast])
 
+  const handleExportScene = useCallback(() => {
+    const res = exportScene()
+    if (res && res.success) {
+      setToast({ message: 'Fichier de scène téléchargé', type: 'success' })
+    } else {
+      setToast({ message: 'Erreur lors de l\'exportation : ' + (res?.error || 'Inconnue'), type: 'error' })
+    }
+  }, [exportScene, setToast])
+
   return (
     <aside className={`sidebar ${sidebarOpen ? '' : 'closed'}`}
       onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}
@@ -515,7 +524,7 @@ export function Sidebar() {
           <div className="tab-panel">
             <CollapsibleSection title="Scènes" defaultOpen={true}>
               <div className="flex-row gap-2">
-                <button className="btn-text scene-btn" onClick={exportScene}>
+                <button className="btn-text scene-btn" onClick={handleExportScene}>
                   <span aria-hidden="true">💾</span> Exporter
                 </button>
                 <label className="btn-text scene-btn" style={{ cursor: 'pointer' }}>
@@ -527,7 +536,11 @@ export function Sidebar() {
                       const reader = new FileReader()
                       reader.onload = (ev) => {
                         const result = importScene(ev.target.result)
-                        if (!result.success) setToast({ message: result.error, type: 'error' })
+                        if (result && result.success) {
+                          setToast({ message: 'Scène importée avec succès', type: 'success' })
+                        } else {
+                          setToast({ message: result?.error || 'Erreur lors de l\'importation', type: 'error' })
+                        }
                         e.target.value = ''
                       }
                       reader.readAsText(file)

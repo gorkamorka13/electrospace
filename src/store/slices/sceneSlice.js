@@ -167,22 +167,27 @@ export const createSceneSlice = (set, get) => ({
   }),
 
   exportScene: () => {
-    const state = get()
-    const data = {
-      version: 2,
-      chargeUnit: state.chargeUnit,
-      activeView: state.activeView,
-      testPoint: state.testPoint,
-      charges: state.charges.map(c => ({ q: c.q, position: c.position, name: c.name })),
-      distributions: state.distributions.map((d) => { const copy = { ...d }; delete copy.id; return copy }),
+    try {
+      const state = get()
+      const data = {
+        version: 2,
+        chargeUnit: state.chargeUnit,
+        activeView: state.activeView,
+        testPoint: state.testPoint,
+        charges: state.charges.map(c => ({ q: c.q, position: c.position, name: c.name })),
+        distributions: state.distributions.map((d) => { const copy = { ...d }; delete copy.id; return copy }),
+      }
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `electro-scene-${Date.now()}.json`
+      a.click()
+      URL.revokeObjectURL(url)
+      return { success: true, error: null }
+    } catch (err) {
+      return { success: false, error: err.message }
     }
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `electro-scene-${Date.now()}.json`
-    a.click()
-    URL.revokeObjectURL(url)
   },
 
   importScene: (jsonStr) => {
