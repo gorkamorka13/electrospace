@@ -1366,6 +1366,56 @@ body, html, #root {
   color: var(--color-accent);
   font-weight: 600;
 }
+.cs-label--placeholder {
+  opacity: 0.55;
+}
+
+/* Context overrides for replaced native <select> elements */
+.snap-select .cs-trigger {
+  width: 42px;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-family: var(--font-sans);
+  padding: 2px 4px;
+  border-radius: 6px;
+  justify-content: center;
+}
+.snap-select .cs-trigger:hover {
+  background: var(--card-hover-bg);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+:root[data-theme='light'] .snap-select .cs-trigger {
+  background: rgba(0, 0, 0, 0.03);
+  color: var(--text-primary);
+}
+.preset-select .cs-trigger {
+  background: var(--card-bg);
+  color: var(--text-primary);
+  font-size: 0.75rem;
+  font-family: var(--font-sans);
+  padding: 0.35rem 0.5rem;
+  border-radius: 4px;
+  width: 100%;
+}
+.preset-select .cs-trigger:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+}
+.preset-select .cs-dropdown {
+  width: 100%;
+}
+:root[data-theme='light'] .preset-select .cs-trigger {
+  background: var(--card-bg);
+  color: var(--text-primary);
+}
+.formula-select .cs-trigger {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 0.75rem;
+  font-family: var(--font-sans);
+}
 
 .pg-test-val {
   font-size: 0.6rem;

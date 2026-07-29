@@ -1,7 +1,8 @@
-import { useState, useMemo, memo, useCallback } from 'react'
+import { useState, useRef, useEffect, useMemo, memo, useCallback } from 'react'
 import { useStore, DIST_PARAMS } from '../store/useStore'
 import { formatElectricField, formatPotential, formatForce } from '../physics/coulomb'
 import { InlineMath, BlockMath } from '../utils/math'
+import { CustomSelect } from './CustomSelect'
 
 function CoordInput({ value, onChange, label }) {
   const [raw, setRaw] = useState(null)
@@ -236,18 +237,7 @@ const ChargeListSection = memo(({ selectedObjectId, setSelectedObjectId }) => {
         </button>
       </div>
       <div className="flex-row gap-3 mb-6">
-        <select className="preset-select" defaultValue="" aria-label="Préréglages de charge"
-          onChange={(e) => { if (e.target.value) loadPreset(e.target.value); e.target.value = '' }}
-        >
-          <option value="">Préréglages...</option>
-          <option value="single">Charge unique</option>
-          <option value="dipole">Dipôle (+ / -)</option>
-          <option value="tripole">Tripôle</option>
-          <option value="quadrupole">Quadrupôle</option>
-          <option value="tetrahedron">Tétraèdre</option>
-          <option value="capacitor">Condensateur</option>
-          <option value="cubicQuadrupole">Quadripôle cubique</option>
-        </select>
+        <CustomSelect value="" options={[{key:'single',label:'Charge unique'},{key:'dipole',label:'Dipôle (+ / -)'},{key:'tripole',label:'Tripôle'},{key:'quadrupole',label:'Quadrupôle'},{key:'tetrahedron',label:'Tétraèdre'},{key:'capacitor',label:'Condensateur'},{key:'cubicQuadrupole',label:'Quadripôle cubique'}]} onChange={loadPreset} className="preset-select" placeholder="Préréglages..." />
       </div>
       <div className="charges-list">
         {charges.length === 0 ? (
@@ -386,6 +376,16 @@ const TABS = [
 export function Sidebar() {
   const [activeTab, setActiveTab] = useState('scene')
   const [formula, setFormula] = useState('charge')
+  const sidebarRef = useRef(null)
+
+  // Prevent pointerdown events from reaching OrbitControls (eventSource=rootRef wraps sidebar)
+  useEffect(() => {
+    const el = sidebarRef.current
+    if (!el) return
+    const handler = (e) => e.stopPropagation()
+    el.addEventListener('pointerdown', handler)
+    return () => el.removeEventListener('pointerdown', handler)
+  }, [])
 
   // Stable action selectors
   const exportScene = useStore((s) => s.exportScene)
@@ -418,6 +418,10 @@ export function Sidebar() {
   const setShowIndividualFields = useStore((s) => s.setShowIndividualFields)
 
   // Settings tab
+  const snapEnabled = useStore((s) => s.snapEnabled)
+  const setSnapEnabled = useStore((s) => s.setSnapEnabled)
+  const snapSize = useStore((s) => s.snapSize)
+  const setSnapSize = useStore((s) => s.setSnapSize)
   const chargeUnit = useStore((s) => s.chargeUnit)
   const setChargeUnit = useStore((s) => s.setChargeUnit)
   const vectorScale = useStore((s) => s.vectorScale)
@@ -428,6 +432,9 @@ export function Sidebar() {
   const setShowForces = useStore((s) => s.setShowForces)
   const showFieldLines = useStore((s) => s.showFieldLines)
   const setShowFieldLines = useStore((s) => s.setShowFieldLines)
+
+  const activeView = useStore((s) => s.activeView)
+  const setActiveView = useStore((s) => s.setActiveView)
 
   // Pedagogy tab
   const showGaussCompanion = useStore((s) => s.showGaussCompanion)
@@ -496,7 +503,7 @@ export function Sidebar() {
   }, [exportScene, setToast])
 
   return (
-    <aside className={`sidebar ${sidebarOpen ? '' : 'closed'}`}
+    <aside ref={sidebarRef} className={`sidebar ${sidebarOpen ? '' : 'closed'}`}
       onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}
     >
       <div className="sidebar-brand">
@@ -892,16 +899,7 @@ export function Sidebar() {
                 }
                 return (
                   <div style={{ padding: '0.5rem 0' }}>
-                    <select
-                      value={formula}
-                      onChange={(e) => setFormula(e.target.value)}
-                      className="formula-select"
-                      style={{ width: '100%', padding: '0.4rem', borderRadius: '6px', fontSize: '0.85rem' }}
-                    >
-                      {Object.entries(FORMULAS).map(([key, f]) => (
-                        <option key={key} value={key}>{f.label}</option>
-                      ))}
-                    </select>
+                    <CustomSelect value={formula} options={Object.entries(FORMULAS).map(([k, f]) => ({ key: k, label: f.label }))} onChange={setFormula} className="formula-select" triggerStyle={{ width: '100%', padding: '0.4rem', borderRadius: '6px', fontSize: '0.85rem' }} />
                     <div style={{ marginTop: '0.75rem', padding: '0.5rem', background: 'var(--bg-secondary)', borderRadius: '6px', lineHeight: '1.6' }}>
                       {FORMULAS[formula].content}
                     </div>
@@ -959,8 +957,8 @@ export function Sidebar() {
                       { id: 'front', label: 'Face' },
                       { id: 'side', label: 'Côté' },
                     ].map((v) => (
-                      <button key={v.id} className={`btn btn-small ${useStore.getState().activeView === v.id ? 'active' : ''}`}
-                        onClick={() => useStore.getState().setActiveView(v.id)}
+                      <button key={v.id} className={`btn btn-small ${activeView === v.id ? 'active' : ''}`}
+                        onClick={() => setActiveView(v.id)}
                       >
                         {v.label}
                       </button>
@@ -1013,22 +1011,14 @@ export function Sidebar() {
                 <div className="flex-row:sb">
                   <span className="label">Magnétisme (Snap)</span>
                   <label className="switch-sm">
-                    <input type="checkbox" checked={useStore.getState().snapEnabled}
-                      onChange={(e) => useStore.getState().setSnapEnabled(e.target.checked)} />
+                    <input type="checkbox" checked={snapEnabled}
+                      onChange={(e) => setSnapEnabled(e.target.checked)} />
                     <span className="switch-slider-sm" />
                   </label>
                 </div>
                 <div className="flex-row:sb">
                   <span className="label">Pas de grille</span>
-                  <select value={useStore.getState().snapSize}
-                    onChange={(e) => useStore.getState().setSnapSize(parseFloat(e.target.value))}
-                    className="formula-select" style={{ width: '80px', padding: '0.2rem' }}
-                  >
-                    <option value={0.1}>0.1 m</option>
-                    <option value={0.25}>0.25 m</option>
-                    <option value={0.5}>0.5 m</option>
-                    <option value={1.0}>1.0 m</option>
-                  </select>
+                  <CustomSelect value={snapSize} options={[{key:0.1,label:'0.1 m'},{key:0.25,label:'0.25 m'},{key:0.5,label:'0.5 m'},{key:1.0,label:'1.0 m'}]} onChange={setSnapSize} className="formula-select" triggerStyle={{ width:'80px', padding:'0.2rem' }} />
                 </div>
               </div>
             </CollapsibleSection>

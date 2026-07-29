@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 
-export function CustomSelect({ value, options, onChange, className }) {
+export function CustomSelect({ value, options, onChange, className, placeholder, triggerStyle }) {
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
 
@@ -20,12 +20,14 @@ export function CustomSelect({ value, options, onChange, className }) {
     setOpen(false)
   }, [onChange])
 
-  const selectedOption = options.find(o => o.key === value)
+  const displayValue = placeholder && (value === '' || value == null)
+    ? placeholder
+    : (options.find(o => o.key === value)?.label ?? value)
 
   return (
     <div className={`cs-container ${className || ''}`} ref={ref}>
-      <button className="cs-trigger" onClick={() => setOpen(v => !v)} type="button">
-        <span className="cs-label">{selectedOption?.label ?? value}</span>
+      <button className="cs-trigger" onClick={() => setOpen(v => !v)} type="button" style={triggerStyle}>
+        <span className={`cs-label${placeholder && (value === '' || value == null) ? ' cs-label--placeholder' : ''}`}>{displayValue}</span>
         <span className="cs-arrow">{open ? '\u25B2' : '\u25BC'}</span>
       </button>
       {open && (

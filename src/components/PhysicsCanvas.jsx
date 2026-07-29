@@ -1,5 +1,5 @@
 /* global __GIT_VERSION__ */
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { OrbitControls, Billboard, Text, PerspectiveCamera, OrthographicCamera } from '@react-three/drei'
 import * as THREE from 'three'
@@ -19,6 +19,7 @@ import { ChargeTrajectory } from './ChargeTrajectory'
 import { DistributionRenderer } from './DistributionVis'
 import { FieldGraph } from './FieldGraph'
 import { PotentialXGraph } from './PotentialXGraph'
+import { CustomSelect } from './CustomSelect'
 import { GaussianSurfaceVis } from './GaussianSurfaceVis'
 import { GaussWizard } from './GaussWizard'
 import { IndividualFieldArrows } from './IndividualFieldArrows'
@@ -120,6 +121,11 @@ export function PhysicsCanvas({ rootRef }) {
     animationTarget.current = { cameraPos, lookAt }
   }
 
+  // Active view from sidebar — trigger camera animation when changed
+  useEffect(() => {
+    if (activeView) handleSetView(activeView)
+  }, [activeView])
+
   return (
     <ErrorBoundary>
     <div className="canvas-inner">
@@ -194,11 +200,7 @@ export function PhysicsCanvas({ rootRef }) {
             </button>
             {snapEnabled && (
               <div className="snap-select-container">
-                <select value={snapSize} onChange={(e) => setSnapSize(parseFloat(e.target.value))} className="snap-select" title="Pas">
-                  <option value="1.0">1.0</option>
-                  <option value="0.5">0.5</option>
-                  <option value="0.1">0.1</option>
-                </select>
+                <CustomSelect value={snapSize} options={[{key:1.0,label:'1.0'},{key:0.5,label:'0.5'},{key:0.1,label:'0.1'}]} onChange={setSnapSize} className="snap-select" />
               </div>
             )}
             <div className="controls-divider"></div>
