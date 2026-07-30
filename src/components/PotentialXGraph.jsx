@@ -67,6 +67,9 @@ export function PotentialXGraph() {
   const [axisRange, setAxisRange] = useState(AXIS_RANGE)
   const axisRangeRef = useRef(axisRange)
   useEffect(() => { axisRangeRef.current = axisRange }, [axisRange])
+  const [minimized, setMinimized] = useState(false)
+  const zIndex = useStore((s) => s.potentialGraphZ)
+  const bringToFront = useStore((s) => s.bringToFront)
 
   const updateTestPoint = useStore((s) => s.updateTestPoint)
   const storeTestPoint = useStore((s) => s.testPoint)
@@ -168,6 +171,14 @@ export function PotentialXGraph() {
 
   const [data, setData] = useState(null)
   const dataVersionRef = useRef(0)
+
+  useEffect(() => {
+    const el = winRef.current
+    if (!el) return
+    const handler = () => bringToFront('potentialGraph')
+    el.addEventListener('mousedown', handler)
+    return () => el.removeEventListener('mousedown', handler)
+  }, [show, data, bringToFront])
 
   const { computePotentialGrid } = useFieldWorker()
 
@@ -314,12 +325,13 @@ export function PotentialXGraph() {
     ctx.font = '11px monospace'
     ctx.fillText('V (V)', -16, 0)
     ctx.restore()
-    ctx.fillStyle = titleColor
-    ctx.font = '9px monospace'
-    ctx.fillText(`V(${data.axisLabel}) passant par M`, PAD + 4, PAD + 12)
+
+    // Title text removed — axis label and cursor info are sufficient
     ctx.fillStyle = infoColor
-    ctx.font = '12px monospace'
-    ctx.fillText(`M: ${data.axisLabel}=${cursorPos.testPos.toFixed(2)}  V=${cursorPos.testV.toExponential(2)} V`, PAD + 4, PAD + plotH - 4)
+    ctx.font = '13px monospace'
+    const si = Math.round((cursorPos.testPos + axisRange) / (axisRange * 2) * (data.pts.length - 1))
+    const sv = data.pts[Math.max(0, Math.min(si, data.pts.length - 1))]?.V ?? 0
+    ctx.fillText(`M: V=${cursorPos.testV.toExponential(2)}  Balayage: V=${sv.toExponential(2)} V`, PAD + 4, PAD + plotH - 4)
   }, [show, data, w, h, theme, cursorPos, axisRange])
 
   const winRefState = useRef(win)
@@ -357,13 +369,13 @@ export function PotentialXGraph() {
   if (!show || !data) return null
 
   return (
-    <div className="pg-window" ref={winRef} style={{ left: x, top: y, width: w, height: h }}
+    <div className="pg-window" ref={winRef} style={{ left: x, top: y, width: w, height: minimized ? 'auto' : h, minHeight: minimized ? 'auto' : undefined, zIndex }}
       onMouseDown={(e) => e.stopPropagation()}
       onWheel={(e) => e.stopPropagation()}
       onTouchStart={(e) => e.stopPropagation()}
       onPointerDown={(e) => {
         e.stopPropagation()
-        if (e.target.closest?.('select, button, .pg-close, .pg-axis-select, .pg-export-btn, .pg-resize')) return
+        if (e.target.closest?.('select, button, .pg-close, .pg-minimize, .pg-axis-select, .pg-export-btn, .pg-resize')) return
         const header = e.target.closest?.('.pg-header')
         if (!header) return
         e.preventDefault()
@@ -433,44 +445,47 @@ export function PotentialXGraph() {
         <span className="pg-test-val" style={{ color: '#4ade80' }}>{data.testV.toExponential(2)} V</span>
         <button className="pg-export-btn" onClick={exportPng} title="Exporter PNG">🖼</button>
         <button className="pg-export-btn" onClick={exportCsv} title="Copier CSV">📋</button>
+        <button className="pg-minimize-btn" onClick={() => setMinimized(!minimized)} title={minimized ? 'Agrandir' : 'Réduire'}>{minimized ? '□' : '—'}</button>
         <button className="pg-close" onClick={() => setShow(false)}>&times;</button>
       </div>
-      <div className="pg-body">
-        <canvas ref={canvasRef} className="pg-canvas"
-          onPointerDown={handleCanvasPointerDown}
-          onPointerMove={handleCanvasPointerMove}
-          onPointerUp={handleCanvasPointerUp}
-          onWheel={handleWheel}
-          style={{ cursor: 'pointer' }}
+        <div className="pg-body" style={{ display: minimized ? 'none' : undefined }}>
+          <canvas ref={canvasRef} className="pg-canvas"
+            onPointerDown={handleCanvasPointerDown}
+            onPointerMove={handleCanvasPointerMove}
+            onPointerUp={handleCanvasPointerUp}
+            onWheel={handleWheel}
+            style={{ cursor: 'pointer' }}
+          />
+        </div>
+      {!minimized && (
+        <div className="pg-resize"
+          onPointerDown={(e) => {
+            e.preventDefault()
+            e.stopPropagation()
+            useStore.getState().setDragging(true)
+            const target = e.currentTarget
+            try { target.setPointerCapture(e.pointerId) } catch { /* ignore */ }
+            const cur = winRefState.current
+            const sw = cur.w, sh = cur.h
+            const sx = e.clientX, sy = e.clientY
+            const mv = (ev) => { setWinRaw(prev => {
+              const mw = window.innerWidth, mh = window.innerHeight
+              return { ...prev, w: Math.max(MIN_W, Math.min(mw - prev.x - MARGIN, sw + ev.clientX - sx)), h: Math.max(MIN_H, Math.min(mh - prev.y - MARGIN, sh + ev.clientY - sy)) }
+            }) }
+            const up = (ev) => {
+              useStore.getState().setDragging(false)
+              try { target.releasePointerCapture(ev.pointerId) } catch { /* ignore */ }
+              window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', up); resizeCleanupRef.current = null
+            }
+            window.addEventListener('pointermove', mv); window.addEventListener('pointerup', up)
+            resizeCleanupRef.current = () => {
+              useStore.getState().setDragging(false)
+              try { target.releasePointerCapture(e.pointerId) } catch { /* ignore */ }
+              window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', up)
+            }
+          }}
         />
-      </div>
-      <div className="pg-resize"
-        onPointerDown={(e) => {
-          e.preventDefault()
-          e.stopPropagation()
-          useStore.getState().setDragging(true)
-          const target = e.currentTarget
-          try { target.setPointerCapture(e.pointerId) } catch { /* ignore */ }
-          const cur = winRefState.current
-          const sw = cur.w, sh = cur.h
-          const sx = e.clientX, sy = e.clientY
-          const mv = (ev) => { setWinRaw(prev => {
-            const mw = window.innerWidth, mh = window.innerHeight
-            return { ...prev, w: Math.max(MIN_W, Math.min(mw - prev.x - MARGIN, sw + ev.clientX - sx)), h: Math.max(MIN_H, Math.min(mh - prev.y - MARGIN, sh + ev.clientY - sy)) }
-          }) }
-          const up = (ev) => {
-            useStore.getState().setDragging(false)
-            try { target.releasePointerCapture(ev.pointerId) } catch { /* ignore */ }
-            window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', up); resizeCleanupRef.current = null
-          }
-          window.addEventListener('pointermove', mv); window.addEventListener('pointerup', up)
-          resizeCleanupRef.current = () => {
-            useStore.getState().setDragging(false)
-            try { target.releasePointerCapture(e.pointerId) } catch { /* ignore */ }
-            window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', up)
-          }
-        }}
-      />
+      )}
     </div>
   )
 }

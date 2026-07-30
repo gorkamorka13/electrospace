@@ -115,6 +115,8 @@ export const createSceneSlice = (set, get) => ({
   testPoint: [1, 0.5, 2],
   freeCharges: {},
   distributions: [],
+  fieldGraphZ: 10,
+  potentialGraphZ: 10,
   history: [],
   future: [],
 
@@ -165,6 +167,8 @@ export const createSceneSlice = (set, get) => ({
     }
     return { freeCharges: next }
   }),
+
+  bringToFront: (id) => set({ [`${id}Z`]: Date.now() }),
 
   exportScene: () => {
     try {
