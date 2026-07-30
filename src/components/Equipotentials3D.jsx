@@ -1,8 +1,9 @@
-import { useMemo, useRef, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import * as THREE from 'three'
 import { useStore, UNIT_FACTORS } from '../store/useStore'
-import { sample3DGrid, buildIsosurfaceGeometry } from '../physics/marchingCubes'
+import { buildIsosurfaceGeometry } from '../physics/marchingCubes'
 import { MC_RESOLUTION, MC_HALF, MC_NUM_LEVELS } from '../physics/constants'
+import { useFieldWorker } from '../hooks/useFieldWorker'
 
 const BOUNDS = { min: [-MC_HALF, -MC_HALF, -MC_HALF], max: [MC_HALF, MC_HALF, MC_HALF] }
 
@@ -21,17 +22,12 @@ export function Equipotentials3D() {
   const chargeUnit = useStore((state) => state.chargeUnit)
   const ke = useStore((state) => state.ke)
   const rMin = useStore((state) => state.rMin)
+  const { sample3DGrid } = useFieldWorker()
+  const [geometries, setGeometries] = useState([])
   const geoCacheRef = useRef([])
+  const computationKey = `${showEquipotentials3D}|${charges.length}|${distributions.length}|${chargeUnit}|${ke}|${rMin}`
 
-  // Pure computation — no ref access during render
-  const geometries = useMemo(() => {
-    if (!showEquipotentials3D) return []
-    if (charges.length === 0 && distributions.length === 0) return []
-
-    const multiplier = UNIT_FACTORS[chargeUnit] || 1e-6
-    const physicalCharges = distributions.length > 0 ? [] : charges.map(c => ({ ...c, q: c.q * multiplier }))
-
-    const gridData = sample3DGrid(BOUNDS, MC_RESOLUTION, physicalCharges, ke, rMin, distributions)
+  const buildMeshes = useCallback((gridData) => {
     const range = gridData.maxV - gridData.minV
     if (range < 1e-30) return []
 
@@ -44,9 +40,36 @@ export function Equipotentials3D() {
       }
     }
     return results
-  }, [charges, distributions, showEquipotentials3D, chargeUnit, ke, rMin])
+  }, [])
 
-  // Ref management — dispose previous geometries on update or unmount
+  useEffect(() => {
+    if (!showEquipotentials3D || (charges.length === 0 && distributions.length === 0)) {
+      setGeometries([])
+      return
+    }
+    let cancelled = false
+
+    const multiplier = UNIT_FACTORS[chargeUnit] || 1e-6
+    const physicalCharges = distributions.length > 0 ? [] : charges.map(c => ({ ...c, q: c.q * multiplier }))
+
+    sample3DGrid(BOUNDS, MC_RESOLUTION, physicalCharges, ke, rMin, distributions)
+      .then((gridData) => {
+        if (cancelled) return
+        const meshes = buildMeshes(gridData)
+        if (cancelled) {
+          meshes.forEach(m => m.geometry.dispose())
+          return
+        }
+        setGeometries(meshes)
+      })
+      .catch(() => {
+        if (!cancelled) setGeometries([])
+      })
+
+    return () => { cancelled = true }
+  }, [computationKey, showEquipotentials3D, charges, distributions, chargeUnit, ke, rMin, sample3DGrid, buildMeshes])
+
+  // Dispose previous geometries
   useEffect(() => {
     const prevGeos = geoCacheRef.current
     geoCacheRef.current = geometries

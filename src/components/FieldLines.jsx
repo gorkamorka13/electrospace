@@ -1,8 +1,9 @@
-import { useMemo } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Line } from '@react-three/drei'
 import { useStore, UNIT_FACTORS } from '../store/useStore'
-import { traceFieldLine, getDistributionSeeds } from '../physics/coulomb'
+import { getDistributionSeeds } from '../physics/coulomb'
 import { fibonacciSphere } from '../physics/utils'
+import { useFieldWorker } from '../hooks/useFieldWorker'
 
 const LINE_COLOR_CHARGE = '#fbbf24'
 const LINE_COLOR_DIST = '#f97316'
@@ -14,61 +15,75 @@ export function FieldLines() {
   const chargeUnit = useStore((state) => state.chargeUnit)
   const fieldLinesPerCharge = useStore((state) => state.fieldLinesPerCharge)
   const fieldLineStep = useStore((state) => state.fieldLineStep)
+  const { traceFieldLines } = useFieldWorker()
+  const [allLinePoints, setAllLinePoints] = useState([])
+  const cancelledRef = useRef(false)
+  const key = `${showFieldLines}|${charges.length}|${distributions.length}|${chargeUnit}|${fieldLinesPerCharge}|${fieldLineStep}`
 
-  const allLinePoints = useMemo(() => {
-    if (!showFieldLines) return []
-    const hasCharges = charges.length > 0
+  useEffect(() => {
+    cancelledRef.current = false
+    if (!showFieldLines || (charges.length === 0 && distributions.length === 0)) {
+      setAllLinePoints([])
+      return
+    }
+
     const hasDists = distributions.length > 0
-    if (!hasCharges && !hasDists) return []
-
     const multiplier = UNIT_FACTORS[chargeUnit] || 1e-6
-    // When distributions are active, point charges are hidden and must not contribute
     const physicalCharges = hasDists ? [] : charges.map(c => ({ ...c, q: c.q * multiplier }))
-
     const { ke, rMin } = useStore.getState()
-    const rStop = 0.6
-    const maxDist = 25
-    const maxSteps = 800
-    const epsilon = 1e-25
-    const rSeed = 0.7
     const N = fieldLinesPerCharge
-
-    const lines = []
+    const seeds = []
 
     for (const charge of physicalCharges) {
       if (hasDists) break
       const direction = charge.q >= 0 ? 1 : -1
-      const seeds = fibonacciSphere(N, charge.position, rSeed)
-      for (const seed of seeds) {
-        const pts = traceFieldLine(seed, physicalCharges, {
-          ke, rMin, rStop, maxDist, maxSteps,
-          stepSize: fieldLineStep, direction, epsilon,
-          sourcePos: charge.position,
-        })
-        if (pts.length > 1) {
-          if (direction === -1) pts.reverse()
-          lines.push({ points: pts, color: LINE_COLOR_CHARGE })
-        }
+      const sphereSeeds = fibonacciSphere(N, charge.position, 0.7)
+      for (const seed of sphereSeeds) {
+        seeds.push({ point: [seed.x, seed.y, seed.z], direction, sourcePos: charge.position, color: LINE_COLOR_CHARGE })
       }
     }
 
     for (const dist of distributions) {
-      const seeds = getDistributionSeeds(dist, N)
-      for (const { point: seed, direction } of seeds) {
-        const pts = traceFieldLine(seed, physicalCharges, {
-          ke, rMin, rStop, maxDist, maxSteps,
-          stepSize: fieldLineStep, direction, epsilon,
-          distributions: [dist],
-        })
-        if (pts.length > 1) {
-          if (direction === -1) pts.reverse()
-          lines.push({ points: pts, color: LINE_COLOR_DIST })
-        }
+      const distSeeds = getDistributionSeeds(dist, N)
+      for (const { point: seed, direction } of distSeeds) {
+        seeds.push({ point: [seed.x, seed.y, seed.z], direction, color: LINE_COLOR_DIST })
       }
     }
 
-    return lines
-  }, [charges, distributions, showFieldLines, chargeUnit, fieldLinesPerCharge, fieldLineStep])
+    if (seeds.length === 0) {
+      setAllLinePoints([])
+      return
+    }
+
+    const opts = {
+      ke, rMin,
+      stepSize: fieldLineStep,
+      maxSteps: 800,
+      rStop: 0.6,
+      maxDist: 25,
+      epsilon: 1e-25,
+      distributions,
+    }
+
+    traceFieldLines(seeds, physicalCharges, opts)
+      .then((lines) => {
+        if (cancelledRef.current) return
+        const result = []
+        for (let i = 0; i < lines.length; i++) {
+          const pts = lines[i]
+          if (pts.length > 1) {
+            if (seeds[i].direction === -1) pts.reverse()
+            result.push({ points: pts, color: seeds[i].color })
+          }
+        }
+        setAllLinePoints(result)
+      })
+      .catch(() => {
+        if (!cancelledRef.current) setAllLinePoints([])
+      })
+
+    return () => { cancelledRef.current = true }
+  }, [key, showFieldLines, charges, distributions, chargeUnit, fieldLinesPerCharge, fieldLineStep, traceFieldLines])
 
   if (!showFieldLines) return null
 

@@ -1,8 +1,8 @@
-import { useMemo } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Line } from '@react-three/drei'
 import * as THREE from 'three'
 import { useStore, UNIT_FACTORS } from '../store/useStore'
-import { calculateTotalPotential } from '../physics/coulomb'
+import { useFieldWorker } from '../hooks/useFieldWorker'
 
 const GRID = 64
 const WORLD_SIZE = 20
@@ -57,49 +57,66 @@ export function Equipotentials() {
   const showEquipotentials = useStore((state) => state.showEquipotentials)
   const chargeUnit = useStore((state) => state.chargeUnit)
   const theme = useStore((state) => state.theme)
+  const { computePotentialGrid } = useFieldWorker()
+  const [contours, setContours] = useState([])
+  const cancelledRef = useRef(false)
 
-  const contours = useMemo(() => {
-    if (!showEquipotentials || (charges.length === 0 && distributions.length === 0)) return []
-
-    const multiplier = UNIT_FACTORS[chargeUnit] || 1e-6
-    // When distributions are active, point charges are hidden and must not contribute
-    const physicalCharges = distributions.length > 0 ? [] : charges.map(c => ({ ...c, q: c.q * multiplier }))
-    const { ke, rMin } = useStore.getState()
-
-    const nx = GRID
-    const nz = GRID
-    const grid = new Float32Array(nx * nz)
-    let minV = Infinity, maxV = -Infinity
-
-    for (let iz = 0; iz < nz; iz++) {
-      for (let ix = 0; ix < nx; ix++) {
-        const x = (ix / (nx - 1)) * WORLD_SIZE - HALF
-        const z = (iz / (nz - 1)) * WORLD_SIZE - HALF
-        const V = calculateTotalPotential(physicalCharges, [x, 0, z], ke, rMin, distributions)
-        const idx = iz * nx + ix
-        grid[idx] = V
-        if (V < minV) minV = V
-        if (V > maxV) maxV = V
-      }
-    }
-
+  const buildContours = useCallback((grid, minV, maxV) => {
     const range = maxV - minV
     if (range < 1e-30) return []
-
     const lines = []
     const color = new THREE.Color(theme === 'dark' ? '#a78bfa' : '#7c3aed')
-
     for (let i = 1; i <= NUM_LEVELS; i++) {
       const level = minV + (range * i) / (NUM_LEVELS + 1)
-      const segs = extractContourSegments(grid, nx, nz, level)
+      const segs = extractContourSegments(grid, GRID, GRID, level)
       const alpha = 0.3 + 0.6 * (i / NUM_LEVELS)
       for (const seg of segs) {
         lines.push({ points: seg, color, opacity: alpha })
       }
     }
-
     return lines
-  }, [charges, distributions, showEquipotentials, chargeUnit, theme])
+  }, [theme])
+
+  useEffect(() => {
+    cancelledRef.current = false
+    if (!showEquipotentials || (charges.length === 0 && distributions.length === 0)) {
+      setContours([])
+      return
+    }
+
+    const multiplier = UNIT_FACTORS[chargeUnit] || 1e-6
+    const physicalCharges = distributions.length > 0 ? [] : charges.map(c => ({ ...c, q: c.q * multiplier }))
+    const { ke, rMin } = useStore.getState()
+
+    const nx = GRID
+    const nz = GRID
+    const positions = []
+    for (let iz = 0; iz < nz; iz++) {
+      for (let ix = 0; ix < nx; ix++) {
+        const x = (ix / (nx - 1)) * WORLD_SIZE - HALF
+        const z = (iz / (nz - 1)) * WORLD_SIZE - HALF
+        positions.push([x, 0, z])
+      }
+    }
+
+    computePotentialGrid(physicalCharges, positions, distributions, ke, rMin)
+      .then((values) => {
+        if (cancelledRef.current) return
+        const grid = new Float32Array(values)
+        let minV = Infinity, maxV = -Infinity
+        for (let i = 0; i < grid.length; i++) {
+          if (grid[i] < minV) minV = grid[i]
+          if (grid[i] > maxV) maxV = grid[i]
+        }
+        const lines = buildContours(grid, minV, maxV)
+        if (!cancelledRef.current) setContours(lines)
+      })
+      .catch(() => {
+        if (!cancelledRef.current) setContours([])
+      })
+
+    return () => { cancelledRef.current = true }
+  }, [charges, distributions, showEquipotentials, chargeUnit, theme, computePotentialGrid, buildContours])
 
   if (!showEquipotentials || contours.length === 0) return null
 

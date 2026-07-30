@@ -1,8 +1,8 @@
-import { useRef, useMemo } from 'react'
+import { useRef, useMemo, useState, useEffect, useCallback } from 'react'
 import * as THREE from 'three'
 import { Billboard, Text, Html } from '@react-three/drei'
 import { useStore, UNIT_FACTORS } from '../store/useStore'
-import { calculateTotalField } from '../physics/coulomb'
+import { useFieldWorker } from '../hooks/useFieldWorker'
 
 function getVertexNormal(px, py, pz, surfaceType, radius, height, width, depth) {
   switch (surfaceType) {
@@ -33,23 +33,18 @@ function getVertexNormal(px, py, pz, surfaceType, radius, height, width, depth) 
   }
 }
 
-function addFluxColors(geometry, surfaceType, params, center, charges, distributions, chargeUnit, ke, rMin) {
+function applyFluxColors(geometry, fields, surfaceType, params, center) {
   const pos = geometry.attributes.position
   const n = pos.count
   const colors = new Float32Array(n * 3)
   const { radius, height, width, depth } = params
-
-  const multiplier = UNIT_FACTORS[chargeUnit] || 1e-6
-  const physicalCharges = distributions.length > 0 ? [] : charges.map(c => ({ ...c, q: c.q * multiplier }))
-
   const fluxes = new Float32Array(n)
   let maxAbs = 0
 
   for (let i = 0; i < n; i++) {
     const px = pos.getX(i), py = pos.getY(i), pz = pos.getZ(i)
     const normal = getVertexNormal(px, py, pz, surfaceType, radius, height, width, depth)
-    const worldPos = [px + center[0], py + center[1], pz + center[2]]
-    const E = calculateTotalField(physicalCharges, worldPos, ke, rMin, distributions)
+    const E = fields[i]
     const flux = E.x * normal.x + E.y * normal.y + E.z * normal.z
     fluxes[i] = flux
     maxAbs = Math.max(maxAbs, Math.abs(flux))
@@ -107,24 +102,75 @@ export function GaussianSurfaceVis() {
   const fluxSurfaceParams = useMemo(() => ({
     radius: gaussSurfaceRadius, height: gaussSurfaceHeight, width: gaussSurfaceWidth, depth: gaussSurfaceDepth,
   }), [gaussSurfaceRadius, gaussSurfaceHeight, gaussSurfaceWidth, gaussSurfaceDepth])
-  const fluxSphereGeo = useMemo(() => {
-    if (gaussSurfaceType !== 'sphere' || gaussStep < 3 || hasChargesOnly) return null
-    const geo = new THREE.SphereGeometry(gaussSurfaceRadius, 32, 32)
-    addFluxColors(geo, 'sphere', fluxSurfaceParams, gaussCenter, charges, distributions, chargeUnit, ke, rMin)
-    return geo
-  }, [gaussSurfaceType, gaussStep, gaussSurfaceRadius, fluxSurfaceParams, gaussCenter, hasChargesOnly, charges, distributions, chargeUnit, ke, rMin])
-  const fluxCylinderGeo = useMemo(() => {
-    if (gaussSurfaceType !== 'cylinder' || gaussStep < 3 || hasChargesOnly) return null
-    const geo = new THREE.CylinderGeometry(gaussSurfaceRadius, gaussSurfaceRadius, gaussSurfaceHeight, 32)
-    addFluxColors(geo, 'cylinder', fluxSurfaceParams, gaussCenter, charges, distributions, chargeUnit, ke, rMin)
-    return geo
-  }, [gaussSurfaceType, gaussStep, gaussSurfaceRadius, gaussSurfaceHeight, fluxSurfaceParams, gaussCenter, hasChargesOnly, charges, distributions, chargeUnit, ke, rMin])
-  const fluxBoxGeo = useMemo(() => {
-    if (gaussSurfaceType !== 'box' || gaussStep < 3 || hasChargesOnly) return null
-    const geo = new THREE.BoxGeometry(gaussSurfaceWidth, gaussSurfaceHeight, gaussSurfaceDepth)
-    addFluxColors(geo, 'box', fluxSurfaceParams, gaussCenter, charges, distributions, chargeUnit, ke, rMin)
-    return geo
-  }, [gaussSurfaceType, gaussStep, gaussSurfaceWidth, gaussSurfaceHeight, gaussSurfaceDepth, fluxSurfaceParams, gaussCenter, hasChargesOnly, charges, distributions, chargeUnit, ke, rMin])
+  const { computeFieldGrid } = useFieldWorker()
+  const [fluxGeos, setFluxGeos] = useState({ sphere: null, cylinder: null, box: null })
+  const cancelledRef = useRef(false)
+  const fluxKey = `${gaussSurfaceType}|${gaussStep}|${hasChargesOnly}|${gaussSurfaceRadius}|${gaussSurfaceHeight}|${gaussSurfaceWidth}|${gaussSurfaceDepth}|${gaussCenter.join(',')}|${charges.length}|${distributions.length}|${chargeUnit}|${ke}|${rMin}`
+
+  useEffect(() => {
+    cancelledRef.current = false
+    if (gaussStep < 3 || hasChargesOnly) {
+      setFluxGeos({ sphere: null, cylinder: null, box: null })
+      return
+    }
+
+    const multiplier = UNIT_FACTORS[chargeUnit] || 1e-6
+    const physicalCharges = distributions.length > 0 ? [] : charges.map(c => ({ ...c, q: c.q * multiplier }))
+
+    const geoType = gaussSurfaceType
+    let geo, surfaceType
+    if (geoType === 'sphere') {
+      geo = new THREE.SphereGeometry(gaussSurfaceRadius, 32, 32)
+      surfaceType = 'sphere'
+    } else if (geoType === 'cylinder') {
+      geo = new THREE.CylinderGeometry(gaussSurfaceRadius, gaussSurfaceRadius, gaussSurfaceHeight, 32)
+      surfaceType = 'cylinder'
+    } else if (geoType === 'box') {
+      geo = new THREE.BoxGeometry(gaussSurfaceWidth, gaussSurfaceHeight, gaussSurfaceDepth)
+      surfaceType = 'box'
+    } else {
+      setFluxGeos({ sphere: null, cylinder: null, box: null })
+      return
+    }
+
+    const pos = geo.attributes.position
+    const n = pos.count
+    const positions = []
+    for (let i = 0; i < n; i++) {
+      positions.push([
+        pos.getX(i) + gaussCenter[0],
+        pos.getY(i) + gaussCenter[1],
+        pos.getZ(i) + gaussCenter[2],
+      ])
+    }
+
+    computeFieldGrid(physicalCharges, positions, distributions, ke, rMin)
+      .then((fields) => {
+        if (cancelledRef.current) {
+          geo.dispose()
+          return
+        }
+        applyFluxColors(geo, fields, surfaceType, fluxSurfaceParams, gaussCenter)
+        if (!cancelledRef.current) {
+          setFluxGeos({ sphere: geoType === 'sphere' ? geo : null, cylinder: geoType === 'cylinder' ? geo : null, box: geoType === 'box' ? geo : null })
+        } else {
+          geo.dispose()
+        }
+      })
+      .catch(() => {
+        geo.dispose()
+        if (!cancelledRef.current) setFluxGeos({ sphere: null, cylinder: null, box: null })
+      })
+
+    return () => { cancelledRef.current = true }
+  }, [fluxKey, gaussSurfaceType, gaussStep, hasChargesOnly, gaussSurfaceRadius, gaussSurfaceHeight, gaussSurfaceWidth, gaussSurfaceDepth, gaussCenter, charges, distributions, chargeUnit, ke, rMin, fluxSurfaceParams, computeFieldGrid])
+
+  // Dispose flux geos when they change or on unmount
+  useEffect(() => {
+    return () => {
+      Object.values(fluxGeos).forEach(geo => { if (geo) geo.dispose() })
+    }
+  }, [fluxGeos])
 
   // --- Early returns (safe now, all hooks above) ---
   if (!showGaussCompanion) return null
@@ -240,9 +286,9 @@ export function GaussianSurfaceVis() {
       {/* 3D Gaussian Surface Mesh with flux visualization - Only drawn from Phase 3 onwards */}
       {gaussStep >= 3 && (
         <>
-          {gaussSurfaceType === 'sphere' && fluxSphereGeo && (
+          {gaussSurfaceType === 'sphere' && fluxGeos.sphere && (
             <mesh>
-              <primitive object={fluxSphereGeo} />
+              <primitive object={fluxGeos.sphere} />
               <meshPhysicalMaterial
                 vertexColors
                 transparent
@@ -259,9 +305,9 @@ export function GaussianSurfaceVis() {
             </mesh>
           )}
 
-          {gaussSurfaceType === 'cylinder' && fluxCylinderGeo && (
+          {gaussSurfaceType === 'cylinder' && fluxGeos.cylinder && (
             <mesh>
-              <primitive object={fluxCylinderGeo} />
+              <primitive object={fluxGeos.cylinder} />
               <meshPhysicalMaterial
                 vertexColors
                 transparent
@@ -278,9 +324,9 @@ export function GaussianSurfaceVis() {
             </mesh>
           )}
 
-          {gaussSurfaceType === 'box' && fluxBoxGeo && (
+          {gaussSurfaceType === 'box' && fluxGeos.box && (
             <mesh>
-              <primitive object={fluxBoxGeo} />
+              <primitive object={fluxGeos.box} />
               <meshPhysicalMaterial
                 vertexColors
                 transparent

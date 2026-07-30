@@ -2,19 +2,14 @@ import { useRef, useEffect, useMemo, useState, useCallback } from 'react'
 import { useStore, UNIT_FACTORS } from '../store/useStore'
 import { calculateTotalField } from '../physics/coulomb'
 import { CustomSelect } from './CustomSelect'
+import { useFieldWorker } from '../hooks/useFieldWorker'
 
 const PAD = 34
 const SAMPLES = 300
-const CHUNK_SIZE = 30  // Process 30 samples per idle callback to avoid blocking
 const AXIS_RANGE = 10
 const MIN_W = 200
 const MIN_H = 140
 const MARGIN = 10
-
-// requestIdleCallback with fallback for unsupported browsers
-const ric = typeof window !== 'undefined' && window.requestIdleCallback
-  ? (cb, opts) => window.requestIdleCallback(cb, opts)
-  : (cb) => setTimeout(() => cb({ timeRemaining: () => 50 }), 0)
 
 const FIELD_OPTIONS = [
   { key: 'ex', label: 'Ex' },
@@ -181,6 +176,8 @@ export function FieldGraph() {
     return { testPos: testPoint[axisIndex], testVal }
   }, [show, testPoint, charges, distributions, chargeUnit, fieldKey, sweepAxis])
 
+  const { computeFieldGrid } = useFieldWorker()
+
   useEffect(() => {
     if (!show) return
     const version = ++dataVersionRef.current
@@ -188,44 +185,35 @@ export function FieldGraph() {
     const physicalCharges = distributions.length > 0 ? [] : charges.map(c => ({ ...c, q: c.q * multiplier }))
     const { ke, rMin } = useStore.getState()
     const axisIndex = 'xyz'.indexOf(sweepAxis)
-    const pos = [0, 0, 0]
-    const pts = []
-    let minVal = Infinity, maxVal = -Infinity
-    let currentIndex = 0
-
-    const computeChunk = (deadline) => {
-      const end = Math.min(currentIndex + CHUNK_SIZE, SAMPLES)
-      for (let i = currentIndex; i < end; i++) {
-        const t = (i / (SAMPLES - 1)) * (axisRange * 2) - axisRange
-        pos[axisIndex] = t
-        const E = calculateTotalField(physicalCharges, pos, ke, rMin, distributions)
-        const val = fieldKey === 'mag' ? E.length() : E[fieldKey[1]]
-        pts.push({ t, val })
-        if (val < minVal) minVal = val
-        if (val > maxVal) maxVal = val
-      }
-      currentIndex = end
-
-      if (currentIndex < SAMPLES && deadline.timeRemaining() < 5) {
-        ric(computeChunk, { timeout: 50 })
-        return
-      }
-
-      if (currentIndex < SAMPLES) {
-        ric(computeChunk, { timeout: 50 })
-        return
-      }
-
-      if (version !== dataVersionRef.current) return
-      const absMax = Math.max(Math.abs(minVal), Math.abs(maxVal), 1e-30)
-      if (fieldKey !== 'mag') { minVal = -absMax; maxVal = absMax }
-      const range = Math.max(maxVal - minVal, 1e-30)
-      const testE = calculateTotalField(physicalCharges, testPoint, ke, rMin, distributions)
-      const testVal = fieldKey === 'mag' ? testE.length() : testE[fieldKey[1]]
-      setData({ pts, minVal, maxVal, range, testPos: testPoint[axisIndex], testVal })
+    const positions = []
+    for (let i = 0; i < SAMPLES; i++) {
+      const t = (i / (SAMPLES - 1)) * (axisRange * 2) - axisRange
+      const p = [...testPoint]
+      p[axisIndex] = t
+      positions.push(p)
     }
 
-    ric(computeChunk, { timeout: 100 })
+    computeFieldGrid(physicalCharges, positions, distributions, ke, rMin)
+      .then((fields) => {
+        if (version !== dataVersionRef.current) return
+        const pts = []
+        let minVal = Infinity, maxVal = -Infinity
+        for (let i = 0; i < fields.length; i++) {
+          const t = (i / (SAMPLES - 1)) * (axisRange * 2) - axisRange
+          const E = fields[i]
+          const val = fieldKey === 'mag' ? Math.sqrt(E.x * E.x + E.y * E.y + E.z * E.z) : E[fieldKey[1]]
+          pts.push({ t, val })
+          if (val < minVal) minVal = val
+          if (val > maxVal) maxVal = val
+        }
+        const absMax = Math.max(Math.abs(minVal), Math.abs(maxVal), 1e-30)
+        if (fieldKey !== 'mag') { minVal = -absMax; maxVal = absMax }
+        const range = Math.max(maxVal - minVal, 1e-30)
+        const testE = fields[Math.round((testPoint[axisIndex] + axisRange) / (axisRange * 2) * (SAMPLES - 1))] || fields[0]
+        const testVal = fieldKey === 'mag' ? Math.sqrt(testE.x * testE.x + testE.y * testE.y + testE.z * testE.z) : testE[fieldKey[1]]
+        setData({ pts, minVal, maxVal, range, testPos: testPoint[axisIndex], testVal })
+      })
+      .catch((err) => { console.error('FieldGraph worker error:', err); if (version === dataVersionRef.current) setData(null) })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [show, charges, distributions, chargeUnit, fieldKey, sweepAxis, axisRange])
   // Note: testPoint intentionally NOT in deps above — we don't restart async calc on every drag frame
