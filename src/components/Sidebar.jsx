@@ -577,7 +577,9 @@ export function Sidebar() {
                         <span className="dist-item-name">{d.name}</span>
                         <button className="btn-close" onClick={() => removeDistribution(d.id)}>&times;</button>
                       </div>
-                      {DIST_PARAMS[d.type]?.map((param) => {
+                      {DIST_PARAMS[d.type]?.map((param, idx, arr) => {
+                        // Skip if this was already rendered as part of a linked pair
+                        if (idx > 0 && arr[idx - 1]?.linkKey === param.key) return null
                         const val = d[param.key]
                         if (param.type === 'vec3') {
                           return (
@@ -625,6 +627,40 @@ export function Sidebar() {
                           )
                         }
                         if (param.type === 'range') {
+                          const next = arr[idx + 1]
+                          const isLinked = param.linkKey && next?.key === param.linkKey
+                          if (isLinked) {
+                            const nextVal = d[next.key] ?? 0
+                            const linked = !!d.linkWH
+                            return (
+                              <div key={param.key} style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem', marginBottom: '0.15rem' }}>
+                                <div className="dist-param-row">
+                                  <span className="label dist-param-label">{param.label}</span>
+                                  <input type="range" min={1} max={200} step={1}
+                                    value={val ?? 0}
+                                    onChange={(e) => updateDistribution(d.id, { [param.key]: parseFloat(e.target.value), ...(linked ? { [next.key]: parseFloat(e.target.value) } : {}) })}
+                                    className="slider" style={{ flex: 1, margin: '0 4px' }} />
+                                  <DistInput value={val ?? 0} onChange={(v) => updateDistribution(d.id, { [param.key]: v, ...(linked ? { [next.key]: v } : {}) })}
+                                    className="dist-param-input" style={{ width: '3rem' }} />
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0.05rem 0' }}>
+                                  <button onClick={() => updateDistribution(d.id, { linkWH: !linked })}
+                                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.8rem', padding: '0.1rem 0.3rem', borderRadius: '3px', color: linked ? '#f59e0b' : '#666', lineHeight: 1, width: '1.8rem', textAlign: 'center' }}
+                                    title={linked ? 'Dimensions liées' : 'Lier les dimensions'}>{linked ? '🔗' : '⛓'}
+                                  </button>
+                                </div>
+                                <div className="dist-param-row">
+                                  <span className="label dist-param-label">{next.label}</span>
+                                  <input type="range" min={1} max={200} step={1}
+                                    value={nextVal}
+                                    onChange={(e) => updateDistribution(d.id, { [next.key]: parseFloat(e.target.value), ...(linked ? { [param.key]: parseFloat(e.target.value) } : {}) })}
+                                    className="slider" style={{ flex: 1, margin: '0 4px' }} />
+                                  <DistInput value={nextVal} onChange={(v) => updateDistribution(d.id, { [next.key]: v, ...(linked ? { [param.key]: v } : {}) })}
+                                    className="dist-param-input" style={{ width: '3rem' }} />
+                                </div>
+                              </div>
+                            )
+                          }
                           return (
                             <div key={param.key} className="dist-param-row">
                               <span className="label dist-param-label">{param.label}</span>

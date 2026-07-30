@@ -11,6 +11,6 @@ export const MAX_SPEED = 3
 export const TRAJECTORY_MAX_POINTS = 300
 export const TRAJECTORY_SAMPLE_INTERVAL = 2
 
-export const MC_RESOLUTION = 30
+export const MC_RESOLUTION =30
 export const MC_HALF = 8
-export const MC_NUM_LEVELS = 5
+export const MC_NUM_LEVELS = 6

@@ -382,12 +382,12 @@ export const createSceneSlice = (set, get) => ({
       const defaults = {
         line: { length: 10, density: 1e-9 },
         cylinder: { center: [0, 0, 0], axis: [0, 1, 0], radius: 2, height: 5, density: 1e-6, hollow: false, innerRadius: 0, e_ext: 0, e_int: 0 },
-        plane: { center: [0, 0, 0], normal: [1, 0, 0], width: 10, height: 10, density: 1e-9 },
+        plane: { center: [0, 0, 0], normal: [1, 0, 0], width: 10, height: 10, density: 1e-9, linkWH: false },
         disk: { center: [0, 0, 0], normal: [1, 0, 0], radius: 2, density: 1e-9 },
         circle: { center: [0, 0, 0], normal: [1, 0, 0], radius: 2, density: 1e-9 },
-        frame: { center: [0, 0, 0], normal: [1, 0, 0], width: 4, height: 4, density: 1e-9 },
+        frame: { center: [0, 0, 0], normal: [1, 0, 0], width: 4, height: 4, density: 1e-9, linkWH: false },
         sphere: { center: [0, 0, 0], radius: 2, density: 1e-6, innerRadius: 0, hollow: false, e_ext: 0, e_int: 0 },
-        box: { center: [0, 0, 0], normal: [1, 0, 0], width: 10, height: 10, depth: 2, density: 1e-6, hollow: false },
+        box: { center: [0, 0, 0], normal: [1, 0, 0], width: 10, height: 10, depth: 2, density: 1e-6, hollow: false, linkWH: false },
       }
       const dist = { id, type, name: DIST_TYPE_NAMES[type] || type, ...defaults[type], ...params }
       return { distributions: [dist], selectedObjectId: id }
@@ -407,6 +407,9 @@ export const createSceneSlice = (set, get) => ({
       distributions: state.distributions.map((d) => {
         if (d.id !== id) return d
         const merged = { ...d, ...updates }
+        // Sync linked width/height
+        if (d.linkWH && 'width' in updates && !('height' in updates)) merged.height = updates.width
+        if (d.linkWH && 'height' in updates && !('width' in updates)) merged.width = updates.height
         if (merged.innerRadius != null && merged.radius != null) {
           merged.innerRadius = Math.min(merged.innerRadius, merged.radius)
         }

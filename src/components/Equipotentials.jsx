@@ -65,7 +65,7 @@ export function Equipotentials() {
     const range = maxV - minV
     if (range < 1e-30) return []
     const lines = []
-    const color = new THREE.Color(theme === 'dark' ? '#a78bfa' : '#7c3aed')
+    const color = new THREE.Color(theme === 'dark' ? '#f59e0b' : '#d97706')
     for (let i = 1; i <= NUM_LEVELS; i++) {
       const level = minV + (range * i) / (NUM_LEVELS + 1)
       const segs = extractContourSegments(grid, GRID, GRID, level)

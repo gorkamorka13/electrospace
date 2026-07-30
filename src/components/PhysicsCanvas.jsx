@@ -180,9 +180,10 @@ export function PhysicsCanvas() {
               onClick={() => handleSetView('isometric')}
               title="Réinitialiser la vue (Isométrique)" aria-label="Réinitialiser la vue"
             >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: '20px', height: '20px' }}>
-                <path d="M21.5 2v6h-6" />
-                <path d="M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
+              <svg viewBox="0 0 36 36" fill="none" stroke="currentColor" strokeWidth="1.8" style={{ width: '36px', height: '36px' }}>
+                <polygon points="18,4 32,12 18,20 4,12" />
+                <polygon points="18,20 32,12 32,26 18,34" />
+                <polygon points="4,12 18,20 18,34 4,26" />
               </svg>
             </button>
             <div className="controls-divider"></div>
@@ -192,11 +193,10 @@ export function PhysicsCanvas() {
               title={snapEnabled ? "Désactiver l'aimant" : "Activer l'aimant"}
               aria-label={snapEnabled ? "Désactiver l'aimant" : "Activer l'aimant"}
             >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: '24px', height: '24px' }}>
-                <path d="M6 15a4 4 0 0 0 4 4h4a4 4 0 0 0 4-4v-1a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v1z" />
-                <path d="M8 8V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v4" />
-                <path d="M10 10v4" />
-                <path d="M14 10v4" />
+              <svg viewBox="0 0 36 36" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: '36px', height: '36px' }}>
+                <path d="M12 30V12a6 6 0 0 1 12 0v18" />
+                <path d="M12 27h-4a3 3 0 0 1 0-6h4" />
+                <path d="M24 27h4a3 3 0 0 0 0-6h-4" />
               </svg>
             </button>
             {snapEnabled && (
@@ -212,7 +212,7 @@ export function PhysicsCanvas() {
                 title={lockedAxes[axis] ? `Axe ${axis.toUpperCase()} verrouillé` : `Axe ${axis.toUpperCase()} libre`}
                 aria-label={lockedAxes[axis] ? `Déverrouiller l'axe ${axis.toUpperCase()}` : `Verrouiller l'axe ${axis.toUpperCase()}`}
               >
-                <span style={{ fontSize: '0.7rem', fontWeight: 700 }}>{axis.toUpperCase()}</span>
+                <span style={{ fontSize: '1rem', fontWeight: 700 }}>{axis.toUpperCase()}</span>
               </button>
             ))}
             <div className="controls-divider"></div>
@@ -221,11 +221,15 @@ export function PhysicsCanvas() {
               onClick={() => setShowFieldLines(!showFieldLines)}
               title={showFieldLines ? 'Masquer les lignes de champ' : 'Afficher les lignes de champ'}
               aria-label={showFieldLines ? 'Masquer les lignes de champ' : 'Afficher les lignes de champ'}
+              style={{ width: '36px', height: '36px' }}
             >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" style={{ width: '24px', height: '24px' }}>
-                <path d="M12 9 Q16 7 19 10" /><path d="M12 15 Q8 17 5 14" />
-                <path d="M15 12 Q17 16 14 19" /><path d="M9 12 Q7 8 10 5" />
-                <circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none" />
+              <svg viewBox="0 0 36 36" fill="none" style={{ width: '36px', height: '36px' }}>
+                <circle cx="10" cy="18" r="4.5" fill="currentColor" opacity="0.35" stroke="none" />
+                <circle cx="26" cy="18" r="4.5" fill="currentColor" opacity="0.35" stroke="none" />
+                <path d="M14 12 Q20 4 26 12" stroke="currentColor" strokeWidth="1.5" />
+                <path d="M14 17 Q21 13 26 17" stroke="currentColor" strokeWidth="1.5" />
+                <path d="M14 22 Q21 26 26 22" stroke="currentColor" strokeWidth="1.5" />
+                <path d="M14 27 Q20 33 26 27" stroke="currentColor" strokeWidth="1.5" />
               </svg>
             </button>
             <div className="controls-divider"></div>
@@ -236,9 +240,12 @@ export function PhysicsCanvas() {
               aria-label="Ligne passant par M"
               style={{ width: '36px', height: '36px' }}
             >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ width: '24px', height: '24px' }}>
-                <circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none" />
-                <path d="M12 3 Q18 6 19 12 Q18 18 12 21" /><path d="M12 3 Q6 6 5 12 Q6 18 12 21" />
+              <svg viewBox="0 0 36 36" fill="none" style={{ width: '36px', height: '36px' }}>
+                <circle cx="9" cy="20" r="4.5" fill="currentColor" opacity="0.35" stroke="none" />
+                <circle cx="27" cy="20" r="4.5" fill="currentColor" opacity="0.35" stroke="none" />
+                <path d="M13 16 Q18 4 23 16" stroke="currentColor" strokeWidth="1.8" />
+                <circle cx="18" cy="10" r="2.5" fill="#fbbf24" stroke="none" />
+                <text x="18" y="12" fontSize="5" fontWeight="bold" fill="#000" stroke="none" textAnchor="middle">M</text>
               </svg>
             </button>
             <button
@@ -248,8 +255,13 @@ export function PhysicsCanvas() {
               aria-label="Équipotentielles"
               style={{ width: '36px', height: '36px' }}
             >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" style={{ width: '24px', height: '24px' }}>
-                <ellipse cx="12" cy="12" rx="8" ry="4" /><ellipse cx="12" cy="12" rx="5" ry="2.5" /><ellipse cx="12" cy="12" rx="2.5" ry="1.2" />
+              <svg viewBox="0 0 36 36" fill="none" style={{ width: '36px', height: '36px' }}>
+                <ellipse cx="18" cy="6" rx="13" ry="4.5" stroke="currentColor" strokeWidth="1.5" />
+                <ellipse cx="18" cy="6" rx="9" ry="3" stroke="currentColor" strokeWidth="1.2" opacity="0.6" />
+                <ellipse cx="18" cy="6" rx="5" ry="1.8" stroke="currentColor" strokeWidth="1" opacity="0.4" />
+                <line x1="5" y1="6" x2="5" y2="15" stroke="currentColor" strokeWidth="1.5" strokeDasharray="2 2" />
+                <line x1="31" y1="6" x2="31" y2="15" stroke="currentColor" strokeWidth="1.5" strokeDasharray="2 2" />
+                <path d="M5 15 Q18 20 31 15" stroke="currentColor" strokeWidth="1.5" strokeDasharray="2 2" />
               </svg>
             </button>
             <button
@@ -259,12 +271,13 @@ export function PhysicsCanvas() {
               aria-label="Équipotentielles 3D"
               style={{ width: '36px', height: '36px' }}
             >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ width: '24px', height: '24px' }}>
-                <ellipse cx="12" cy="12" rx="9" ry="5" />
-                <ellipse cx="12" cy="12" rx="6" ry="3" />
-                <ellipse cx="12" cy="12" rx="3" ry="1.5" />
-                <line x1="3" y1="7" x2="3" y2="17" strokeWidth="1" opacity="0.5" />
-                <line x1="21" y1="7" x2="21" y2="17" strokeWidth="1" opacity="0.5" />
+              <svg viewBox="0 0 36 36" fill="none" style={{ width: '36px', height: '36px' }}>
+                <ellipse cx="18" cy="11" rx="13" ry="5.5" stroke="currentColor" strokeWidth="1.5" />
+                <line x1="5" y1="11" x2="5" y2="25" stroke="currentColor" strokeWidth="1.5" />
+                <line x1="31" y1="11" x2="31" y2="25" stroke="currentColor" strokeWidth="1.5" />
+                <path d="M5 25 A13 5.5 0 0 0 31 25" stroke="currentColor" strokeWidth="1.5" />
+                <ellipse cx="18" cy="11" rx="9.5" ry="4" stroke="currentColor" strokeWidth="1.2" opacity="0.6" />
+                <ellipse cx="18" cy="11" rx="6" ry="2.5" stroke="currentColor" strokeWidth="1" opacity="0.4" />
               </svg>
             </button>
             <div className="controls-divider"></div>
@@ -275,9 +288,9 @@ export function PhysicsCanvas() {
               aria-label="Moment dipolaire"
               style={{ width: '36px', height: '36px' }}
             >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ width: '24px', height: '24px' }}>
-                <circle cx="8" cy="12" r="2" fill="currentColor" stroke="none" /><circle cx="16" cy="12" r="2" fill="currentColor" stroke="none" />
-                <line x1="10" y1="12" x2="14" y2="12" /><polyline points="11,9 14,12 11,15" />
+              <svg viewBox="0 0 36 36" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ width: '36px', height: '36px' }}>
+                <circle cx="12" cy="18" r="3.5" fill="currentColor" stroke="none" opacity="0.4" /><circle cx="24" cy="18" r="3.5" fill="currentColor" stroke="none" opacity="0.4" />
+                <line x1="15.5" y1="18" x2="20.5" y2="18" /><polyline points="17,14 20.5,18 17,22" />
               </svg>
             </button>
             <button
@@ -299,10 +312,10 @@ export function PhysicsCanvas() {
               aria-label="V(x) au centre"
               style={{ width: '36px', height: '36px' }}
             >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '24px', height: '24px' }}>
-                <polyline points="4,18 8,10 12,14 16,6 20,8" />
-                <line x1="4" y1="20" x2="20" y2="20" /><line x1="4" y1="4" x2="4" y2="20" />
-                <text x="8" y="6" fontSize="4" fill="currentColor">X</text>
+              <svg viewBox="0 0 36 36" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '36px', height: '36px' }}>
+                <path d="M4 30 L32 30" /><path d="M6 32 L6 4" />
+                <path d="M8 22 Q14 16 20 20 Q26 10 29 8" strokeWidth="2" />
+                <text x="18" y="26" fontSize="18" fontWeight="bold" fill="currentColor" stroke="none" textAnchor="middle">V</text>
               </svg>
             </button>
             <button
@@ -312,12 +325,10 @@ export function PhysicsCanvas() {
               aria-label="|E|(x) au centre"
               style={{ width: '36px', height: '36px' }}
             >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '24px', height: '24px' }}>
-                <circle cx="12" cy="12" r="2" fill="currentColor" stroke="none" />
-                <line x1="12" y1="3" x2="12" y2="8" /><polyline points="9,6 12,3 15,6" />
-                <line x1="12" y1="21" x2="12" y2="16" /><polyline points="9,18 12,21 15,18" />
-                <line x1="5" y1="12" x2="10" y2="12" /><polyline points="8,9 5,12 8,15" />
-                <line x1="19" y1="12" x2="14" y2="12" /><polyline points="16,9 19,12 16,15" />
+              <svg viewBox="0 0 36 36" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '36px', height: '36px' }}>
+                <path d="M4 30 L32 30" /><path d="M6 32 L6 4" />
+                <path d="M8 12 Q16 24 28 10" strokeWidth="2" />
+                <text x="18" y="26" fontSize="18" fontWeight="bold" fill="currentColor" stroke="none" textAnchor="middle">E</text>
               </svg>
             </button>
             <div className="controls-divider"></div>

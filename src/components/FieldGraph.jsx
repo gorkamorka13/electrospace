@@ -188,7 +188,7 @@ export function FieldGraph() {
     const positions = []
     for (let i = 0; i < SAMPLES; i++) {
       const t = (i / (SAMPLES - 1)) * (axisRange * 2) - axisRange
-      const p = [...testPoint]
+      const p = [0, 0, 0]
       p[axisIndex] = t
       positions.push(p)
     }

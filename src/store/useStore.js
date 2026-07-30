@@ -17,7 +17,7 @@ export const useStore = create((set, get, api) => ({
 /* Distribution default helpers (used by Sidebar & ContextMenu) */
 export const DIST_PARAMS = {
   line: [
-    { key: 'length', label: 'Longueur (m)', type: 'number', step: 0.1, min: 0.1 },
+    { key: 'length', label: 'Longueur (m)', type: 'range' },
     { key: 'density', label: 'λ (C/m)', type: 'number', step: 1e-10, min: 1e-12 },
   ],
   cylinder: [
@@ -31,8 +31,8 @@ export const DIST_PARAMS = {
   plane: [
     { key: 'center', label: 'Centre', type: 'vec3' },
     { key: 'normal', label: 'Normale', type: 'vec3' },
-    { key: 'width', label: 'Largeur (m)', type: 'range' },
-    { key: 'height', label: 'Hauteur (m)', type: 'range' },
+    { key: 'width', label: 'Largeur (m)', type: 'range', linkKey: 'height' },
+    { key: 'height', label: 'Hauteur (m)', type: 'range', linkKey: 'width' },
     { key: 'density', label: 'σ (C/m²)', type: 'number', step: 1e-10, min: 1e-12 },
   ],
   disk: [
@@ -50,8 +50,8 @@ export const DIST_PARAMS = {
   frame: [
     { key: 'center', label: 'Centre', type: 'vec3' },
     { key: 'normal', label: 'Normale', type: 'vec3' },
-    { key: 'width', label: 'Largeur (m)', type: 'range' },
-    { key: 'height', label: 'Hauteur (m)', type: 'range' },
+    { key: 'width', label: 'Largeur (m)', type: 'range', linkKey: 'height' },
+    { key: 'height', label: 'Hauteur (m)', type: 'range', linkKey: 'width' },
     { key: 'density', label: 'λ (C/m)', type: 'number', step: 1e-10, min: 1e-12 },
   ],
   sphere: [
@@ -63,8 +63,8 @@ export const DIST_PARAMS = {
   box: [
     { key: 'center', label: 'Centre', type: 'vec3' },
     { key: 'normal', label: 'Normale', type: 'vec3' },
-    { key: 'width', label: 'Largeur (m)', type: 'range' },
-    { key: 'height', label: 'Hauteur (m)', type: 'range' },
+    { key: 'width', label: 'Largeur (m)', type: 'range', linkKey: 'height' },
+    { key: 'height', label: 'Hauteur (m)', type: 'range', linkKey: 'width' },
     { key: 'depth', label: 'Profondeur (m)', type: 'range' },
     { key: 'density', label: 'ρ (C/m³)', type: 'number', step: 1e-7, min: 1e-9 },
   ],

@@ -8,11 +8,11 @@ import { useFieldWorker } from '../hooks/useFieldWorker'
 const BOUNDS = { min: [-MC_HALF, -MC_HALF, -MC_HALF], max: [MC_HALF, MC_HALF, MC_HALF] }
 
 const LEVEL_COLORS = [
-  '#6d28d9',
-  '#7c3aed',
-  '#8b5cf6',
-  '#a78bfa',
-  '#c4b5fd',
+  '#f59e0b',
+  '#f97316',
+  '#fbbf24',
+  '#fcd34d',
+  '#fde68a',
 ]
 
 export function Equipotentials3D() {
