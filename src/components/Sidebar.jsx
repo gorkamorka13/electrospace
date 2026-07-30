@@ -222,7 +222,7 @@ const ChargeListSection = memo(({ selectedObjectId, setSelectedObjectId }) => {
     <CollapsibleSection title="Charges locales"
       headerExtra={
         charges.length > 0 && (
-          <button className="btn-text" onClick={(e) => { e.stopPropagation(); if (window.confirm('Effacer toutes les charges ? (Ctrl+Z pour annuler)')) { clearCharges(); setToast({ message: 'Charges effacées — Ctrl+Z pour annuler', type: 'success' }) } }}>
+          <button className="btn-text" onClick={(e) => { e.stopPropagation(); clearCharges(); setToast({ message: 'Charges effacées — Ctrl+Z pour annuler', type: 'success' }) }}>
             Tout effacer
           </button>
         )
@@ -521,9 +521,6 @@ export function Sidebar() {
           <div className="tab-panel">
             <CollapsibleSection title="Scènes" defaultOpen={true}>
               <div className="flex-row gap-2">
-                <button className="btn-text scene-btn" onClick={handleExportScene}>
-                  <span aria-hidden="true">💾</span> Exporter
-                </button>
                 <label className="btn-text scene-btn" style={{ cursor: 'pointer' }}>
                   <span aria-hidden="true">📂</span> Importer
                   <input type="file" accept=".json" style={{ display: 'none' }} aria-label="Importer un fichier de scène"
@@ -544,6 +541,9 @@ export function Sidebar() {
                     }}
                   />
                 </label>
+                <button className="btn-text scene-btn" onClick={handleExportScene}>
+                  <span aria-hidden="true">💾</span> Exporter
+                </button>
                 <button className="btn-text scene-btn" onClick={captureScreenshot}>
                   <span aria-hidden="true">📷</span> Capture
                 </button>
@@ -695,7 +695,7 @@ export function Sidebar() {
                       )}
                     </div>
                   ))}
-                  <button className="btn-text accent" onClick={() => { if (window.confirm('Effacer toutes les distributions ? (Ctrl+Z pour annuler)')) { clearDistributions(); setToast({ message: 'Distributions effacées — Ctrl+Z pour annuler', type: 'success' }) } }}>
+                  <button className="btn-text accent" onClick={() => { clearDistributions(); setToast({ message: 'Distributions effacées — Ctrl+Z pour annuler', type: 'success' }) }}>
                     Tout effacer
                   </button>
                 </div>
