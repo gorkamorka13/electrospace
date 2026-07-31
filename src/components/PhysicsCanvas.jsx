@@ -203,26 +203,41 @@ export function PhysicsCanvas() {
                   viewBox="0 0 36 36"
                   fill="none"
                   stroke="currentColor"
-                  strokeWidth="2.4"
+                  strokeWidth="2.2"
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   style={{ width: "36px", height: "36px" }}
                 >
                   <g transform="rotate(90 18 18)">
-                    {/* Corps du fer à cheval */}
-                    <path d="M11 6v11a7 7 0 0 0 14 0V6" />
+                    {/* --- Face arrière (décalée = effet de profondeur) --- */}
+                    <g transform="translate(2.6,2.6)" opacity="0.32">
+                      <path d="M10.5 5.5v11.5a7.5 7.5 0 0 0 15 0V5.5" />
+                      <path d="M7.5 5.5h6.5v6.5H7.5z" fill="currentColor" stroke="none" />
+                      <path d="M22 5.5h6.5v6.5H22z" fill="currentColor" stroke="none" />
+                    </g>
 
-                    {/* Pôles pleins */}
-                    <path d="M8 6h6v6H8z" fill="currentColor" stroke="none" />
-                    <path d="M22 6h6v6h-6z" fill="currentColor" stroke="none" />
+                    {/* --- Arêtes isométriques reliant l'avant et l'arrière --- */}
+                    <g strokeWidth="1.6" opacity="0.55">
+                      <path d="M7.5 5.5l2.6 2.6" />
+                      <path d="M14 5.5l2.6 2.6" />
+                      <path d="M22 5.5l2.6 2.6" />
+                      <path d="M28.5 5.5l2.6 2.6" />
+                      <path d="M7.5 12l2.6 2.6" />
+                      <path d="M28.5 12l2.6 2.6" />
+                    </g>
 
-                    {/* Lettres N/S, contre-tournées pour rester droites */}
+                    {/* --- Face avant --- */}
+                    <path d="M10.5 5.5v11.5a7.5 7.5 0 0 0 15 0V5.5" />
+                    <path d="M7.5 5.5h6.5v6.5H7.5z" fill="currentColor" stroke="none" />
+                    <path d="M22 5.5h6.5v6.5H22z" fill="currentColor" stroke="none" />
+
+                    {/* --- Lettres N / S agrandies, contre-tournées --- */}
                     <text
-                      x="11"
-                      y="10.8"
-                      transform="rotate(-90 11 10.8)"
+                      x="10.75"
+                      y="10.9"
+                      transform="rotate(-90 10.75 10.9)"
                       textAnchor="middle"
-                      fontSize="6"
+                      fontSize="8.2"
                       fontWeight="800"
                       fill="var(--camera-btn-bg, #1a1a1a)"
                       stroke="none"
@@ -231,11 +246,11 @@ export function PhysicsCanvas() {
                       N
                     </text>
                     <text
-                      x="25"
-                      y="10.8"
-                      transform="rotate(-90 25 10.8)"
+                      x="25.25"
+                      y="10.9"
+                      transform="rotate(-90 25.25 10.9)"
                       textAnchor="middle"
-                      fontSize="6"
+                      fontSize="8.2"
                       fontWeight="800"
                       fill="var(--camera-btn-bg, #1a1a1a)"
                       stroke="none"
