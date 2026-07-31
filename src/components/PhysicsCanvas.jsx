@@ -209,14 +209,14 @@ export function PhysicsCanvas() {
                   style={{ width: "36px", height: "36px" }}
                 >
                   <g transform="rotate(90 18 18)">
-                    {/* --- Face arrière (décalée = effet de profondeur) --- */}
+                    {/* --- Face arrière (profondeur) --- */}
                     <g transform="translate(2.6,2.6)" opacity="0.32">
                       <path d="M10.5 5.5v11.5a7.5 7.5 0 0 0 15 0V5.5" />
                       <path d="M7.5 5.5h6.5v6.5H7.5z" fill="currentColor" stroke="none" />
                       <path d="M22 5.5h6.5v6.5H22z" fill="currentColor" stroke="none" />
                     </g>
 
-                    {/* --- Arêtes isométriques reliant l'avant et l'arrière --- */}
+                    {/* --- Arêtes isométriques --- */}
                     <g strokeWidth="1.6" opacity="0.55">
                       <path d="M7.5 5.5l2.6 2.6" />
                       <path d="M14 5.5l2.6 2.6" />
@@ -231,30 +231,34 @@ export function PhysicsCanvas() {
                     <path d="M7.5 5.5h6.5v6.5H7.5z" fill="currentColor" stroke="none" />
                     <path d="M22 5.5h6.5v6.5H22z" fill="currentColor" stroke="none" />
 
-                    {/* --- Lettres N / S agrandies, contre-tournées --- */}
+                    {/* --- Lettres N / S : centrées + contraste automatique --- */}
                     <text
                       x="10.75"
-                      y="10.9"
-                      transform="rotate(-90 10.75 10.9)"
+                      y="8.75"
+                      transform="rotate(-90 10.75 8.75)"
                       textAnchor="middle"
+                      dominantBaseline="central"
                       fontSize="8.2"
                       fontWeight="800"
-                      fill="var(--camera-btn-bg, #1a1a1a)"
+                      fill="white"
                       stroke="none"
                       fontFamily="Arial, Helvetica, sans-serif"
+                      style={{ mixBlendMode: "difference" }}
                     >
                       N
                     </text>
                     <text
                       x="25.25"
-                      y="10.9"
-                      transform="rotate(-90 25.25 10.9)"
+                      y="8.75"
+                      transform="rotate(-90 25.25 8.75)"
                       textAnchor="middle"
+                      dominantBaseline="central"
                       fontSize="8.2"
                       fontWeight="800"
-                      fill="var(--camera-btn-bg, #1a1a1a)"
+                      fill="white"
                       stroke="none"
                       fontFamily="Arial, Helvetica, sans-serif"
+                      style={{ mixBlendMode: "difference" }}
                     >
                       S
                     </text>
@@ -427,10 +431,12 @@ export function PhysicsCanvas() {
                   strokeLinecap="round"
                   style={{ width: "36px", height: "36px" }}
                 >
-                  <circle cx="12" cy="18" r="3.5" fill="currentColor" stroke="none" opacity="0.4" />
-                  <circle cx="24" cy="18" r="3.5" fill="currentColor" stroke="none" opacity="0.4" />
-                  <line x1="15.5" y1="18" x2="20.5" y2="18" />
-                  <polyline points="17,14 20.5,18 17,22" />
+                  <circle cx="10" cy="18" r="5" fill="currentColor" stroke="none" opacity="0.4" />
+                  <text x="10" y="19.5" textAnchor="middle" fontSize="7.5" fontWeight="800" fill="currentColor" stroke="none" fontFamily="Arial, Helvetica, sans-serif">−</text>
+                  <circle cx="26" cy="18" r="5" fill="currentColor" stroke="none" opacity="0.4" />
+                  <text x="26" y="19.5" textAnchor="middle" fontSize="7.5" fontWeight="800" fill="currentColor" stroke="none" fontFamily="Arial, Helvetica, sans-serif">+</text>
+                  <line x1="15" y1="18" x2="21" y2="18" />
+                  <polyline points="17,15.5 19.5,18 17,20.5" />
                 </svg>
               </button>
               <button

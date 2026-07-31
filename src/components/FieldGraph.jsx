@@ -382,7 +382,7 @@ export function FieldGraph() {
     ctx.fillStyle = curveColor
     ctx.fill()
     ctx.fillText(`Balayage: ${flabel}=${sv.toExponential(2)} V/m`, x2 + 8, textY)
-  }, [show, data, fieldKey, curveColor, theme, sweepAxis, cursorPos, axisRange])
+  }, [show, data, fieldKey, curveColor, theme, sweepAxis, cursorPos, axisRange, w, h])
 
   const winRefState = useRef(win)
   useEffect(() => { winRefState.current = win }, [win])
