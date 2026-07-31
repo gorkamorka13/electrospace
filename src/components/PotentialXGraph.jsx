@@ -39,6 +39,7 @@ const AXIS_OPTIONS = [
   { key: 'y', label: 'Y' },
   { key: 'z', label: 'Z' },
 ]
+const axisCurveColor = (axis, isDark) => ({ x: '#ff3e3e', y: isDark ? '#00ff66' : '#059669', z: '#3e8bff' })[axis]
 
 export function PotentialXGraph() {
   const [win, setWinRaw] = useState(() => {
@@ -68,6 +69,7 @@ export function PotentialXGraph() {
   const [axisRange, setAxisRange] = useState(AXIS_RANGE)
   const axisRangeRef = useRef(axisRange)
   useEffect(() => { axisRangeRef.current = axisRange }, [axisRange])
+  const curveColor = axisCurveColor(potAxis, theme === 'dark')
   const [minimized, setMinimized] = useState(false)
   const zIndex = useStore((s) => s.potentialGraphZ)
 
@@ -310,7 +312,7 @@ export function PotentialXGraph() {
       if (i === 0) ctx.moveTo(px, py)
       else ctx.lineTo(px, py)
     }
-    ctx.strokeStyle = '#4ade80'
+    ctx.strokeStyle = curveColor
     ctx.lineWidth = 1.5
     ctx.stroke()
 
@@ -332,7 +334,7 @@ export function PotentialXGraph() {
     const cy = yScale(sv)
     ctx.beginPath()
     ctx.arc(cx, cy, 3, 0, Math.PI * 2)
-    ctx.fillStyle = '#4ade80'
+    ctx.fillStyle = curveColor
     ctx.fill()
 
     // Yellow dot at the V value of M
@@ -368,10 +370,10 @@ export function PotentialXGraph() {
     const x2 = PAD + 14 + ctx.measureText(mText).width + 18
     ctx.beginPath()
     ctx.arc(x2, dotY, 3.5, 0, Math.PI * 2)
-    ctx.fillStyle = '#4ade80'
+    ctx.fillStyle = curveColor
     ctx.fill()
     ctx.fillText(`Balayage: V=${sv.toExponential(2)} V`, x2 + 8, textY)
-  }, [show, data, w, h, theme, cursorPos, axisRange])
+  }, [show, data, w, h, theme, cursorPos, axisRange, potAxis])
 
   const winRefState = useRef(win)
   useEffect(() => { winRefState.current = win }, [win])
@@ -483,7 +485,7 @@ export function PotentialXGraph() {
           V({potAxis})<span className="pg-title-full"> — balayage selon {potAxis.toUpperCase()}</span>
         </span>
         <CustomSelect value={potAxis} options={AXIS_OPTIONS} onChange={setPotAxis} />
-        <span className="pg-test-val" style={{ color: '#4ade80' }}>{data.testV.toExponential(2)} V</span>
+        <span className="pg-test-val" style={{ color: curveColor }}>{data.testV.toExponential(2)} V</span>
         <button className="pg-export-btn" onClick={exportPng} title="Exporter PNG">🖼</button>
         <button className="pg-export-btn" onClick={exportCsv} title="Copier CSV">📋</button>
         <button className="pg-minimize-btn" onClick={() => setMinimized(!minimized)} title={minimized ? 'Agrandir' : 'Réduire'}>{minimized ? '□' : '—'}</button>

@@ -23,6 +23,7 @@ const SWEEP_OPTIONS = [
   { key: 'y', label: 'Y' },
   { key: 'z', label: 'Z' },
 ]
+const axisCurveColor = (axis, isDark) => ({ x: '#ff3e3e', y: isDark ? '#00ff66' : '#059669', z: '#3e8bff' })[axis]
 
 function clampPos(x, y, w, h) {
   const mw = window.innerWidth, mh = window.innerHeight
@@ -244,7 +245,7 @@ export function FieldGraph() {
   }, [show, charges, distributions, chargeUnit, fieldKey, sweepAxis, axisRange])
   // Note: testPoint intentionally NOT in deps above — we don't restart async calc on every drag frame
 
-  const colors = useMemo(() => ({ mag: '#f59e0b', ex: '#ef4444', ey: '#22c55e', ez: '#3b82f6' }), [])
+  const curveColor = axisCurveColor(sweepAxis, theme === 'dark')
 
   useEffect(() => {
     if (!show || !data || !canvasRef.current) return
@@ -321,7 +322,7 @@ export function FieldGraph() {
       if (i === 0) ctx.moveTo(px, py)
       else ctx.lineTo(px, py)
     }
-    ctx.strokeStyle = colors[fieldKey]
+    ctx.strokeStyle = curveColor
     ctx.lineWidth = 1.8
     ctx.stroke()
 
@@ -343,7 +344,7 @@ export function FieldGraph() {
     const cy = yScale(sv)
     ctx.beginPath()
     ctx.arc(cx, cy, 3, 0, Math.PI * 2)
-    ctx.fillStyle = colors[fieldKey]
+    ctx.fillStyle = curveColor
     ctx.fill()
 
     // Yellow dot at the E value of M
@@ -378,10 +379,10 @@ export function FieldGraph() {
     const x2 = PAD + 14 + ctx.measureText(mText).width + 18
     ctx.beginPath()
     ctx.arc(x2, dotY, 3.5, 0, Math.PI * 2)
-    ctx.fillStyle = colors[fieldKey]
+    ctx.fillStyle = curveColor
     ctx.fill()
     ctx.fillText(`Balayage: ${flabel}=${sv.toExponential(2)} V/m`, x2 + 8, textY)
-  }, [show, data, fieldKey, colors, theme, sweepAxis, cursorPos, axisRange])
+  }, [show, data, fieldKey, curveColor, theme, sweepAxis, cursorPos, axisRange])
 
   const winRefState = useRef(win)
   useEffect(() => { winRefState.current = win }, [win])
@@ -489,7 +490,7 @@ export function FieldGraph() {
         </span>
         <CustomSelect value={sweepAxis} options={SWEEP_OPTIONS} onChange={setSweepAxis} />
         <CustomSelect value={fieldKey} options={FIELD_OPTIONS} onChange={setFieldKey} />
-        <span className="pg-test-val" style={{ color: colors[fieldKey] }}>{data.testVal.toExponential(2)} V/m</span>
+        <span className="pg-test-val" style={{ color: curveColor }}>{data.testVal.toExponential(2)} V/m</span>
         <button className="pg-export-btn" onClick={exportPng} title="Exporter PNG">🖼</button>
         <button className="pg-export-btn" onClick={exportCsv} title="Copier CSV">📋</button>
         <button className="pg-minimize-btn" onClick={() => setMinimized(!minimized)} title={minimized ? 'Agrandir' : 'Réduire'}>{minimized ? '□' : '—'}</button>
