@@ -387,6 +387,8 @@ export function PotentialXGraph() {
       onWheel={(e) => e.stopPropagation()}
       onTouchStart={(e) => e.stopPropagation()}
       onPointerDown={(e) => {
+        // Bring this window to front on any pointer down event
+        useStore.getState().bringToFront('potentialGraph')
         e.stopPropagation()
         if (e.target.closest?.('select, button, .pg-close, .pg-minimize, .pg-axis-select, .pg-export-btn, .pg-resize')) return
         const header = e.target.closest?.('.pg-header')

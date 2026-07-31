@@ -168,7 +168,11 @@ export const createSceneSlice = (set, get) => ({
     return { freeCharges: next }
   }),
 
-  bringToFront: (id) => set({ [`${id}Z`]: Date.now() }),
+  zIndexCounter: 1002,
+  bringToFront: (id) => set((state) => {
+    const newZ = state.zIndexCounter + 1
+    return { [`${id}Z`]: newZ, zIndexCounter: newZ }
+  }),
 
   exportScene: () => {
     try {
