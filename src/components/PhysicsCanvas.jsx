@@ -208,50 +208,45 @@ export function PhysicsCanvas() {
                   strokeLinejoin="round"
                   style={{ width: "36px", height: "36px" }}
                 >
-                  {/* Corps du fer à cheval */}
-                  <path d="M11 6v11a7 7 0 0 0 14 0V6" />
+                  <g transform="rotate(90 18 18)">
+                    {/* Corps du fer à cheval */}
+                    <path d="M11 6v11a7 7 0 0 0 14 0V6" />
 
-                  {/* Pôle gauche (N) */}
-                  <path d="M8 6h6v6H8z" fill="currentColor" stroke="none" />
-                  {/* Pôle droit (S) */}
-                  <path d="M22 6h6v6h-6z" fill="currentColor" stroke="none" />
+                    {/* Pôles pleins */}
+                    <path d="M8 6h6v6H8z" fill="currentColor" stroke="none" />
+                    <path d="M22 6h6v6h-6z" fill="currentColor" stroke="none" />
 
-                  {/* Lettres des pôles, en creux sur les pôles pleins */}
-                  <text
-                    x="11"
-                    y="10.8"
-                    textAnchor="middle"
-                    fontSize="6"
-                    fontWeight="800"
-                    fill="var(--camera-btn-bg, #1a1a1a)"
-                    stroke="none"
-                    fontFamily="Arial, Helvetica, sans-serif"
-                  >
-                    N
-                  </text>
-                  <text
-                    x="25"
-                    y="10.8"
-                    textAnchor="middle"
-                    fontSize="6"
-                    fontWeight="800"
-                    fill="var(--camera-btn-bg, #1a1a1a)"
-                    stroke="none"
-                    fontFamily="Arial, Helvetica, sans-serif"
-                  >
-                    S
-                  </text>
-
-                  {/* Champ magnétique */}
-                  <path d="M5 22c5.5 6 20.5 6 26 0" strokeWidth="1.8" strokeDasharray="1.4 2.6" opacity="0.55" />
-                  <path
-                    d="M7.5 26.5c4.8 4.6 16.2 4.6 21 0"
-                    strokeWidth="1.8"
-                    strokeDasharray="1.4 2.6"
-                    opacity="0.35"
-                  />
+                    {/* Lettres N/S, contre-tournées pour rester droites */}
+                    <text
+                      x="11"
+                      y="10.8"
+                      transform="rotate(-90 11 10.8)"
+                      textAnchor="middle"
+                      fontSize="6"
+                      fontWeight="800"
+                      fill="var(--camera-btn-bg, #1a1a1a)"
+                      stroke="none"
+                      fontFamily="Arial, Helvetica, sans-serif"
+                    >
+                      N
+                    </text>
+                    <text
+                      x="25"
+                      y="10.8"
+                      transform="rotate(-90 25 10.8)"
+                      textAnchor="middle"
+                      fontSize="6"
+                      fontWeight="800"
+                      fill="var(--camera-btn-bg, #1a1a1a)"
+                      stroke="none"
+                      fontFamily="Arial, Helvetica, sans-serif"
+                    >
+                      S
+                    </text>
+                  </g>
                 </svg>
               </button>
+
               {snapEnabled && (
                 <div className="snap-select-container">
                   <CustomSelect
