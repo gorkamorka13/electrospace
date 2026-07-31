@@ -193,10 +193,14 @@ export function PhysicsCanvas() {
               title={snapEnabled ? "Désactiver l'aimant" : "Activer l'aimant"}
               aria-label={snapEnabled ? "Désactiver l'aimant" : "Activer l'aimant"}
             >
-              <svg viewBox="0 0 36 36" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: '36px', height: '36px' }}>
-                <path d="M12 30V12a6 6 0 0 1 12 0v18" />
-                <path d="M12 27h-4a3 3 0 0 1 0-6h4" />
-                <path d="M24 27h4a3 3 0 0 0 0-6h-4" />
+              <svg viewBox="0 0 36 36" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ width: '36px', height: '36px' }}>
+                <path d="M13 26V12a5 5 0 0 1 10 0v14" />
+                <path d="M13 26H8.5v5H13" />
+                <path d="M23 26h4.5v5H23" />
+                <path d="M7.5 32c3.6 4 17.4 4 21 0" strokeDasharray="1.6 2.2" opacity="0.6" />
+                <path d="M9.5 33.2c2.2 1.8 14.6 1.8 16.8 0" strokeDasharray="1.6 2.2" opacity="0.6" />
+                <text x="10.75" y="29.9" textAnchor="middle" fontSize="6.5" fontWeight="800" fill="currentColor" stroke="none" fontFamily="Arial, Helvetica, sans-serif">N</text>
+                <text x="25.25" y="29.9" textAnchor="middle" fontSize="6.5" fontWeight="800" fill="currentColor" stroke="none" fontFamily="Arial, Helvetica, sans-serif">S</text>
               </svg>
             </button>
             {snapEnabled && (
