@@ -1,8 +1,7 @@
-import { useMemo } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Line } from '@react-three/drei'
-import * as THREE from 'three'
 import { useStore, UNIT_FACTORS } from '../store/useStore'
-import { traceFieldLine } from '../physics/coulomb'
+import { useFieldWorker } from '../hooks/useFieldWorker'
 
 export function ThroughMLine() {
   const charges = useStore((state) => state.charges)
@@ -11,36 +10,44 @@ export function ThroughMLine() {
   const showThroughMLine = useStore((state) => state.showThroughMLine)
   const chargeUnit = useStore((state) => state.chargeUnit)
   const theme = useStore((state) => state.theme)
+  const { compute } = useFieldWorker()
+  const [lineData, setLineData] = useState(null)
+  const cancelledRef = useRef(false)
 
-  const lineData = useMemo(() => {
-    if (!showThroughMLine || (charges.length === 0 && distributions.length === 0)) return null
+  useEffect(() => {
+    cancelledRef.current = true
+
+    if (!showThroughMLine || (charges.length === 0 && distributions.length === 0)) {
+      setLineData(null)
+      return
+    }
 
     const multiplier = UNIT_FACTORS[chargeUnit] || 1e-6
-    // When distributions are active, point charges are hidden and must not contribute
     const physicalCharges = distributions.length > 0 ? [] : charges.map(c => ({ ...c, q: c.q * multiplier }))
-
     const { ke, rMin } = useStore.getState()
-    const rStop = 0.6
-    const maxDist = 25
-    const maxSteps = 800
-    const stepSize = 0.15
-    const epsilon = 1e-25
-    const seed = new THREE.Vector3(...testPoint)
+    const opts = {
+      ke, rMin, rStop: 0.6, maxDist: 25, maxSteps: 800, stepSize: 0.15, epsilon: 1e-25,
+      distributions,
+    }
 
-    const forwardPts = traceFieldLine(seed, physicalCharges, {
-      ke, rMin, rStop, maxDist, maxSteps, stepSize, direction: 1, epsilon, distributions,
-    })
+    cancelledRef.current = false
 
-    const backwardPts = traceFieldLine(seed, physicalCharges, {
-      ke, rMin, rStop, maxDist, maxSteps, stepSize, direction: -1, epsilon, distributions,
-    })
+    Promise.all([
+      compute('traceFieldLine', { startPos: testPoint, charges: physicalCharges, opts: { ...opts, direction: 1 } }),
+      compute('traceFieldLine', { startPos: testPoint, charges: physicalCharges, opts: { ...opts, direction: -1 } }),
+    ])
+      .then(([forwardPts, backwardPts]) => {
+        if (cancelledRef.current) return
+        backwardPts.reverse()
+        const allPts = [...backwardPts, ...forwardPts]
+        if (allPts.length >= 2) setLineData(allPts)        else setLineData(null)
+      })
+      .catch(() => {
+        if (!cancelledRef.current) setLineData(null)
+      })
 
-    backwardPts.reverse()
-    const allPts = [...backwardPts, ...forwardPts]
-
-    if (allPts.length < 2) return null
-    return allPts
-  }, [charges, distributions, testPoint, showThroughMLine, chargeUnit])
+    return () => { cancelledRef.current = true }
+  }, [showThroughMLine, charges, distributions, chargeUnit, testPoint, compute])
 
   if (!showThroughMLine || !lineData) return null
 
