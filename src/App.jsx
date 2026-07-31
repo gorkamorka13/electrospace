@@ -23,6 +23,17 @@ function App() {
   const rootRef = useRef()
 
   useEffect(() => {
+    const handler = (e) => {
+      const pg = e.target.closest?.('.pg-window')
+      if (!pg) return
+      const id = pg.getAttribute('data-window')
+      if (id) useStore.getState().bringToFront(id)
+    }
+    document.addEventListener('pointerdown', handler, { capture: true })
+    return () => document.removeEventListener('pointerdown', handler, { capture: true })
+  }, [])
+
+  useEffect(() => {
     const handleKeyDown = (e) => {
       if (document.activeElement.tagName === 'INPUT') return
 

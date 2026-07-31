@@ -10,6 +10,7 @@ const AXIS_RANGE = 10
 const MIN_W = 200
 const MIN_H = 140
 const MARGIN = 10
+const CASCADE = 28
 
 const FIELD_OPTIONS = [
   { key: 'ex', label: 'Ex' },
@@ -166,8 +167,28 @@ export function FieldGraph() {
   const [data, setData] = useState(null)
   const dataVersionRef = useRef(0)
 
+  // Cascade window position on open to avoid total overlap
+  useEffect(() => {
+    if (!show) return
+    if (!useStore.getState().showPotentialXGraph) return
+    let other = null
+    try { other = JSON.parse(localStorage.getItem('pgxWin') || 'null') } catch { other = null }
+    if (!other || typeof other.x !== 'number') return
+    setWinRaw(prev => {
+      const ow = other.w || 300, oh = other.h || 180
+      const ix = Math.max(0, Math.min(prev.x + prev.w, other.x + ow) - Math.max(prev.x, other.x))
+      const iy = Math.max(0, Math.min(prev.y + prev.h, other.y + oh) - Math.max(prev.y, other.y))
+      const inter = ix * iy
+      const area = Math.min(prev.w * prev.h, ow * oh)
+      if (area > 0 && inter / area > 0.5) {
+        const next = clampPos(prev.x + CASCADE, prev.y + CASCADE, prev.w, prev.h)
+        return { ...next, w: prev.w, h: prev.h }
+      }
+      return prev
+    })
+  }, [show])
+
   const zIndex = useStore((s) => s.fieldGraphZ)
-  const bringToFront = useStore((s) => s.bringToFront)
 
   // Real-time cursor position derived from testPoint — no setState in effects
   const cursorPos = useMemo(() => {
@@ -371,12 +392,11 @@ export function FieldGraph() {
   if (!show || !data) return null
 
   return (
-    <div className="pg-window" ref={winRef} style={{ left: x, top: y, width: w, height: minimized ? 'auto' : h, minHeight: minimized ? 'auto' : undefined, zIndex }}
+    <div className="pg-window" ref={winRef} style={{ left: x, top: y, width: w, height: minimized ? 'auto' : h, minHeight: minimized ? 'auto' : undefined, zIndex }} data-window="fieldGraph"
       onMouseDown={(e) => e.stopPropagation()}
       onWheel={(e) => e.stopPropagation()}
       onTouchStart={(e) => e.stopPropagation()}
       onPointerDown={(e) => {
-        bringToFront('fieldGraph')
         e.stopPropagation()
         if (e.target.closest?.('select, button, .pg-close, .pg-minimize, .pg-axis-select, .pg-export-btn, .pg-resize')) return
         const header = e.target.closest?.('.pg-header')

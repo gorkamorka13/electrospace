@@ -404,6 +404,7 @@ export function Sidebar() {
   const setShowFieldGraph = useStore((s) => s.setShowFieldGraph)
   const showPotentialXGraph = useStore((s) => s.showPotentialXGraph)
   const setShowPotentialXGraph = useStore((s) => s.setShowPotentialXGraph)
+  const bringToFront = useStore((s) => s.bringToFront)
   const showIndividualFields = useStore((s) => s.showIndividualFields)
   const setShowIndividualFields = useStore((s) => s.setShowIndividualFields)
 
@@ -747,11 +748,17 @@ export function Sidebar() {
                   <span>Afficher les lignes de champ</span>
                 </label>
                 <label className="toggle-row">
-                  <input type="checkbox" checked={showFieldGraph} onChange={(e) => setShowFieldGraph(e.target.checked)} />
+                  <input type="checkbox" checked={showFieldGraph} onChange={(e) => {
+                    setShowFieldGraph(e.target.checked)
+                    if (e.target.checked) bringToFront('fieldGraph')
+                  }} />
                   <span>Afficher le graphique E(x)</span>
                 </label>
                 <label className="toggle-row">
-                  <input type="checkbox" checked={showPotentialXGraph} onChange={(e) => setShowPotentialXGraph(e.target.checked)} />
+                  <input type="checkbox" checked={showPotentialXGraph} onChange={(e) => {
+                    setShowPotentialXGraph(e.target.checked)
+                    if (e.target.checked) bringToFront('potentialGraph')
+                  }} />
                   <span>Afficher le graphique V(x)</span>
                 </label>
                 <label className="toggle-row" style={distributions.length > 0 ? { opacity: 0.4, pointerEvents: 'none' } : {}}>

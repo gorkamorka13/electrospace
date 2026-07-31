@@ -10,6 +10,7 @@ const AXIS_RANGE = 10
 const MIN_W = 200
 const MIN_H = 140
 const MARGIN = 10
+const CASCADE = 28
 
 function clampPos(x, y, w, h) {
   const mw = window.innerWidth, mh = window.innerHeight
@@ -69,7 +70,6 @@ export function PotentialXGraph() {
   useEffect(() => { axisRangeRef.current = axisRange }, [axisRange])
   const [minimized, setMinimized] = useState(false)
   const zIndex = useStore((s) => s.potentialGraphZ)
-  const bringToFront = useStore((s) => s.bringToFront)
 
   const updateTestPoint = useStore((s) => s.updateTestPoint)
   const storeTestPoint = useStore((s) => s.testPoint)
@@ -171,6 +171,27 @@ export function PotentialXGraph() {
 
   const [data, setData] = useState(null)
   const dataVersionRef = useRef(0)
+
+  // Cascade window position on open to avoid total overlap
+  useEffect(() => {
+    if (!show) return
+    if (!useStore.getState().showFieldGraph) return
+    let other = null
+    try { other = JSON.parse(localStorage.getItem('efWin') || 'null') } catch { other = null }
+    if (!other || typeof other.x !== 'number') return
+    setWinRaw(prev => {
+      const ow = other.w || 300, oh = other.h || 180
+      const ix = Math.max(0, Math.min(prev.x + prev.w, other.x + ow) - Math.max(prev.x, other.x))
+      const iy = Math.max(0, Math.min(prev.y + prev.h, other.y + oh) - Math.max(prev.y, other.y))
+      const inter = ix * iy
+      const area = Math.min(prev.w * prev.h, ow * oh)
+      if (area > 0 && inter / area > 0.5) {
+        const next = clampPos(prev.x + CASCADE, prev.y + CASCADE, prev.w, prev.h)
+        return { ...next, w: prev.w, h: prev.h }
+      }
+      return prev
+    })
+  }, [show])
 
   const { computePotentialGrid } = useFieldWorker()
 
@@ -361,11 +382,10 @@ export function PotentialXGraph() {
   if (!show || !data) return null
 
   return (
-    <div className="pg-window" ref={winRef} style={{ left: x, top: y, width: w, height: minimized ? 'auto' : h, minHeight: minimized ? 'auto' : undefined, zIndex }}
+    <div className="pg-window" ref={winRef} style={{ left: x, top: y, width: w, height: minimized ? 'auto' : h, minHeight: minimized ? 'auto' : undefined, zIndex }} data-window="potentialGraph"
       onMouseDown={(e) => e.stopPropagation()}
       onWheel={(e) => e.stopPropagation()}
       onTouchStart={(e) => e.stopPropagation()}
-      onPointerDownCapture={() => bringToFront('potentialGraph')}
       onPointerDown={(e) => {
         e.stopPropagation()
         if (e.target.closest?.('select, button, .pg-close, .pg-minimize, .pg-axis-select, .pg-export-btn, .pg-resize')) return
