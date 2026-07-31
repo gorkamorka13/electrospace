@@ -1,6 +1,6 @@
-import { useRef, useEffect, useMemo, useState, useCallback } from 'react'
+import { useRef, useEffect, useState, useCallback } from 'react'
 import { useStore, UNIT_FACTORS } from '../store/useStore'
-import { calculateTotalField } from '../physics/coulomb'
+import { calculateTotalPotential } from '../physics/coulomb'
 import { CustomSelect } from './CustomSelect'
 import { useFieldWorker } from '../hooks/useFieldWorker'
 
@@ -10,18 +10,6 @@ const AXIS_RANGE = 10
 const MIN_W = 200
 const MIN_H = 140
 const MARGIN = 10
-
-const FIELD_OPTIONS = [
-  { key: 'ex', label: 'Ex' },
-  { key: 'ey', label: 'Ey' },
-  { key: 'ez', label: 'Ez' },
-  { key: 'mag', label: '|E|' },
-]
-const SWEEP_OPTIONS = [
-  { key: 'x', label: 'X' },
-  { key: 'y', label: 'Y' },
-  { key: 'z', label: 'Z' },
-]
 
 function clampPos(x, y, w, h) {
   const mw = window.innerWidth, mh = window.innerHeight
@@ -44,12 +32,18 @@ function triggerWindowRaf(windowDragRef, winRef) {
   })
 }
 
-export function FieldGraph() {
-  const canvasRef = useRef()
+const AXIS_LABELS = { x: 'X', y: 'Y', z: 'Z' }
+const AXIS_OPTIONS = [
+  { key: 'x', label: 'X' },
+  { key: 'y', label: 'Y' },
+  { key: 'z', label: 'Z' },
+]
+
+export function PotentialXGraph() {
   const [win, setWinRaw] = useState(() => {
-    const saved = typeof window !== 'undefined' ? localStorage.getItem('efWin') : null
+    const saved = typeof window !== 'undefined' ? localStorage.getItem('pgxWin') : null
     let parsed = null
-    if (saved) { try { parsed = JSON.parse(saved) } catch { /* ignore parse errors */ } }
+    if (saved) { try { parsed = JSON.parse(saved) } catch { /* ignore */ } }
     const defW = window.innerWidth < 768 ? Math.min(220, window.innerWidth - 30) : 300
     const defH = 180
     if (parsed && typeof parsed.x === 'number') {
@@ -57,33 +51,34 @@ export function FieldGraph() {
       const h = Math.min(parsed.h || defH, window.innerHeight - 2 * MARGIN)
       return { ...clampPos(parsed.x, parsed.y || 60, w, h), w, h }
     }
-    return { ...clampPos(window.innerWidth - defW - 20, 60, defW, defH), w: defW, h: defH }
+    return { ...clampPos(window.innerWidth - defW - 20, window.innerHeight - defH - 80, defW, defH), w: defW, h: defH }
   })
+  const canvasRef = useRef()
   const winRef = useRef(null)
-  const windowDragCleanupRef = useRef(null)
-  const resizeCleanupRef = useRef(null)
-  const windowDragRef = useRef({ dragging: false, x: 0, y: 0, rafScheduled: false })
-  const show = useStore((s) => s.showFieldGraph)
-  const setShow = useStore((s) => s.setShowFieldGraph)
+  const windowDragRef = useRef({ x: 0, y: 0, rafScheduled: false, dragging: false })
+  const show = useStore((s) => s.showPotentialXGraph)
+  const setShow = useStore((s) => s.setShowPotentialXGraph)
   const charges = useStore((s) => s.charges)
   const distributions = useStore((s) => s.distributions)
   const chargeUnit = useStore((s) => s.chargeUnit)
   const testPoint = useStore((s) => s.testPoint)
   const theme = useStore((s) => s.theme)
-  const [fieldKey, setFieldKey] = useState('ex')
-  const [sweepAxis, setSweepAxis] = useState('x')
+  const [potAxis, setPotAxis] = useState('x')
   const [axisRange, setAxisRange] = useState(AXIS_RANGE)
   const axisRangeRef = useRef(axisRange)
   useEffect(() => { axisRangeRef.current = axisRange }, [axisRange])
   const [minimized, setMinimized] = useState(false)
-
+  const zIndex = useStore((s) => s.potentialGraphZ)
+  const bringToFront = useStore((s) => s.bringToFront)
 
   const updateTestPoint = useStore((s) => s.updateTestPoint)
   const storeTestPoint = useStore((s) => s.testPoint)
   const canvasDragRef = useRef(false)
 
   // Separate cleanup refs for each drag operation
+  const windowDragCleanupRef = useRef(null)
   const canvasDragCleanupRef = useRef(null)
+  const resizeCleanupRef = useRef(null)
 
   useEffect(() => {
     return () => {
@@ -114,13 +109,13 @@ export function FieldGraph() {
     if (px < PAD || px > PAD + plotW || py < PAD || py > PAD + plotH) return
     canvas.setPointerCapture(e.pointerId)
     canvasDragRef.current = true
-    const axisIdx = 'xyz'.indexOf(sweepAxis)
+    const axisIdx = potAxis === 'x' ? 0 : potAxis === 'y' ? 1 : 2
     const curAR = axisRangeRef.current
     const t = Math.max(-curAR, Math.min(curAR, ((px - PAD) / plotW) * (curAR * 2) - curAR))
     const newPos = [...storeTestPoint]
     newPos[axisIdx] = t
     updateTestPoint(newPos)
-  }, [sweepAxis, storeTestPoint, updateTestPoint])
+  }, [potAxis, storeTestPoint, updateTestPoint])
 
   const handleCanvasPointerMove = useCallback((e) => {
     e.stopPropagation()
@@ -130,13 +125,13 @@ export function FieldGraph() {
     const rect = canvas.getBoundingClientRect()
     const plotW = canvas.width - PAD * 2
     const px = e.clientX - rect.left
-    const axisIdx = 'xyz'.indexOf(sweepAxis)
+    const axisIdx = potAxis === 'x' ? 0 : potAxis === 'y' ? 1 : 2
     const curAR = axisRangeRef.current
     const t = Math.max(-curAR, Math.min(curAR, ((px - PAD) / plotW) * (curAR * 2) - curAR))
     const newPos = [...useStore.getState().testPoint]
     newPos[axisIdx] = t
     updateTestPoint(newPos)
-  }, [sweepAxis, updateTestPoint])
+  }, [potAxis, updateTestPoint])
 
   const handleCanvasPointerUp = useCallback((e) => {
     if (!canvasDragRef.current) return
@@ -154,7 +149,7 @@ export function FieldGraph() {
   }, [])
 
   useEffect(() => {
-    if (typeof window !== 'undefined') localStorage.setItem('efWin', JSON.stringify({ x, y, w, h }))
+    if (typeof window !== 'undefined') localStorage.setItem('pgxWin', JSON.stringify({ x, y, w, h }))
   }, [x, y, w, h])
 
   useEffect(() => {
@@ -163,25 +158,21 @@ export function FieldGraph() {
     return () => window.removeEventListener('resize', onResize)
   }, [setWin])
 
-  const [data, setData] = useState(null)
-  const dataVersionRef = useRef(0)
-
-  const zIndex = useStore((s) => s.fieldGraphZ)
-  const bringToFront = useStore((s) => s.bringToFront)
-
-  // Real-time cursor position derived from testPoint — no setState in effects
-  const cursorPos = useMemo(() => {
-    if (!show) return { testPos: 0, testVal: 0 }
+  // Real-time cursor position derived from testPoint — inline, no hook
+  const cursorPos = (() => {
+    if (!show) return { testPos: 0, testV: 0 }
     const multiplier = UNIT_FACTORS[chargeUnit] || 1e-6
     const physicalCharges = distributions.length > 0 ? [] : charges.map(c => ({ ...c, q: c.q * multiplier }))
     const { ke, rMin } = useStore.getState()
-    const axisIndex = 'xyz'.indexOf(sweepAxis)
-    const E = calculateTotalField(physicalCharges, testPoint, ke, rMin, distributions)
-    const testVal = fieldKey === 'mag' ? E.length() : E[fieldKey[1]]
-    return { testPos: testPoint[axisIndex], testVal }
-  }, [show, testPoint, charges, distributions, chargeUnit, fieldKey, sweepAxis])
+    const axisIdx = potAxis === 'x' ? 0 : potAxis === 'y' ? 1 : 2
+    const V = calculateTotalPotential(physicalCharges, testPoint, ke, rMin, distributions)
+    return { testPos: testPoint[axisIdx], testV: V }
+  })()
 
-  const { computeFieldGrid } = useFieldWorker()
+  const [data, setData] = useState(null)
+  const dataVersionRef = useRef(0)
+
+  const { computePotentialGrid } = useFieldWorker()
 
   useEffect(() => {
     if (!show) return
@@ -189,41 +180,38 @@ export function FieldGraph() {
     const multiplier = UNIT_FACTORS[chargeUnit] || 1e-6
     const physicalCharges = distributions.length > 0 ? [] : charges.map(c => ({ ...c, q: c.q * multiplier }))
     const { ke, rMin } = useStore.getState()
-    const axisIndex = 'xyz'.indexOf(sweepAxis)
+    const axisIdx = potAxis === 'x' ? 0 : potAxis === 'y' ? 1 : 2
     const positions = []
     for (let i = 0; i < SAMPLES; i++) {
       const t = (i / (SAMPLES - 1)) * (axisRange * 2) - axisRange
       const p = [0, 0, 0]
-      p[axisIndex] = t
+      p[axisIdx] = t
       positions.push(p)
     }
 
-    computeFieldGrid(physicalCharges, positions, distributions, ke, rMin)
-      .then((fields) => {
+    computePotentialGrid(physicalCharges, positions, distributions, ke, rMin)
+      .then((values) => {
         if (version !== dataVersionRef.current) return
         const pts = []
-        let minVal = Infinity, maxVal = -Infinity
-        for (let i = 0; i < fields.length; i++) {
+        let minV = Infinity, maxV = -Infinity
+        for (let i = 0; i < values.length; i++) {
           const t = (i / (SAMPLES - 1)) * (axisRange * 2) - axisRange
-          const E = fields[i]
-          const val = fieldKey === 'mag' ? Math.sqrt(E.x * E.x + E.y * E.y + E.z * E.z) : E[fieldKey[1]]
-          pts.push({ t, val })
-          if (val < minVal) minVal = val
-          if (val > maxVal) maxVal = val
+          const V = values[i]
+          pts.push({ t, V })
+          if (V < minV) minV = V
+          if (V > maxV) maxV = V
         }
-        const absMax = Math.max(Math.abs(minVal), Math.abs(maxVal), 1e-30)
-        if (fieldKey !== 'mag') { minVal = -absMax; maxVal = absMax }
-        const range = Math.max(maxVal - minVal, 1e-30)
-        const testE = fields[Math.round((testPoint[axisIndex] + axisRange) / (axisRange * 2) * (SAMPLES - 1))] || fields[0]
-        const testVal = fieldKey === 'mag' ? Math.sqrt(testE.x * testE.x + testE.y * testE.y + testE.z * testE.z) : testE[fieldKey[1]]
-        setData({ pts, minVal, maxVal, range, testPos: testPoint[axisIndex], testVal })
+        const absMax = Math.max(Math.abs(minV), Math.abs(maxV), 1e-30)
+        minV = -absMax; maxV = absMax
+        const range = Math.max(maxV - minV, 1e-30)
+        const closest = Math.round((testPoint[axisIdx] + axisRange) / (axisRange * 2) * (SAMPLES - 1))
+        const testV = values[Math.max(0, Math.min(closest, values.length - 1))]
+        setData({ pts, minV, maxV, range, testPos: testPoint[axisIdx], testV, axisLabel: AXIS_LABELS[potAxis] })
       })
-      .catch((err) => { console.error('FieldGraph worker error:', err); if (version === dataVersionRef.current) setData(null) })
+      .catch(() => { if (version === dataVersionRef.current) setData(null) })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [show, charges, distributions, chargeUnit, fieldKey, sweepAxis, axisRange])
+  }, [show, charges, distributions, chargeUnit, potAxis, axisRange])
   // Note: testPoint intentionally NOT in deps above — we don't restart async calc on every drag frame
-
-  const colors = useMemo(() => ({ mag: '#f59e0b', ex: '#ef4444', ey: '#22c55e', ez: '#3b82f6' }), [])
 
   useEffect(() => {
     if (!show || !data || !canvasRef.current) return
@@ -248,6 +236,7 @@ export function FieldGraph() {
     const gridColor = isDark ? 'rgba(255,255,255,0.07)' : 'rgba(15,23,42,0.08)'
     const axisColor = isDark ? 'rgba(255,255,255,0.3)' : 'rgba(15,23,42,0.2)'
     const labelColor = isDark ? 'rgba(255,255,255,0.35)' : 'rgba(15,23,42,0.55)'
+    const titleColor = isDark ? 'rgba(255,255,255,0.7)' : 'rgba(15,23,42,0.75)'
     const infoColor = isDark ? 'rgba(255,255,255,0.4)' : 'rgba(15,23,42,0.6)'
 
     ctx.strokeStyle = borderColor
@@ -263,7 +252,7 @@ export function FieldGraph() {
     }
 
     const xScale = (t) => PAD + ((t + axisRange) / (axisRange * 2)) * plotW
-    const yScale = (v) => PAD + (1 - (v - data.minVal) / data.range) * plotH
+    const yScale = (v) => PAD + (1 - (v - data.minV) / data.range) * plotH
 
     const axisY = yScale(0)
     ctx.strokeStyle = axisColor
@@ -291,20 +280,20 @@ export function FieldGraph() {
     }
     ctx.fillStyle = labelColor
     ctx.font = '11px monospace'
-    ctx.fillText(sweepAxis + ' (m)', PAD + plotW + 2, axisY + 3)
+    ctx.fillText(`${data.axisLabel.toLowerCase()} (m)`, PAD + plotW + 2, axisY + 3)
 
     ctx.beginPath()
     for (let i = 0; i < data.pts.length; i++) {
       const px = xScale(data.pts[i].t)
-      const py = yScale(data.pts[i].val)
+      const py = yScale(data.pts[i].V)
       if (i === 0) ctx.moveTo(px, py)
       else ctx.lineTo(px, py)
     }
-    ctx.strokeStyle = colors[fieldKey]
-    ctx.lineWidth = 1.8
+    ctx.strokeStyle = '#4ade80'
+    ctx.lineWidth = 1.5
     ctx.stroke()
 
-    // Yellow cursor line showing current test point position
+    // Yellow cursor from derived position
     const cx = xScale(cursorPos.testPos)
     ctx.beginPath()
     ctx.moveTo(cx, PAD)
@@ -315,7 +304,7 @@ export function FieldGraph() {
     ctx.stroke()
     ctx.setLineDash([])
 
-    const cy = yScale(cursorPos.testVal)
+    const cy = yScale(cursorPos.testV)
     ctx.beginPath()
     ctx.arc(cx, cy, 3, 0, Math.PI * 2)
     ctx.fillStyle = '#fbbf24'
@@ -326,15 +315,16 @@ export function FieldGraph() {
     ctx.rotate(-Math.PI / 2)
     ctx.fillStyle = labelColor
     ctx.font = '11px monospace'
-    ctx.fillText(`${FIELD_OPTIONS.find(o => o.key === fieldKey)?.label} (V/m)`, -22, 0)
+    ctx.fillText('V (V)', -16, 0)
     ctx.restore()
+
+    // Title text removed — axis label and cursor info are sufficient
     ctx.fillStyle = infoColor
     ctx.font = '13px monospace'
-    const flabel = FIELD_OPTIONS.find(o => o.key === fieldKey)?.label || ''
     const si = Math.round((cursorPos.testPos + axisRange) / (axisRange * 2) * (data.pts.length - 1))
-    const sv = data.pts[Math.max(0, Math.min(si, data.pts.length - 1))]?.val ?? 0
-    ctx.fillText(`M: ${flabel}=${cursorPos.testVal.toExponential(2)}  Balayage: ${flabel}=${sv.toExponential(2)} V/m`, PAD + 4, PAD + plotH - 4)
-  }, [show, data, fieldKey, colors, theme, sweepAxis, cursorPos, axisRange])
+    const sv = data.pts[Math.max(0, Math.min(si, data.pts.length - 1))]?.V ?? 0
+    ctx.fillText(`M: V=${cursorPos.testV.toExponential(2)}  Balayage: V=${sv.toExponential(2)} V`, PAD + 4, PAD + plotH - 4)
+  }, [show, data, w, h, theme, cursorPos, axisRange])
 
   const winRefState = useRef(win)
   useEffect(() => { winRefState.current = win }, [win])
@@ -343,22 +333,22 @@ export function FieldGraph() {
     const canvas = canvasRef.current
     if (!canvas) return
     const link = document.createElement('a')
-    link.download = `field-graph-${sweepAxis}-${fieldKey}.png`
+    link.download = `potential-graph-${potAxis}.png`
     link.href = canvas.toDataURL('image/png')
     link.click()
-  }, [sweepAxis, fieldKey])
+  }, [potAxis])
 
   const exportCsv = useCallback(() => {
     if (!data) return
-    const header = `position_${sweepAxis}_m,${fieldKey}_Vm\n`
-    const rows = data.pts.map(p => `${p.t},${p.val}`).join('\n')
+    const header = `position_${potAxis}_m,V_V\n`
+    const rows = data.pts.map(p => `${p.t},${p.V}`).join('\n')
     const blob = new Blob([header + rows], { type: 'text/csv' })
     const link = document.createElement('a')
-    link.download = `field-graph-${sweepAxis}-${fieldKey}.csv`
+    link.download = `potential-graph-${potAxis}.csv`
     link.href = URL.createObjectURL(blob)
     link.click()
     URL.revokeObjectURL(link.href)
-  }, [data, sweepAxis, fieldKey])
+  }, [data, potAxis])
 
   const handleWheel = useCallback((e) => {
     e.preventDefault()
@@ -376,7 +366,7 @@ export function FieldGraph() {
       onWheel={(e) => e.stopPropagation()}
       onTouchStart={(e) => e.stopPropagation()}
       onPointerDown={(e) => {
-        bringToFront('fieldGraph')
+        bringToFront('potentialGraph')
         e.stopPropagation()
         if (e.target.closest?.('select, button, .pg-close, .pg-minimize, .pg-axis-select, .pg-export-btn, .pg-resize')) return
         const header = e.target.closest?.('.pg-header')
@@ -386,6 +376,7 @@ export function FieldGraph() {
         // Pointer capture ensures we get pointermove even outside the element
         try { header.setPointerCapture(e.pointerId) } catch { /* ignore */ }
         const cur = winRefState.current
+        // Store the start position (the actual visual left/top from React state)
         const startX = cur.x
         const startY = cur.y
         const startMouseX = e.clientX
@@ -398,8 +389,10 @@ export function FieldGraph() {
         const mv = (ev) => {
           const cw = winRefState.current.w
           const ch = winRefState.current.h
+          // Compute delta from drag start — transform is relative to left/top
           const dx = ev.clientX - startMouseX
           const dy = ev.clientY - startMouseY
+          // Clamp so that (startX + dx, startY + dy) stays within bounds
           const clampedDx = Math.max(MARGIN - startX, Math.min(dx, window.innerWidth - cw - MARGIN - startX))
           const clampedDy = Math.max(MARGIN - startY, Math.min(dy, window.innerHeight - ch - MARGIN - startY))
           windowDragRef.current.x = clampedDx
@@ -413,10 +406,12 @@ export function FieldGraph() {
           window.removeEventListener('pointermove', mv)
           window.removeEventListener('pointerup', up)
           windowDragCleanupRef.current = null
+          // Commit final position to React state
           const cw = winRefState.current.w
           const ch = winRefState.current.h
           const finalX = Math.max(MARGIN, Math.min(startX + windowDragRef.current.x, window.innerWidth - cw - MARGIN))
           const finalY = Math.max(MARGIN, Math.min(startY + windowDragRef.current.y, window.innerHeight - ch - MARGIN))
+          // Remove CSS transform and apply final position via left/top
           if (winRef.current) {
             winRef.current.style.transform = ''
             winRef.current.style.left = finalX + 'px'
@@ -435,13 +430,12 @@ export function FieldGraph() {
         }
       }}
     >
-      <div className="pg-header">
+<div className="pg-header">
         <span className="pg-title">
-          E({sweepAxis})<span className="pg-title-full"> — balayage selon {sweepAxis.toUpperCase()}</span>
+          V({potAxis})<span className="pg-title-full"> — balayage selon {potAxis.toUpperCase()}</span>
         </span>
-        <CustomSelect value={sweepAxis} options={SWEEP_OPTIONS} onChange={setSweepAxis} />
-        <CustomSelect value={fieldKey} options={FIELD_OPTIONS} onChange={setFieldKey} />
-        <span className="pg-test-val" style={{ color: colors[fieldKey] }}>{data.testVal.toExponential(2)} V/m</span>
+        <CustomSelect value={potAxis} options={AXIS_OPTIONS} onChange={setPotAxis} />
+        <span className="pg-test-val" style={{ color: '#4ade80' }}>{data.testV.toExponential(2)} V</span>
         <button className="pg-export-btn" onClick={exportPng} title="Exporter PNG">🖼</button>
         <button className="pg-export-btn" onClick={exportCsv} title="Copier CSV">📋</button>
         <button className="pg-minimize-btn" onClick={() => setMinimized(!minimized)} title={minimized ? 'Agrandir' : 'Réduire'}>{minimized ? '□' : '—'}</button>
@@ -474,17 +468,13 @@ export function FieldGraph() {
             const up = (ev) => {
               useStore.getState().setDragging(false)
               try { target.releasePointerCapture(ev.pointerId) } catch { /* ignore */ }
-              window.removeEventListener('pointermove', mv)
-              window.removeEventListener('pointerup', up)
-              resizeCleanupRef.current = null
+              window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', up); resizeCleanupRef.current = null
             }
-            window.addEventListener('pointermove', mv)
-            window.addEventListener('pointerup', up)
+            window.addEventListener('pointermove', mv); window.addEventListener('pointerup', up)
             resizeCleanupRef.current = () => {
               useStore.getState().setDragging(false)
               try { target.releasePointerCapture(e.pointerId) } catch { /* ignore */ }
-              window.removeEventListener('pointermove', mv)
-              window.removeEventListener('pointerup', up)
+              window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', up)
             }
           }}
         />

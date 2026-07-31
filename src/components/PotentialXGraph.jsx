@@ -172,14 +172,6 @@ export function PotentialXGraph() {
   const [data, setData] = useState(null)
   const dataVersionRef = useRef(0)
 
-  useEffect(() => {
-    const el = winRef.current
-    if (!el) return
-    const handler = () => bringToFront('potentialGraph')
-    el.addEventListener('mousedown', handler)
-    return () => el.removeEventListener('mousedown', handler)
-  }, [show, data, bringToFront])
-
   const { computePotentialGrid } = useFieldWorker()
 
   useEffect(() => {
@@ -373,6 +365,7 @@ export function PotentialXGraph() {
       onMouseDown={(e) => e.stopPropagation()}
       onWheel={(e) => e.stopPropagation()}
       onTouchStart={(e) => e.stopPropagation()}
+      onPointerDownCapture={() => bringToFront('potentialGraph')}
       onPointerDown={(e) => {
         e.stopPropagation()
         if (e.target.closest?.('select, button, .pg-close, .pg-minimize, .pg-axis-select, .pg-export-btn, .pg-resize')) return

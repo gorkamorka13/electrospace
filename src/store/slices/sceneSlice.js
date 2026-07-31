@@ -115,8 +115,8 @@ export const createSceneSlice = (set, get) => ({
   testPoint: [1, 0.5, 2],
   freeCharges: {},
   distributions: [],
-  fieldGraphZ: 10,
-  potentialGraphZ: 10,
+  fieldGraphZ: 1000,
+  potentialGraphZ: 1001,
   history: [],
   future: [],
 
