@@ -1032,7 +1032,7 @@ export function Sidebar() {
 
                 <div className="flex-col gap-2 mt-3">
                   <div className="flex-row:sb">
-                    <span className="label">Échelle des flèches</span>
+                    <span className="label">Échelle flèches champ E & forces F</span>
                     <span className="value font-mono">{vectorScale.toFixed(1)}x</span>
                   </div>
                   <input type="range" min="0.1" max="10.0" step="0.1" value={vectorScale}
