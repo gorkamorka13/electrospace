@@ -1280,6 +1280,18 @@ body, html, #root {
   font-weight: 600;
   color: var(--text-primary);
   white-space: nowrap;
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pg-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-left: auto;
+  flex-shrink: 0;
 }
 
 .pg-title-full {
@@ -1533,6 +1545,9 @@ body, html, #root {
   .pg-close {
     font-size: 0.85rem;
     padding: 0 0.15rem;
+  }
+  .pg-header-actions {
+    gap: 0.15rem;
   }
 }
 

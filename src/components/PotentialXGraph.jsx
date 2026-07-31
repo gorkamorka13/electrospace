@@ -485,11 +485,12 @@ export function PotentialXGraph() {
           V({potAxis})<span className="pg-title-full"> — balayage selon {potAxis.toUpperCase()}</span>
         </span>
         <CustomSelect value={potAxis} options={AXIS_OPTIONS} onChange={setPotAxis} />
-        <span className="pg-test-val" style={{ color: curveColor }}>{data.testV.toExponential(2)} V</span>
-        <button className="pg-export-btn" onClick={exportPng} title="Exporter PNG">🖼</button>
-        <button className="pg-export-btn" onClick={exportCsv} title="Copier CSV">📋</button>
-        <button className="pg-minimize-btn" onClick={() => setMinimized(!minimized)} title={minimized ? 'Agrandir' : 'Réduire'}>{minimized ? '□' : '—'}</button>
-        <button className="pg-close" onClick={() => setShow(false)}>&times;</button>
+        <div className="pg-header-actions">
+          <button className="pg-export-btn" onClick={exportPng} title="Exporter PNG">🖼</button>
+          <button className="pg-export-btn" onClick={exportCsv} title="Copier CSV">📋</button>
+          <button className="pg-minimize-btn" onClick={() => setMinimized(!minimized)} title={minimized ? 'Agrandir' : 'Réduire'}>{minimized ? '□' : '—'}</button>
+          <button className="pg-close" onClick={() => setShow(false)}>&times;</button>
+        </div>
       </div>
         <div className="pg-body" style={{ display: minimized ? 'none' : undefined }}>
           <canvas ref={canvasRef} className="pg-canvas"

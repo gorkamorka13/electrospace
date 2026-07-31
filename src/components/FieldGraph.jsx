@@ -490,11 +490,12 @@ export function FieldGraph() {
         </span>
         <CustomSelect value={sweepAxis} options={SWEEP_OPTIONS} onChange={setSweepAxis} />
         <CustomSelect value={fieldKey} options={FIELD_OPTIONS} onChange={setFieldKey} />
-        <span className="pg-test-val" style={{ color: curveColor }}>{data.testVal.toExponential(2)} V/m</span>
-        <button className="pg-export-btn" onClick={exportPng} title="Exporter PNG">🖼</button>
-        <button className="pg-export-btn" onClick={exportCsv} title="Copier CSV">📋</button>
-        <button className="pg-minimize-btn" onClick={() => setMinimized(!minimized)} title={minimized ? 'Agrandir' : 'Réduire'}>{minimized ? '□' : '—'}</button>
-        <button className="pg-close" onClick={() => setShow(false)}>&times;</button>
+        <div className="pg-header-actions">
+          <button className="pg-export-btn" onClick={exportPng} title="Exporter PNG">🖼</button>
+          <button className="pg-export-btn" onClick={exportCsv} title="Copier CSV">📋</button>
+          <button className="pg-minimize-btn" onClick={() => setMinimized(!minimized)} title={minimized ? 'Agrandir' : 'Réduire'}>{minimized ? '□' : '—'}</button>
+          <button className="pg-close" onClick={() => setShow(false)}>&times;</button>
+        </div>
       </div>
         <div className="pg-body" style={{ display: minimized ? 'none' : undefined }}>
           <canvas ref={canvasRef} className="pg-canvas"
