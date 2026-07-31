@@ -423,6 +423,8 @@ export function Sidebar() {
   const setShowForces = useStore((s) => s.setShowForces)
   const showFieldLines = useStore((s) => s.showFieldLines)
   const setShowFieldLines = useStore((s) => s.setShowFieldLines)
+  const integrationMethod = useStore((s) => s.integrationMethod)
+  const setIntegrationMethod = useStore((s) => s.setIntegrationMethod)
 
   const activeView = useStore((s) => s.activeView)
   const setActiveView = useStore((s) => s.setActiveView)
@@ -758,6 +760,23 @@ export function Sidebar() {
                   <input type="checkbox" checked={showFieldLines} onChange={(e) => setShowFieldLines(e.target.checked)} />
                   <span>Afficher les lignes de champ</span>
                 </label>
+                {showFieldLines && (
+                  <div className="flex-row gap-2" style={{ padding: '0.3rem 0 0.3rem 1.5rem', alignItems: 'center' }}>
+                    <span className="label" style={{ fontSize: '0.75rem', whiteSpace: 'nowrap' }}>Méthode :</span>
+                    <button className={`btn-unit ${integrationMethod === 'euler' ? 'active' : ''}`}
+                      onClick={() => setIntegrationMethod('euler')}
+                      title="Méthode d'Euler (ordre 1) — rapide mais moins précise"
+                    >
+                      Euler
+                    </button>
+                    <button className={`btn-unit ${integrationMethod === 'rk4' ? 'active' : ''}`}
+                      onClick={() => setIntegrationMethod('rk4')}
+                      title="Runge-Kutta 4 (ordre 4) — plus précise, lignes plus lisses"
+                    >
+                      RK4
+                    </button>
+                  </div>
+                )}
                 <label className="toggle-row">
                   <input type="checkbox" checked={showFieldGraph} onChange={(e) => {
                     setShowFieldGraph(e.target.checked)

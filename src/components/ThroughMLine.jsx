@@ -40,7 +40,7 @@ export function ThroughMLine() {
         if (cancelledRef.current) return
         backwardPts.reverse()
         const allPts = [...backwardPts, ...forwardPts]
-        if (allPts.length >= 2) setLineData(allPts)        else setLineData(null)
+        setLineData(allPts.length >= 2 ? allPts : null)
       })
       .catch(() => {
         if (!cancelledRef.current) setLineData(null)

@@ -103,6 +103,7 @@ function snapshot(state) {
     gaussSurfaceDepth: state.gaussSurfaceDepth,
     gaussCenter: [...state.gaussCenter],
     showTestPoint: state.showTestPoint,
+    integrationMethod: state.integrationMethod,
   }
 }
 

@@ -378,7 +378,7 @@ function ellipticE(k) {
   if (k < 1e-15) return Math.PI / 2
   if (k > 0.999999) return 1.0
   let a = 1.0, b = Math.sqrt(1 - k * k), c = k
-  let s = 0.0, pow2 = 1.0
+  let s = 0.0, pow2 = 0.5
   while (c > 1e-15) {
     const an = (a + b) / 2, bn = Math.sqrt(a * b), cn = (a - b) / 2
     s += pow2 * c * c
@@ -405,9 +405,11 @@ function calculateFieldFromCircle(dist, targetPos, ke, rMin) {
     return new Vector3(Ex * frame.z.x, Ex * frame.z.y, Ex * frame.z.z)
   }
   const sumR = R + rho, diffR = R - rho
-  const k2 = 4 * R * rho / (sumR * sumR + z * z)
-  if (k2 >= 1 || k2 <= 0) {
-    const NC = 72
+  const A = sumR * sumR + z * z
+  const B = diffR * diffR + z * z
+  const k2 = 4 * R * rho / A
+  if (k2 >= 1 - 1e-8 || k2 <= 0) {
+    const NC = 144
     const da = (2 * Math.PI) / NC
     for (let i = 0; i < NC; i++) {
       const a = (i + 0.5) * da
@@ -417,13 +419,16 @@ function calculateFieldFromCircle(dist, targetPos, ke, rMin) {
   }
   const k = Math.sqrt(k2)
   const Kk = ellipticK(k), Ek = ellipticE(k)
-  const sqrtSum = Math.sqrt(sumR * sumR + z * z)
-  const denom = (diffR * diffR + z * z)
-  const Erho = ke * Q / (Math.PI * rho * sqrtSum) * ((R * R + rho * rho + z * z) / denom * Ek - Kk)
-  const Ez = ke * Q * z / (Math.PI * sqrtSum * sqrtSum * sqrtSum) * ((R * R - rho * rho - z * z) / denom * Ek + Kk)
-  E.x = Erho * (rho > 1e-12 ? local.x / rho : 0) + Ez * frame.z.x
-  E.y = Erho * (rho > 1e-12 ? local.y / rho : 0) + Ez * frame.z.y
-  E.z = Erho * (rho > 1e-12 ? local.z / rho : 0) + Ez * frame.z.z
+  const km2 = 1 - k2
+  const Kp = (Ek - km2 * Kk) / (k * km2)
+  const dkdRho = 2 * R * (R * R + z * z - rho * rho) / (k * A * A)
+  const sqrtA = Math.sqrt(A)
+  const Erho = -4 * ke * lambda * R * (Kp * dkdRho / sqrtA - Kk * sumR / (A * sqrtA))
+  const Ez = 4 * ke * lambda * R * z * Ek / (B * sqrtA)
+  const rhoSafe = rho > 1e-12 ? rho : 1
+  E.addScaledVector(frame.x, Erho * (local.dot(frame.x) / rhoSafe))
+  E.addScaledVector(frame.y, Erho * (local.dot(frame.y) / rhoSafe))
+  E.addScaledVector(frame.z, Ez)
   return E
 }
 
@@ -437,10 +442,11 @@ function calculatePotentialFromCircle(dist, targetPos, ke, rMin) {
   const rho = Math.sqrt(Math.max(0, local.dot(frame.x) * local.dot(frame.x) + local.dot(frame.y) * local.dot(frame.y)))
   if (rho < 1e-12) return ke * Q / Math.sqrt(z * z + R * R)
   const sumR = R + rho
-  const k2 = 4 * R * rho / (sumR * sumR + z * z)
-  if (k2 >= 1 || k2 <= 0) {
+  const A = sumR * sumR + z * z
+  const k2 = 4 * R * rho / A
+  if (k2 >= 1 - 1e-8 || k2 <= 0) {
     let V = 0
-    const NC = 72
+    const NC = 144
     const da = (2 * Math.PI) / NC
     for (let i = 0; i < NC; i++) {
       const a = (i + 0.5) * da
@@ -450,7 +456,7 @@ function calculatePotentialFromCircle(dist, targetPos, ke, rMin) {
   }
   const k = Math.sqrt(k2)
   const Kk = ellipticK(k)
-  return ke * Q / (Math.PI * Math.sqrt(sumR * sumR + z * z)) * Kk
+  return ke * 4 * lambda / Math.sqrt(A) * Kk
 }
 
 // ---- Frame ----
@@ -461,17 +467,17 @@ function calculateFieldFromFrame(dist, targetPos, ke, rMin) {
   const frame = makeLocalFrame(center, new Vector3(...normal))
   const P = new Vector3(...targetPos)
   const local = new Vector3().copy(P).sub(frame.origin)
+  const localTarget = new Vector3(local.dot(frame.x), local.dot(frame.y), local.dot(frame.z))
   const hw = width / 2, hh = height / 2
   const corners = [
     new Vector3(-hw, -hh, 0), new Vector3(hw, -hh, 0),
     new Vector3(hw, hh, 0), new Vector3(-hw, hh, 0),
   ]
-  for (let i = 0; i < 4; i++) segmentFieldLocal(E, corners[i], corners[(i + 1) % 4], lambda, local, ke, rMin)
-  const Ex = E.dot(frame.x), Ey = E.dot(frame.y), Ez = E.dot(frame.z)
+  for (let i = 0; i < 4; i++) segmentFieldLocal(E, corners[i], corners[(i + 1) % 4], lambda, localTarget, ke, rMin)
   return new Vector3(
-    Ex * frame.x.x + Ey * frame.y.x + Ez * frame.z.x,
-    Ex * frame.x.y + Ey * frame.y.y + Ez * frame.z.y,
-    Ex * frame.x.z + Ey * frame.y.z + Ez * frame.z.z,
+    E.x * frame.x.x + E.y * frame.y.x + E.z * frame.z.x,
+    E.x * frame.x.y + E.y * frame.y.y + E.z * frame.z.y,
+    E.x * frame.x.z + E.y * frame.y.z + E.z * frame.z.z,
   )
 }
 
@@ -480,13 +486,14 @@ function calculatePotentialFromFrame(dist, targetPos, ke, rMin) {
   const frame = makeLocalFrame(center, new Vector3(...normal))
   const P = new Vector3(...targetPos)
   const local = new Vector3().copy(P).sub(frame.origin)
+  const localTarget = new Vector3(local.dot(frame.x), local.dot(frame.y), local.dot(frame.z))
   const hw = width / 2, hh = height / 2
   const corners = [
     new Vector3(-hw, -hh, 0), new Vector3(hw, -hh, 0),
     new Vector3(hw, hh, 0), new Vector3(-hw, hh, 0),
   ]
   let V = 0
-  for (let i = 0; i < 4; i++) V += segmentPotentialLocal(corners[i], corners[(i + 1) % 4], lambda, local, ke, rMin)
+  for (let i = 0; i < 4; i++) V += segmentPotentialLocal(corners[i], corners[(i + 1) % 4], lambda, localTarget, ke, rMin)
   return V
 }
 
@@ -785,22 +792,145 @@ function calculateTotalForceOnCharge(targetCharge, allCharges, ke, rMin) {
 
 // ---- Field line tracing ----
 
-function traceFieldLine(startPos, charges, opts) {
-  const { ke = KE_REAL, rMin = 0.05, rStop = 0.6, maxDist = 25, maxSteps = 800, stepSize = 0.15, direction = 1, epsilon = 1e-25, sourcePos, distributions = [] } = opts
+/**
+ * Évalue le champ électrique normalisé en un point, dans la direction de tracé.
+ * Retourne null si le champ est trop faible (|E| < epsilon).
+ * @param {Vector3} pos - Position d'évaluation
+ * @param {Array} charges - Charges ponctuelles
+ * @param {Object} opts - Options { ke, rMin, distributions, epsilon, direction }
+ * @returns {Vector3|null} Vecteur unitaire directionnel, ou null si champ nul
+ */
+function fieldDirectionAt(pos, charges, opts) {
+  const { ke, rMin, distributions, epsilon, direction } = opts
+  const E = calculateTotalField(charges, [pos.x, pos.y, pos.z], ke, rMin, distributions)
+  if (E.length() < epsilon) return null
+  return E.clone().normalize().multiplyScalar(direction)
+}
+
+/**
+ * Trace une ligne de champ avec la méthode d'Euler explicite (ordre 1).
+ *
+ * Principe : x_{n+1} = x_n + h · Ê(x_n)
+ * où Ê est le champ électrique normalisé.
+ * Simple mais peut diverger dans les zones de fort gradient.
+ *
+ * @param {number[]} startPos - Position de départ [x, y, z]
+ * @param {Array} charges - Liste des charges ponctuelles
+ * @param {Object} opts - Options de tracé
+ * @param {number} opts.ke - Constante de Coulomb
+ * @param {number} opts.rMin - Rayon minimum pour éviter les singularités
+ * @param {number} opts.rStop - Rayon d'arrêt autour de la source
+ * @param {number} opts.maxDist - Distance maximale depuis l'origine
+ * @param {number} opts.maxSteps - Nombre maximum de pas
+ * @param {number} opts.stepSize - Taille du pas
+ * @param {number} opts.direction - Sens de tracé (1 ou -1)
+ * @param {number} opts.epsilon - Seuil de champ minimum
+ * @param {number[]} [opts.sourcePos] - Position de la charge source pour arrêt
+ * @param {Array} opts.distributions - Distributions continues
+ * @returns {number[][]} Tableau de points [x, y, z] formant la ligne
+ */
+function traceFieldLineEuler(startPos, charges, opts) {
+  const { ke = KE_REAL, rMin = 0.05, rStop = 0.6, maxDist = 25, maxSteps = 1500, stepSize = 0.08, direction = 1, epsilon = 1e-25, sourcePos, distributions = [] } = opts
   const pts = [new Vector3(...startPos)]
   const pos = new Vector3(...startPos)
+  const fieldOpts = { ke, rMin, distributions, epsilon, direction }
   for (let i = 0; i < maxSteps; i++) {
-    const E = calculateTotalField(charges, [pos.x, pos.y, pos.z], ke, rMin, distributions)
-    const eMag = E.length()
-    if (eMag < epsilon) break
-    const step = E.clone().normalize().multiplyScalar(stepSize * direction)
-    pos.add(step)
+    const dir = fieldDirectionAt(pos, charges, fieldOpts)
+    if (!dir) break
+    const prev = pos.clone()
+    pos.addScaledVector(dir, stepSize)
     if (pos.length() > maxDist) break
     // Stop if too close to a source charge
     if (sourcePos && new Vector3().subVectors(pos, new Vector3(...sourcePos)).length() < rStop) break
+    // Détection de stagnation (point nul E=0)
+    if (new Vector3().subVectors(pos, prev).length() < stepSize * 1e-4) break
     pts.push(pos.clone())
   }
   return pts.map(p => [p.x, p.y, p.z])
+}
+
+/**
+ * Trace une ligne de champ avec la méthode de Runge-Kutta 4 (RK4, ordre 4).
+ *
+ * Principe : pour chaque pas, on évalue le champ normalisé en 4 points :
+ *   k1 = Ê(x_n)
+ *   k2 = Ê(x_n + h/2·k1)
+ *   k3 = Ê(x_n + h/2·k2)
+ *   k4 = Ê(x_n + h·k3)
+ *   x_{n+1} = x_n + h/6·(k1 + 2·k2 + 2·k3 + k4)
+ *
+ * RK4 est nettement plus précis qu'Euler à pas égal, permettant
+ * des lignes plus lisses avec moins d'erreur de dérive.
+ *
+ * @param {number[]} startPos - Position de départ [x, y, z]
+ * @param {Array} charges - Liste des charges ponctuelles
+ * @param {Object} opts - Options (voir traceFieldLineEuler)
+ * @returns {number[][]} Tableau de points [x, y, z] formant la ligne
+ */
+function traceFieldLineRK4(startPos, charges, opts) {
+  const { ke = KE_REAL, rMin = 0.05, rStop = 0.6, maxDist = 25, maxSteps = 800, stepSize = 0.15, direction = 1, epsilon = 1e-25, sourcePos, distributions = [] } = opts
+  const pts = [new Vector3(...startPos)]
+  const pos = new Vector3(...startPos)
+  const fieldOpts = { ke, rMin, distributions, epsilon, direction }
+  const h = stepSize
+  const h2 = h / 2
+  const h6 = h / 6
+
+  for (let i = 0; i < maxSteps; i++) {
+    // k1 = Ê(x_n)
+    const k1 = fieldDirectionAt(pos, charges, fieldOpts)
+    if (!k1) break
+
+    // k2 = Ê(x_n + h/2·k1)
+    const p2 = pos.clone().addScaledVector(k1, h2)
+    const k2 = fieldDirectionAt(p2, charges, fieldOpts)
+    if (!k2) break
+
+    // k3 = Ê(x_n + h/2·k2)
+    const p3 = pos.clone().addScaledVector(k2, h2)
+    const k3 = fieldDirectionAt(p3, charges, fieldOpts)
+    if (!k3) break
+
+    // k4 = Ê(x_n + h·k3)
+    const p4 = pos.clone().addScaledVector(k3, h)
+    const k4 = fieldDirectionAt(p4, charges, fieldOpts)
+    if (!k4) break
+
+    // Combinaison pondérée : x_{n+1} = x_n + h/6·(k1 + 2·k2 + 2·k3 + k4)
+    const prev = pos.clone()
+    pos.addScaledVector(k1, h6)
+       .addScaledVector(k2, h6 * 2)
+       .addScaledVector(k3, h6 * 2)
+       .addScaledVector(k4, h6)
+
+    if (pos.length() > maxDist) break
+    if (sourcePos && new Vector3().subVectors(pos, new Vector3(...sourcePos)).length() < rStop) break
+    // Détection de stagnation : si le pas net est négligeable devant h,
+    // la ligne atteint un point nul (E=0) et ne peut plus avancer.
+    if (new Vector3().subVectors(pos, prev).length() < h * 1e-4) break
+    pts.push(pos.clone())
+  }
+  return pts.map(p => [p.x, p.y, p.z])
+}
+
+/**
+ * Trace une ligne de champ avec la méthode choisie.
+ * Dispatche vers Euler ou RK4 selon opts.method.
+ *
+ * @param {number[]} startPos - Position de départ [x, y, z]
+ * @param {Array} charges - Liste des charges ponctuelles
+ * @param {Object} opts - Options (voir traceFieldLineEuler)
+ * @param {'euler'|'rk4'} [opts.method='euler'] - Méthode d'intégration
+ * @returns {number[][]} Tableau de points [x, y, z] formant la ligne
+ */
+function traceFieldLine(startPos, charges, opts) {
+  const method = opts.method || 'euler'
+  // Euler (ordre 1) : pas plus petit + plus de pas pour compenser la moins bonne précision
+  const eulerOpts = method === 'euler' ? { ...opts, maxSteps: opts.maxSteps || 1500, stepSize: opts.stepSize || 0.08 } : opts
+  if (method === 'euler') {
+    return traceFieldLineEuler(startPos, charges, eulerOpts)
+  }
+  return traceFieldLineRK4(startPos, charges, opts)
 }
 
 function getDistributionSeeds(dist, numSeeds) {
@@ -863,6 +993,55 @@ function getDistributionSeeds(dist, numSeeds) {
       }
       break
     }
+    case 'frame': {
+      const frame = makeLocalFrame(dist.center, new Vector3(...dist.normal))
+      const hw = dist.width / 2, hh = dist.height / 2
+      const offset = 0.15
+      const corners = [
+        new Vector3(-hw, -hh, 0),
+        new Vector3(hw, -hh, 0),
+        new Vector3(hw, hh, 0),
+        new Vector3(-hw, hh, 0),
+      ]
+      const nPerSide = Math.max(Math.ceil(Math.max(dist.width, dist.height) / 1.5), 4)
+      const perRing = 4
+      for (let s = 0; s < 4; s++) {
+        const c0 = corners[s], c1 = corners[(s + 1) % 4]
+        const edge = new Vector3().subVectors(c1, c0)
+        const dir = edge.normalize()
+        const up = Math.abs(dir.y) > 0.9 ? new Vector3(1, 0, 0) : new Vector3(0, 1, 0)
+        const u = new Vector3().crossVectors(dir, up).normalize()
+        const v = new Vector3().crossVectors(dir, u).normalize()
+        for (let i = 0; i < nPerSide; i++) {
+          const t = (i + 0.5) / nPerSide
+          const base = new Vector3().lerpVectors(c0, c1, t)
+          for (let j = 0; j < perRing; j++) {
+            const a = (j / perRing) * Math.PI * 2
+            const local = new Vector3().copy(base).addScaledVector(u, Math.cos(a) * offset).addScaledVector(v, Math.sin(a) * offset)
+            const w = worldFromLocal(local, frame)
+            seeds.push({ point: [w.x, w.y, w.z], direction: sign })
+          }
+        }
+      }
+      break
+    }
+    case 'circle': {
+      const { radius: R, center, normal } = dist
+      if (R < 1e-10) break
+      const frame = makeLocalFrame(center, new Vector3(...normal))
+      const NC = Math.max(N, 12)
+      const da = (2 * Math.PI) / NC
+      const offset = 0.15
+      for (let i = 0; i < NC; i++) {
+        const a = i * da
+        for (const sgn of [1, -1]) {
+          const local = new Vector3(R * Math.cos(a), R * Math.sin(a), sgn * offset)
+          const w = worldFromLocal(local, frame)
+          seeds.push({ point: [w.x, w.y, w.z], direction: sign })
+        }
+      }
+      break
+    }
     default: {
       // Simplified fallback: fibonacci sphere around center
       const pts = fibonacciSphere(N, dist.center || [0, 0, 0], 0.3)
@@ -904,7 +1083,7 @@ self.onmessage = function (e) {
         break
       }
       case 'traceFieldLines': {
-        const { seeds, charges, ke, rMin, stepSize, maxSteps, distributions, rStop, maxDist, epsilon } = payload
+        const { seeds, charges, ke, rMin, stepSize, maxSteps, distributions, rStop, maxDist, epsilon, method } = payload
         result = seeds.map(seed => traceFieldLine(seed.point, charges || [], {
           ke: ke || KE_REAL,
           rMin: rMin || 0.5,
@@ -916,6 +1095,7 @@ self.onmessage = function (e) {
           rStop: rStop || 0.6,
           maxDist: maxDist || 25,
           epsilon: epsilon || 1e-25,
+          method: method || 'euler',
         }))
         break
       }

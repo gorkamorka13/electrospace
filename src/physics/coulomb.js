@@ -356,7 +356,7 @@ function ellipticE(k) {
   if (k > 0.999999) return 1.0  // near-singular limit
   let a = 1.0, b = Math.sqrt(1 - k * k), c = k
   let s = 0.0
-  let pow2 = 1.0
+  let pow2 = 0.5
   while (c > 1e-15) {
     const an = (a + b) / 2
     const bn = Math.sqrt(a * b)
@@ -396,10 +396,12 @@ export function calculateFieldFromCircle(dist, targetPos, ke = KE_REAL, rMin = 0
   // Off-axis: exact formulas using elliptic integrals
   const sumR = R + rho
   const diffR = R - rho
-  const k2 = 4 * R * rho / (sumR * sumR + z * z)
-  if (k2 >= 1 || k2 <= 0) {
-    // Fallback: numerical integration for extreme cases
-    const NC = 72
+  const A = sumR * sumR + z * z
+  const B = diffR * diffR + z * z
+  const k2 = 4 * R * rho / A
+  if (k2 >= 1 - 1e-8 || k2 <= 0) {
+    // Fallback: numerical integration for extreme cases / near the ring singularity
+    const NC = 144
     const da = (2 * Math.PI) / NC
     for (let i = 0; i < NC; i++) {
       const a = (i + 0.5) * da
@@ -412,20 +414,22 @@ export function calculateFieldFromCircle(dist, targetPos, ke = KE_REAL, rMin = 0
   const k = Math.sqrt(k2)
   const Kk = ellipticK(k)
   const Ek = ellipticE(k)
+  const km2 = 1 - k2
+  const Kp = (Ek - km2 * Kk) / (k * km2) // dK/dk
+  const dkdRho = 2 * R * (R * R + z * z - rho * rho) / (k * A * A) // dk/dρ
+  const sqrtA = Math.sqrt(A)
 
-  const sqrtSum = Math.sqrt(sumR * sumR + z * z)
-  const denom = (diffR * diffR + z * z)
+  // E_rho radial component (in the local ring plane)
+  const Erho = -4 * ke * lambda * R * (Kp * dkdRho / sqrtA - Kk * sumR / (A * sqrtA))
 
-  // E_rho component
-  const Erho = ke * Q / (Math.PI * rho * sqrtSum) * ((R * R + rho * rho + z * z) / denom * Ek - Kk)
-
-  // E_z component
-  const Ez = ke * Q * z / (Math.PI * sqrtSum * sqrtSum * sqrtSum) * ((R * R - rho * rho - z * z) / denom * Ek + Kk)
+  // E_z axial component (along the symmetry axis)
+  const Ez = 4 * ke * lambda * R * z * Ek / (B * sqrtA)
 
   // Transform back to world coordinates
-  E.x = Erho * (rho > 1e-12 ? local.x / rho : 0) + Ez * frame.z.x
-  E.y = Erho * (rho > 1e-12 ? local.y / rho : 0) + Ez * frame.z.y
-  E.z = Erho * (rho > 1e-12 ? local.z / rho : 0) + Ez * frame.z.z
+  const rhoSafe = rho > 1e-12 ? rho : 1
+  E.addScaledVector(frame.x, Erho * (local.dot(frame.x) / rhoSafe))
+  E.addScaledVector(frame.y, Erho * (local.dot(frame.y) / rhoSafe))
+  E.addScaledVector(frame.z, Ez)
 
   return E
 }
@@ -448,11 +452,12 @@ export function calculatePotentialFromCircle(dist, targetPos, ke = KE_REAL, rMin
 
   // Off-axis: exact formula using elliptic integral K(k)
   const sumR = R + rho
-  const k2 = 4 * R * rho / (sumR * sumR + z * z)
-  if (k2 >= 1 || k2 <= 0) {
-    // Fallback: numerical integration
+  const A = sumR * sumR + z * z
+  const k2 = 4 * R * rho / A
+  if (k2 >= 1 - 1e-8 || k2 <= 0) {
+    // Fallback: numerical integration for extreme cases / near the ring singularity
     let V = 0
-    const NC = 72
+    const NC = 144
     const da = (2 * Math.PI) / NC
     for (let i = 0; i < NC; i++) {
       const a = (i + 0.5) * da
@@ -464,7 +469,7 @@ export function calculatePotentialFromCircle(dist, targetPos, ke = KE_REAL, rMin
 
   const k = Math.sqrt(k2)
   const Kk = ellipticK(k)
-  return ke * Q / (Math.PI * Math.sqrt(sumR * sumR + z * z)) * Kk
+  return ke * 4 * lambda / Math.sqrt(A) * Kk
 }
 
 /* ---------- Frame (rectangular wire loop) — exact analytical ---------- */
@@ -475,6 +480,7 @@ export function calculateFieldFromFrame(dist, targetPos, ke = KE_REAL, rMin = 0.
   const frame = makeLocalFrame(center, new THREE.Vector3(...normal))
   const P = new THREE.Vector3(...targetPos)
   const local = new THREE.Vector3().copy(P).sub(frame.origin)
+  const localTarget = new THREE.Vector3(local.dot(frame.x), local.dot(frame.y), local.dot(frame.z))
   const hw = width / 2, hh = height / 2
   const corners = [
     new THREE.Vector3(-hw, -hh, 0),
@@ -484,16 +490,13 @@ export function calculateFieldFromFrame(dist, targetPos, ke = KE_REAL, rMin = 0.
   ]
   // 4 sides as exact analytical segments
   for (let i = 0; i < 4; i++) {
-    segmentFieldLocal(E, corners[i], corners[(i + 1) % 4], lambda, local, ke, rMin)
+    segmentFieldLocal(E, corners[i], corners[(i + 1) % 4], lambda, localTarget, ke, rMin)
   }
   // Transform from local frame to world
-  const Ex = E.dot(frame.x)
-  const Ey = E.dot(frame.y)
-  const Ez = E.dot(frame.z)
   return new THREE.Vector3(
-    Ex * frame.x.x + Ey * frame.y.x + Ez * frame.z.x,
-    Ex * frame.x.y + Ey * frame.y.y + Ez * frame.z.y,
-    Ex * frame.x.z + Ey * frame.y.z + Ez * frame.z.z
+    E.x * frame.x.x + E.y * frame.y.x + E.z * frame.z.x,
+    E.x * frame.x.y + E.y * frame.y.y + E.z * frame.z.y,
+    E.x * frame.x.z + E.y * frame.y.z + E.z * frame.z.z
   )
 }
 
@@ -502,6 +505,7 @@ export function calculatePotentialFromFrame(dist, targetPos, ke = KE_REAL, rMin 
   const frame = makeLocalFrame(center, new THREE.Vector3(...normal))
   const P = new THREE.Vector3(...targetPos)
   const local = new THREE.Vector3().copy(P).sub(frame.origin)
+  const localTarget = new THREE.Vector3(local.dot(frame.x), local.dot(frame.y), local.dot(frame.z))
   const hw = width / 2, hh = height / 2
   const corners = [
     new THREE.Vector3(-hw, -hh, 0),
@@ -511,7 +515,7 @@ export function calculatePotentialFromFrame(dist, targetPos, ke = KE_REAL, rMin 
   ]
   let V = 0
   for (let i = 0; i < 4; i++) {
-    V += segmentPotentialLocal(corners[i], corners[(i + 1) % 4], lambda, local, ke, rMin)
+    V += segmentPotentialLocal(corners[i], corners[(i + 1) % 4], lambda, localTarget, ke, rMin)
   }
   return V
 }
@@ -884,15 +888,18 @@ export function getDistributionSeeds(dist, numSeeds) {
     case 'circle': {
       const frame = makeLocalFrame(dist.center, new THREE.Vector3(...dist.normal))
       const offset = 0.15
-      const nSeeds = Math.max(N, 8)
+      // Halve seeds per side so total stays ~N
+      const nSeeds = Math.max(Math.floor(N / 2), 6)
       for (let i = 0; i < nSeeds; i++) {
         const a = (i / nSeeds) * Math.PI * 2
-        const local = new THREE.Vector3(
-          (dist.radius + offset) * Math.cos(a),
-          (dist.radius + offset) * Math.sin(a),
-          0
-        )
-        seeds.push({ point: worldFromLocal(local, frame), direction: sign })
+        for (const sgn of [1, -1]) {
+          const local = new THREE.Vector3(
+            dist.radius * Math.cos(a),
+            dist.radius * Math.sin(a),
+            sgn * offset
+          )
+          seeds.push({ point: worldFromLocal(local, frame), direction: sign })
+        }
       }
       break
     }
@@ -907,15 +914,22 @@ export function getDistributionSeeds(dist, numSeeds) {
         new THREE.Vector3(-hw,  hh, 0),
       ]
       const nPerSide = Math.max(Math.ceil(Math.max(dist.width, dist.height) / 1.5), 4)
+      const perRing = 4
       for (let s = 0; s < 4; s++) {
         const c0 = corners[s], c1 = corners[(s + 1) % 4]
         const edge = new THREE.Vector3().subVectors(c1, c0)
         const dir = edge.clone().normalize()
-        const perp = new THREE.Vector3(dir.y, -dir.x, 0)
+        const up = Math.abs(dir.y) > 0.9 ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 1, 0)
+        const u = new THREE.Vector3().crossVectors(dir, up).normalize()
+        const v = new THREE.Vector3().crossVectors(dir, u).normalize()
         for (let i = 0; i < nPerSide; i++) {
           const t = (i + 0.5) / nPerSide
-          const local = new THREE.Vector3().lerpVectors(c0, c1, t).addScaledVector(perp, offset)
-          seeds.push({ point: worldFromLocal(local, frame), direction: sign })
+          const base = new THREE.Vector3().lerpVectors(c0, c1, t)
+          for (let j = 0; j < perRing; j++) {
+            const a = (j / perRing) * Math.PI * 2
+            const local = new THREE.Vector3().copy(base).addScaledVector(u, Math.cos(a) * offset).addScaledVector(v, Math.sin(a) * offset)
+            seeds.push({ point: worldFromLocal(local, frame), direction: sign })
+          }
         }
       }
       break

@@ -15,10 +15,11 @@ export function FieldLines() {
   const chargeUnit = useStore((state) => state.chargeUnit)
   const fieldLinesPerCharge = useStore((state) => state.fieldLinesPerCharge)
   const fieldLineStep = useStore((state) => state.fieldLineStep)
+  const integrationMethod = useStore((state) => state.integrationMethod)
   const { traceFieldLines } = useFieldWorker()
   const [allLinePoints, setAllLinePoints] = useState([])
   const cancelledRef = useRef(false)
-  const key = `${showFieldLines}|${charges.length}|${distributions.length}|${chargeUnit}|${fieldLinesPerCharge}|${fieldLineStep}`
+  const key = `${showFieldLines}|${charges.length}|${distributions.length}|${chargeUnit}|${fieldLinesPerCharge}|${fieldLineStep}|${integrationMethod}`
 
   useEffect(() => {
     cancelledRef.current = false
@@ -63,6 +64,7 @@ export function FieldLines() {
       maxDist: 25,
       epsilon: 1e-25,
       distributions,
+      method: integrationMethod,
     }
 
     traceFieldLines(seeds, physicalCharges, opts)
@@ -83,7 +85,7 @@ export function FieldLines() {
       })
 
     return () => { cancelledRef.current = true }
-  }, [key, showFieldLines, charges, distributions, chargeUnit, fieldLinesPerCharge, fieldLineStep, traceFieldLines])
+  }, [key, showFieldLines, charges, distributions, chargeUnit, fieldLinesPerCharge, fieldLineStep, integrationMethod, traceFieldLines])
 
   if (!showFieldLines) return null
 
