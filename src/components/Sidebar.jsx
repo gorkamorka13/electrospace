@@ -458,6 +458,12 @@ export function Sidebar() {
     updateTestPoint(newPos)
   }
 
+  const snapMToAxis = (axis) => {
+    const newPos = [0, 0, 0]
+    newPos[axis] = testPoint[axis]
+    updateTestPoint(newPos)
+  }
+
   // Screenshot capture of the 3D scene — find the WebGL canvas, not 2D graph canvases
   const captureScreenshot = useCallback(() => {
     const canvases = document.querySelectorAll('canvas')
@@ -729,6 +735,11 @@ export function Sidebar() {
                   <CoordInput label="X" value={testPoint[0]} onChange={(v) => handleMCoordinateChange(0, v)} />
                   <CoordInput label="Y" value={testPoint[1]} onChange={(v) => handleMCoordinateChange(1, v)} />
                   <CoordInput label="Z" value={testPoint[2]} onChange={(v) => handleMCoordinateChange(2, v)} />
+                </div>
+                <div className="axis-snap-row" onClick={(e) => e.stopPropagation()}>
+                  <button className="btn-text" onClick={() => snapMToAxis(0)}>Sur X</button>
+                  <button className="btn-text" onClick={() => snapMToAxis(1)}>Sur Y</button>
+                  <button className="btn-text" onClick={() => snapMToAxis(2)}>Sur Z</button>
                 </div>
               </div>
             </CollapsibleSection>

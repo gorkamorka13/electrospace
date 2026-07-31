@@ -71,6 +71,16 @@ function App() {
         return
       }
 
+      if (e.shiftKey && (key === 'X' || key === 'Y' || key === 'Z')) {
+        e.preventDefault()
+        const tp = useStore.getState().testPoint
+        const axis = key === 'X' ? 0 : key === 'Y' ? 1 : 2
+        const newPos = [0, 0, 0]
+        newPos[axis] = tp[axis]
+        useStore.getState().updateTestPoint(newPos)
+        return
+      }
+
       let dx = 0
       let dy = 0
       let dz = 0

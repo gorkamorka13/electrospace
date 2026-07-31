@@ -252,6 +252,11 @@ export function ContextMenu() {
         <CoordInput value={testPoint[0]} onChange={(v) => { useStore.getState().updateTestPoint([v, testPoint[1], testPoint[2]]) }} label="X" />
         <CoordInput value={testPoint[1]} onChange={(v) => { useStore.getState().updateTestPoint([testPoint[0], v, testPoint[2]]) }} label="Y" />
         <CoordInput value={testPoint[2]} onChange={(v) => { useStore.getState().updateTestPoint([testPoint[0], testPoint[1], v]) }} label="Z" />
+        <div className="ctx-param-row" style={{ justifyContent: 'flex-start', gap: '0.35rem' }}>
+          <button className="ctx-action-btn" onClick={() => { const p = useStore.getState().testPoint; useStore.getState().updateTestPoint([p[0], 0, 0]); closeContextMenu() }}>Sur X</button>
+          <button className="ctx-action-btn" onClick={() => { const p = useStore.getState().testPoint; useStore.getState().updateTestPoint([0, p[1], 0]); closeContextMenu() }}>Sur Y</button>
+          <button className="ctx-action-btn" onClick={() => { const p = useStore.getState().testPoint; useStore.getState().updateTestPoint([0, 0, p[2]]); closeContextMenu() }}>Sur Z</button>
+        </div>
         <div className="ctx-separator" />
         <button onClick={() => { navigator.clipboard.writeText(`${testPoint[0].toFixed(2)}, ${testPoint[1].toFixed(2)}, ${testPoint[2].toFixed(2)}`); closeContextMenu() }} className="ctx-action-btn">Copier coordonnées</button>
       </div>

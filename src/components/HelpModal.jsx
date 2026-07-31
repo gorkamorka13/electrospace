@@ -10,6 +10,7 @@ const SHORTCUTS = [
   ['Ctrl+Maj+Z', 'Rétablir l\'action annulée'],
   ['?', 'Afficher/cacher cette aide'],
   ['Maj+H', 'Afficher/cacher le point M'],
+  ['Maj+X / Maj+Y / Maj+Z', 'Placer M sur l\'axe X / Y / Z'],
 ]
 
 export function HelpModal() {

@@ -325,9 +325,20 @@ export function PotentialXGraph() {
     ctx.stroke()
     ctx.setLineDash([])
 
-    const cy = yScale(cursorPos.testV)
+    const si = Math.round((cursorPos.testPos + axisRange) / (axisRange * 2) * (data.pts.length - 1))
+    const sv = data.pts[Math.max(0, Math.min(si, data.pts.length - 1))]?.V ?? 0
+
+    // Dot at the crossing of the cursor line and the curve — color matches the curve
+    const cy = yScale(sv)
     ctx.beginPath()
     ctx.arc(cx, cy, 3, 0, Math.PI * 2)
+    ctx.fillStyle = '#4ade80'
+    ctx.fill()
+
+    // Yellow dot at the V value of M
+    const my = yScale(cursorPos.testV)
+    ctx.beginPath()
+    ctx.arc(cx, my, 4, 0, Math.PI * 2)
     ctx.fillStyle = '#fbbf24'
     ctx.fill()
 
@@ -342,9 +353,24 @@ export function PotentialXGraph() {
     // Title text removed — axis label and cursor info are sufficient
     ctx.fillStyle = infoColor
     ctx.font = '13px monospace'
-    const si = Math.round((cursorPos.testPos + axisRange) / (axisRange * 2) * (data.pts.length - 1))
-    const sv = data.pts[Math.max(0, Math.min(si, data.pts.length - 1))]?.V ?? 0
-    ctx.fillText(`M: V=${cursorPos.testV.toExponential(2)}  Balayage: V=${sv.toExponential(2)} V`, PAD + 4, PAD + plotH - 4)
+    const textY = PAD + plotH - 4
+    const dotY = textY - 4
+
+    // Legend: yellow dot + value at M
+    ctx.beginPath()
+    ctx.arc(PAD + 6, dotY, 3.5, 0, Math.PI * 2)
+    ctx.fillStyle = '#fbbf24'
+    ctx.fill()
+    const mText = `M: V=${cursorPos.testV.toExponential(2)}`
+    ctx.fillText(mText, PAD + 14, textY)
+
+    // Legend: curve-colored dot + sweep value
+    const x2 = PAD + 14 + ctx.measureText(mText).width + 18
+    ctx.beginPath()
+    ctx.arc(x2, dotY, 3.5, 0, Math.PI * 2)
+    ctx.fillStyle = '#4ade80'
+    ctx.fill()
+    ctx.fillText(`Balayage: V=${sv.toExponential(2)} V`, x2 + 8, textY)
   }, [show, data, w, h, theme, cursorPos, axisRange])
 
   const winRefState = useRef(win)

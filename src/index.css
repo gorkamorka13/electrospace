@@ -577,6 +577,14 @@ body, html, #root {
   margin-top: 0.5rem;
 }
 
+.axis-snap-row {
+  display: flex;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+  padding-top: 0.4rem;
+  border-top: 1px solid var(--border-color);
+}
+
 .coord-field {
   display: flex;
   align-items: center;
