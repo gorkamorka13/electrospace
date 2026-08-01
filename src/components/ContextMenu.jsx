@@ -131,6 +131,26 @@ export function ContextMenu() {
           </div>
         </div>
         {params.map((param) => {
+          if (param.hideInfinite && dist.mode === 'infinite') return null
+          if (param.type === 'mode') {
+            return (
+              <div key={param.key} className="ctx-param-row" style={{ gap: '4px' }}>
+                <span className="ctx-param-label">{param.label}</span>
+                <button className={`btn-unit ${dist.mode !== 'infinite' ? 'active' : ''}`}
+                  onClick={() => updateDistribution(dist.id, { mode: 'finite' })}
+                  title="Géométrie finie"
+                >
+                  Fini
+                </button>
+                <button className={`btn-unit ${dist.mode === 'infinite' ? 'active' : ''}`}
+                  onClick={() => updateDistribution(dist.id, { mode: 'infinite' })}
+                  title="Distribution infinie (champ 2D exact)"
+                >
+                  Infini
+                </button>
+              </div>
+            )
+          }
           if (param.type === 'vec3') {
             const val = Array.isArray(dist[param.key]) ? dist[param.key] : [0, 0, 0]
             return (

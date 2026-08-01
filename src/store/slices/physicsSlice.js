@@ -14,6 +14,8 @@ export const createPhysicsSlice = (set) => ({
   fieldLineStep: 0.15,
   /** Méthode d'intégration pour le tracé des lignes de champ : 'euler' | 'rk4' */
   integrationMethod: 'euler',
+  /** Résolution de la grille du champ vectoriel (points par axe) */
+  vectorGridResolution: 8,
 
   setKe: (ke) => set({ ke }),
   setRMin: (rMin) => set({ rMin }),
@@ -24,4 +26,6 @@ export const createPhysicsSlice = (set) => ({
   setFieldLineStep: (fieldLineStep) => set({ fieldLineStep }),
   /** Définit la méthode d'intégration (euler ou rk4) */
   setIntegrationMethod: (integrationMethod) => set({ integrationMethod }),
+  /** Définit la résolution de la grille du champ vectoriel */
+  setVectorGridResolution: (vectorGridResolution) => set({ vectorGridResolution }),
 })

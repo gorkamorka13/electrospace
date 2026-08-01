@@ -10,6 +10,7 @@ import { TestPoint } from "./TestPoint";
 import { ElectricFieldArrow } from "./ElectricFieldArrow";
 import { ForceArrows } from "./ForceArrows";
 import { FieldLines } from "./FieldLines";
+import { VectorField } from "./VectorField";
 import { ThroughMLine } from "./ThroughMLine";
 import { Equipotentials } from "./Equipotentials";
 import { Equipotentials3D } from "./Equipotentials3D";
@@ -685,6 +686,9 @@ export function PhysicsCanvas() {
 
           {/* Electric Field Lines — toggled via showFieldLines */}
           <FieldLines />
+
+          {/* Electric Field Vector Grid — toggled via showFieldVectors */}
+          <VectorField />
 
           {/* v1.2 — Advanced visualizations */}
           <ThroughMLine />

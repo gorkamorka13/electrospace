@@ -17,22 +17,25 @@ export const useStore = create((set, get, api) => ({
 /* Distribution default helpers (used by Sidebar & ContextMenu) */
 export const DIST_PARAMS = {
   line: [
-    { key: 'length', label: 'Longueur (m)', type: 'range' },
+    { key: 'mode', label: 'Mode', type: 'mode' },
+    { key: 'length', label: 'Longueur (m)', type: 'range', hideInfinite: true },
     { key: 'density', label: 'λ (C/m)', type: 'number', step: 1e-10, min: 1e-12 },
   ],
   cylinder: [
+    { key: 'mode', label: 'Mode', type: 'mode' },
     { key: 'center', label: 'Centre', type: 'vec3' },
     { key: 'axis', label: 'Axe', type: 'vec3' },
     { key: 'radius', label: 'Rayon', type: 'radii', innerKey: 'innerRadius', outerLabel: 'Cyl. 1', innerLabel: 'Cyl. 2' },
     { key: 'e_ext', label: 'Épaisseur', type: 'radii', innerKey: 'e_int', outerLabel: 'Cyl. 1', innerLabel: 'Cyl. 2' },
-    { key: 'height', label: 'Hauteur (m)', type: 'range' },
+    { key: 'height', label: 'Hauteur (m)', type: 'range', hideInfinite: true },
     { key: 'density', label: 'ρ (C/m³)', type: 'number', step: 1e-7, min: 1e-9 },
   ],
   plane: [
+    { key: 'mode', label: 'Mode', type: 'mode' },
     { key: 'center', label: 'Centre', type: 'vec3' },
     { key: 'normal', label: 'Normale', type: 'vec3' },
-    { key: 'width', label: 'Largeur (m)', type: 'range', linkKey: 'height' },
-    { key: 'height', label: 'Hauteur (m)', type: 'range', linkKey: 'width' },
+    { key: 'width', label: 'Largeur (m)', type: 'range', linkKey: 'height', hideInfinite: true },
+    { key: 'height', label: 'Hauteur (m)', type: 'range', linkKey: 'width', hideInfinite: true },
     { key: 'density', label: 'σ (C/m²)', type: 'number', step: 1e-10, min: 1e-12 },
   ],
   disk: [

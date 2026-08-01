@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import * as THREE from 'three'
 import { makeLocalFrame, worldFromLocal, fibonacciSphere } from './utils'
 import * as C from './constants'
-import { calculateFieldFromCharge, calculatePotentialFromCharge, calculateTotalField, calculateTotalPotential, calculateFieldFromSphere, calculateFieldFromCylinder } from './coulomb'
+import { calculateFieldFromCharge, calculatePotentialFromCharge, calculateTotalField, calculateTotalPotential, calculateFieldFromSphere, calculateFieldFromCylinder, calculatePotentialFromCylinder, calculateFieldFromLine, calculatePotentialFromLine, calculateFieldFromPlane, calculatePotentialFromPlane } from './coulomb'
 
 describe('makeLocalFrame', () => {
   it('creates a frame with correct origin', () => {
@@ -399,5 +399,86 @@ describe('calculateFieldFromCylinder - along x-axis', () => {
     // Above the top cap, on the axis.
     const E = calculateFieldFromCylinder(dist, [0, 0, 2.5], ke, rMin)
     expect(E.z).toBeGreaterThan(0)
+  })
+})
+
+describe('Infinite distributions (mode: infinite)', () => {
+  const ke = 1
+  const rMin = 0.001
+  const lam = 1e-9
+  const sigma = 1e-9
+  const rho = 1e-6
+
+  it('infinite line: E = 2·ke·λ/ρ radial, zero axial', () => {
+    const dist = { type: 'line', density: lam, mode: 'infinite', length: 10 }
+    const E = calculateFieldFromLine(dist, [3, 7, 4], ke, rMin)
+    const rho = Math.hypot(3, 4)
+    const mag = 2 * ke * lam / rho
+    expect(E.x).toBeCloseTo(mag * 3 / rho, 6)
+    expect(E.y).toBeCloseTo(0, 6)
+    expect(E.z).toBeCloseTo(mag * 4 / rho, 6)
+  })
+
+  it('infinite line: potential V = -2·ke·λ·ln(ρ)', () => {
+    const dist = { type: 'line', density: lam, mode: 'infinite', length: 10 }
+    const V = calculatePotentialFromLine(dist, [2, 0, 0], ke, rMin)
+    expect(V).toBeCloseTo(-2 * ke * lam * Math.log(2), 6)
+  })
+
+  it('infinite line: E is independent of y (translation invariant)', () => {
+    const dist = { type: 'line', density: lam, mode: 'infinite', length: 10 }
+    const E1 = calculateFieldFromLine(dist, [2, -5, 0], ke, rMin)
+    const E2 = calculateFieldFromLine(dist, [2, 100, 0], ke, rMin)
+    expect(E1.x).toBeCloseTo(E2.x, 10)
+  })
+
+  it('infinite plane: E = 2π·ke·σ constant, sign flips across', () => {
+    const dist = { type: 'plane', center: [0, 0, 0], normal: [1, 0, 0], density: sigma, mode: 'infinite', width: 10, height: 10 }
+    const E1 = calculateFieldFromPlane(dist, [5, 0, 0], ke, rMin)
+    expect(E1.x).toBeCloseTo(2 * Math.PI * ke * sigma, 6)
+    expect(E1.y).toBeCloseTo(0, 6)
+    const E2 = calculateFieldFromPlane(dist, [-5, 3, 2], ke, rMin)
+    expect(E2.x).toBeCloseTo(-2 * Math.PI * ke * sigma, 6)
+  })
+
+  it('infinite plane: potential V = -2π·ke·σ·|d|', () => {
+    const dist = { type: 'plane', center: [0, 0, 0], normal: [1, 0, 0], density: sigma, mode: 'infinite', width: 10, height: 10 }
+    const V = calculatePotentialFromPlane(dist, [4, 0, 0], ke, rMin)
+    expect(V).toBeCloseTo(-2 * Math.PI * ke * sigma * 4, 6)
+  })
+
+  it('infinite solid cylinder: E = 2·ke·λ_enc/ρ radial, axis-invariant', () => {
+    const R = 2
+    const dist = { type: 'cylinder', center: [0, 0, 0], axis: [0, 1, 0], radius: R, density: rho, hollow: false, innerRadius: 0, e_ext: 0, e_int: 0, height: 5, mode: 'infinite' }
+    // Outside: λ_total = ρ·π·R²
+    const lambdaTot = rho * Math.PI * R * R
+    const Eout = calculateFieldFromCylinder(dist, [4, 0, 0], ke, rMin)
+    expect(Eout.x).toBeCloseTo(2 * ke * lambdaTot / 4, 6)
+    expect(Eout.y).toBeCloseTo(0, 6)
+    // Inside: λ_enc = ρ·π·ρ²
+    const d2 = 1
+    const E2 = calculateFieldFromCylinder(dist, [d2, 0, 0], ke, rMin)
+    expect(E2.x).toBeCloseTo(2 * ke * rho * Math.PI * d2 * d2 / d2, 6)
+    // Translation invariant along axis
+    const E3 = calculateFieldFromCylinder(dist, [4, 50, 0], ke, rMin)
+    expect(E3.x).toBeCloseTo(Eout.x, 10)
+  })
+
+  it('infinite hollow cylinder: E=0 inside, 2·ke·λ/ρ outside', () => {
+    const R = 2
+    const dist = { type: 'cylinder', center: [0, 0, 0], axis: [0, 1, 0], radius: R, density: sigma, hollow: true, innerRadius: 0, e_ext: 0, e_int: 0, height: 5, mode: 'infinite' }
+    const Ein = calculateFieldFromCylinder(dist, [1, 0, 0], ke, rMin)
+    expect(Ein.length()).toBeCloseTo(0, 10)
+    const lambda = sigma * 2 * Math.PI * R
+    const Eout = calculateFieldFromCylinder(dist, [4, 0, 0], ke, rMin)
+    expect(Eout.x).toBeCloseTo(2 * ke * lambda / 4, 6)
+  })
+
+  it('infinite cylinder: potential from a solid cylinder matches 2D Gauss', () => {
+    const R = 2
+    const dist = { type: 'cylinder', center: [0, 0, 0], axis: [0, 1, 0], radius: R, density: rho, hollow: false, innerRadius: 0, e_ext: 0, e_int: 0, height: 5, mode: 'infinite' }
+    const V = calculatePotentialFromCylinder(dist, [3, 0, 0], ke, rMin)
+    const lambdaTot = rho * Math.PI * R * R
+    expect(V).toBeCloseTo(-2 * ke * lambdaTot * Math.log(3), 6)
   })
 })

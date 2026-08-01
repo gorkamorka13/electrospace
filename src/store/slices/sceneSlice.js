@@ -389,9 +389,9 @@ export const createSceneSlice = (set, get) => ({
     set(() => {
       const id = Math.random().toString(36).substring(2, 9)
       const defaults = {
-        line: { length: 10, density: 1e-9 },
-        cylinder: { center: [0, 0, 0], axis: [0, 1, 0], radius: 2, height: 5, density: 1e-6, hollow: false, innerRadius: 0, e_ext: 0, e_int: 0 },
-        plane: { center: [0, 0, 0], normal: [1, 0, 0], width: 10, height: 10, density: 1e-9, linkWH: false },
+        line: { length: 10, density: 1e-9, mode: 'finite' },
+        cylinder: { center: [0, 0, 0], axis: [0, 1, 0], radius: 2, height: 5, density: 1e-6, hollow: false, innerRadius: 0, e_ext: 0, e_int: 0, mode: 'finite' },
+        plane: { center: [0, 0, 0], normal: [1, 0, 0], width: 10, height: 10, density: 1e-9, linkWH: false, mode: 'finite' },
         disk: { center: [0, 0, 0], normal: [1, 0, 0], radius: 2, density: 1e-9 },
         circle: { center: [0, 0, 0], normal: [1, 0, 0], radius: 2, density: 1e-9 },
         frame: { center: [0, 0, 0], normal: [1, 0, 0], width: 4, height: 4, density: 1e-9, linkWH: false },

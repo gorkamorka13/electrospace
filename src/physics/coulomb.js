@@ -131,10 +131,26 @@ function segmentPotentialLocal(start, end, lambda, target, ke, rMin) {
 }
 
 export function calculateFieldFromLine(dist, targetPos, ke = KE_REAL, rMin = 0.5) {
+  if (dist.mode === 'infinite') {
+    // Infinite line along world Y axis: E = 2·ke·λ/ρ radial
+    const x = targetPos[0]
+    const z = targetPos[2]
+    const rho = Math.max(Math.sqrt(x * x + z * z), rMin)
+    const E = new THREE.Vector3()
+    E.x = (2 * ke * dist.density * x) / (rho * rho)
+    E.z = (2 * ke * dist.density * z) / (rho * rho)
+    return E
+  }
   return lineFieldAnalytical(targetPos[0], targetPos[1], targetPos[2], dist.length / 2, dist.density, ke, rMin)
 }
 
 export function calculatePotentialFromLine(dist, targetPos, ke = KE_REAL, rMin = 0.5) {
+  if (dist.mode === 'infinite') {
+    const x = targetPos[0]
+    const z = targetPos[2]
+    const rho = Math.max(Math.sqrt(x * x + z * z), rMin)
+    return -2 * ke * dist.density * Math.log(rho)
+  }
   return linePotentialAnalytical(targetPos[0], targetPos[1], targetPos[2], dist.length / 2, dist.density, ke, rMin)
 }
 
@@ -172,13 +188,32 @@ function cylinderRingGrid(dist, rho, ax) {
 export function calculateFieldFromCylinder(dist, targetPos, ke = KE_REAL, rMin = 0.5) {
   const E = new THREE.Vector3()
   const { density, center, axis, height } = dist
-  if (height < 1e-10) return E
+  if (height < 1e-10 && dist.mode !== 'infinite') return E
   const H = height, H2 = H / 2
   const frame = makeLocalFrame(center, axis)
   const P = new THREE.Vector3(...targetPos)
   const local = new THREE.Vector3().copy(P).sub(frame.origin)
   const ax = local.dot(frame.z)
   const rho = Math.sqrt(Math.max(0, local.dot(frame.x) * local.dot(frame.x) + local.dot(frame.y) * local.dot(frame.y)))
+  if (dist.mode === 'infinite') {
+    // Infinite cylinder: Gauss 2D law. Radial field, magnitude from thickCylShell.
+    const d = Math.max(rho, rMin)
+    let Emag = 0
+    const { radius: b, innerRadius = 0, e_ext = 0, e_int = 0, hollow } = dist
+    if (hollow) {
+      // Surface charge density (C/m²): linear density λ = σ·2πR
+      const lambda = density * 2 * Math.PI * b
+      if (d >= b) Emag = 2 * ke * lambda / d
+    } else if (e_ext === 0 && e_int === 0) {
+      Emag = thickCylShell(density, innerRadius || 0, b, d, ke)
+    } else {
+      if (e_ext > 0) Emag += thickCylShell(density, b - e_ext, b, d, ke)
+      if (innerRadius > 0 && e_int > 0) Emag += thickCylShell(density, innerRadius - e_int, innerRadius, d, ke)
+    }
+    if (rho < 1e-12) return E
+    const radial = new THREE.Vector3().addScaledVector(frame.x, local.dot(frame.x)).addScaledVector(frame.y, local.dot(frame.y))
+    return radial.multiplyScalar(Emag / rho)
+  }
   const { nr, nz } = cylinderRingGrid(dist, rho, ax)
   const dz = H / nz
   const ringNormal = frame.z
@@ -203,13 +238,29 @@ export function calculateFieldFromCylinder(dist, targetPos, ke = KE_REAL, rMin =
 
 export function calculatePotentialFromCylinder(dist, targetPos, ke = KE_REAL, rMin = 0.5) {
   const { density, center, axis, height } = dist
-  if (height < 1e-10) return 0
+  if (height < 1e-10 && dist.mode !== 'infinite') return 0
   const H = height, H2 = H / 2
   const frame = makeLocalFrame(center, axis)
   const P = new THREE.Vector3(...targetPos)
   const local = new THREE.Vector3().copy(P).sub(frame.origin)
   const ax = local.dot(frame.z)
   const rho = Math.sqrt(Math.max(0, local.dot(frame.x) * local.dot(frame.x) + local.dot(frame.y) * local.dot(frame.y)))
+  if (dist.mode === 'infinite') {
+    const d = Math.max(rho, rMin)
+    let V = 0
+    const { radius: b, innerRadius = 0, e_ext = 0, e_int = 0, hollow } = dist
+    if (hollow) {
+      const lambda = density * 2 * Math.PI * b
+      if (d >= b) V = -2 * ke * lambda * Math.log(d)
+      else V = -2 * ke * lambda * Math.log(Math.max(b, rMin))
+    } else if (e_ext === 0 && e_int === 0) {
+      V = thickCylShellPotential(density, innerRadius || 0, b, d, ke, rMin)
+    } else {
+      if (e_ext > 0) V += thickCylShellPotential(density, b - e_ext, b, d, ke, rMin)
+      if (innerRadius > 0 && e_int > 0) V += thickCylShellPotential(density, innerRadius - e_int, innerRadius, d, ke, rMin)
+    }
+    return V
+  }
   const { nr, nz } = cylinderRingGrid(dist, rho, ax)
   const dz = H / nz
   const ringNormal = frame.z
@@ -236,11 +287,15 @@ export function calculatePotentialFromCylinder(dist, targetPos, ke = KE_REAL, rM
 /* ---------- Plane (infinite) ---------- */
 
 export function calculateFieldFromPlane(dist, targetPos, ke = KE_REAL, rMin = 0.5) {
-  const { density: sigma, center, normal, width, height } = dist
+  const { density: sigma, center, normal, width, height, mode } = dist
   const C = new THREE.Vector3(...center)
   const P = new THREE.Vector3(...targetPos)
   const n = new THREE.Vector3(...normal).normalize()
   const dz = new THREE.Vector3().subVectors(P, C).dot(n)
+  if (mode === 'infinite') {
+    // Infinite plane: E = σ/(2ε₀) = 2π·ke·σ constant along normal, sign flips across
+    return n.clone().multiplyScalar(dz >= 0 ? 2 * Math.PI * ke * sigma : -2 * Math.PI * ke * sigma)
+  }
   const dPerp = Math.sqrt(Math.max(0, new THREE.Vector3().subVectors(P, C).lengthSq() - dz * dz))
   if (dPerp < 1e-10) {
     const halfW = width / 2
@@ -265,7 +320,14 @@ export function calculateFieldFromPlane(dist, targetPos, ke = KE_REAL, rMin = 0.
 }
 
 export function calculatePotentialFromPlane(dist, targetPos, ke = KE_REAL, rMin = 0.5) {
-  const { density: sigma, center, normal, width, height } = dist
+  const { density: sigma, center, normal, width, height, mode } = dist
+  if (mode === 'infinite') {
+    const C = new THREE.Vector3(...center)
+    const P = new THREE.Vector3(...targetPos)
+    const n = new THREE.Vector3(...normal).normalize()
+    const dz = new THREE.Vector3().subVectors(P, C).dot(n)
+    return -2 * Math.PI * ke * sigma * Math.abs(dz)
+  }
   const frame = makeLocalFrame(center, normal)
   let V = 0
   const NR = 20, NS = 20
@@ -815,16 +877,17 @@ export function getDistributionSeeds(dist, numSeeds) {
 
   switch (dist.type) {
     case 'line': {
-      const half = dist.length / 2
+      const len = dist.mode === 'infinite' ? 6 : dist.length
+      const half = len / 2
       const s = new THREE.Vector3(0, -half, 0)
       const dir = new THREE.Vector3(0, 1, 0)
-      if (dist.length < 1e-10) return seeds
+      if (len < 1e-10) return seeds
       const segments = Math.max(Math.floor(N / 4), 2)
       const perRing = Math.max(Math.floor(N / segments), 4)
       const rSeed = 0.3
       for (let i = 0; i < segments; i++) {
         const t = (i + 0.5) / segments
-        const base = new THREE.Vector3().copy(s).addScaledVector(dir, t * dist.length)
+        const base = new THREE.Vector3().copy(s).addScaledVector(dir, t * len)
         const up = Math.abs(dir.y) > 0.9 ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 1, 0)
         const u = new THREE.Vector3().crossVectors(dir, up).normalize()
         const v = new THREE.Vector3().crossVectors(dir, u).normalize()
@@ -838,12 +901,13 @@ export function getDistributionSeeds(dist, numSeeds) {
     }
     case 'cylinder': {
       const frame = makeLocalFrame(dist.center, new THREE.Vector3(...dist.axis))
+      const height = dist.mode === 'infinite' ? 6 : dist.height
       const NA = Math.max(Math.floor(Math.sqrt(N * 2)), 6)
       const NH = Math.max(Math.floor(N / NA), 4)
       for (let ia = 0; ia < NA; ia++) {
         const a = (ia / NA) * Math.PI * 2
         for (let ih = 0; ih < NH; ih++) {
-          const hloc = (ih / (NH - 1)) * dist.height - dist.height / 2
+          const hloc = (ih / (NH - 1)) * height - height / 2
           const local = new THREE.Vector3(dist.radius * Math.cos(a), dist.radius * Math.sin(a), hloc)
           seeds.push({ point: worldFromLocal(local, frame), direction: sign })
         }
@@ -852,15 +916,18 @@ export function getDistributionSeeds(dist, numSeeds) {
     }
     case 'plane': {
       const frame = makeLocalFrame(dist.center, new THREE.Vector3(...dist.normal))
+      const infinite = dist.mode === 'infinite'
+      const w = infinite ? 6 : dist.width
+      const h = infinite ? 6 : dist.height
       // Halve seeds per side so total stays ~N
       const halfN = Math.max(Math.floor(N / 2), 4)
-      const nx = Math.max(Math.floor(Math.sqrt(halfN * dist.width / dist.height)), 2)
+      const nx = Math.max(Math.floor(Math.sqrt(halfN * w / h)), 2)
       const nz = Math.max(Math.floor(halfN / nx), 2)
       const offset = 0.15 // small offset from surface
       for (let ix = 0; ix < nx; ix++) {
-        const lx = (ix / (nx - 1)) * dist.width - dist.width / 2
+        const lx = (ix / (nx - 1)) * w - w / 2
         for (let iz = 0; iz < nz; iz++) {
-          const lz = (iz / (nz - 1)) * dist.height - dist.height / 2
+          const lz = (iz / (nz - 1)) * h - h / 2
           // Seed on +normal side: direction is sign since E is already along +n
           seeds.push({ point: worldFromLocal(new THREE.Vector3(lx, lz, offset), frame), direction: sign })
           // Seed on -normal side: direction is sign since E is already along -n

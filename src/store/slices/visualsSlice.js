@@ -1,6 +1,7 @@
 export const createVisualsSlice = (set) => ({
   showForces: false,
   showFieldLines: false,
+  showFieldVectors: false,
   showThroughMLine: false,
   showEquipotentials: false,
   showEquipotentials3D: false,
@@ -24,6 +25,7 @@ export const createVisualsSlice = (set) => ({
 
   setShowForces: (showForces) => set({ showForces }),
   setShowFieldLines: (showFieldLines) => set({ showFieldLines }),
+  setShowFieldVectors: (showFieldVectors) => set({ showFieldVectors }),
   setShowThroughMLine: (v) => set({ showThroughMLine: v }),
   setShowEquipotentials: (v) => set({ showEquipotentials: v }),
   setShowEquipotentials3D: (v) => set({ showEquipotentials3D: v }),

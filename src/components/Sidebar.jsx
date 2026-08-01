@@ -423,6 +423,10 @@ export function Sidebar() {
   const setShowForces = useStore((s) => s.setShowForces)
   const showFieldLines = useStore((s) => s.showFieldLines)
   const setShowFieldLines = useStore((s) => s.setShowFieldLines)
+  const showFieldVectors = useStore((s) => s.showFieldVectors)
+  const setShowFieldVectors = useStore((s) => s.setShowFieldVectors)
+  const vectorGridResolution = useStore((s) => s.vectorGridResolution)
+  const setVectorGridResolution = useStore((s) => s.setVectorGridResolution)
   const integrationMethod = useStore((s) => s.integrationMethod)
   const setIntegrationMethod = useStore((s) => s.setIntegrationMethod)
 
@@ -589,7 +593,28 @@ export function Sidebar() {
                       {DIST_PARAMS[d.type]?.map((param, idx, arr) => {
                         // Skip if this was already rendered as part of a linked pair
                         if (idx > 0 && arr[idx - 1]?.linkKey === param.key) return null
+                        // Skip geometry params in infinite mode
+                        if (param.hideInfinite && d.mode === 'infinite') return null
                         const val = d[param.key]
+                        if (param.type === 'mode') {
+                          return (
+                            <div key={param.key} className="dist-param-row" style={{ gap: '0.25rem' }}>
+                              <span className="label dist-param-label" style={{ minWidth: 'auto', marginRight: '0.25rem' }}>{param.label}</span>
+                              <button className={`btn-unit ${d.mode !== 'infinite' ? 'active' : ''}`}
+                                onClick={() => updateDistribution(d.id, { mode: 'finite' })}
+                                title="Géométrie finie"
+                              >
+                                Fini
+                              </button>
+                              <button className={`btn-unit ${d.mode === 'infinite' ? 'active' : ''}`}
+                                onClick={() => updateDistribution(d.id, { mode: 'infinite' })}
+                                title="Distribution infinie (champ 2D exact)"
+                              >
+                                Infini
+                              </button>
+                            </div>
+                          )
+                        }
                         if (param.type === 'vec3') {
                           return (
                             <div key={param.key} className="dist-vec3-row">
@@ -757,7 +782,10 @@ export function Sidebar() {
                   <span>Afficher les forces de Coulomb</span>
                 </label>
                 <label className="toggle-row">
-                  <input type="checkbox" checked={showFieldLines} onChange={(e) => setShowFieldLines(e.target.checked)} />
+                  <input type="checkbox" checked={showFieldLines} onChange={(e) => {
+                    setShowFieldLines(e.target.checked)
+                    if (e.target.checked) setShowFieldVectors(false)
+                  }} />
                   <span>Afficher les lignes de champ</span>
                 </label>
                 {showFieldLines && (
@@ -775,6 +803,23 @@ export function Sidebar() {
                     >
                       RK4
                     </button>
+                  </div>
+                )}
+                <label className="toggle-row">
+                  <input type="checkbox" checked={showFieldVectors} onChange={(e) => {
+                    setShowFieldVectors(e.target.checked)
+                    if (e.target.checked) setShowFieldLines(false)
+                  }} />
+                  <span>Afficher les vecteurs de champ (grille)</span>
+                </label>
+                {showFieldVectors && (
+                  <div className="flex-row gap-2" style={{ padding: '0.3rem 0 0.3rem 1.5rem', alignItems: 'center' }}>
+                    <span className="label" style={{ fontSize: '0.75rem', whiteSpace: 'nowrap' }}>Résolution :</span>
+                    <input type="range" min={3} max={14} step={1}
+                      value={vectorGridResolution}
+                      onChange={(e) => setVectorGridResolution(parseInt(e.target.value, 10))}
+                      className="slider" style={{ flex: 1, margin: '0 4px' }} />
+                    <span className="label" style={{ fontSize: '0.75rem', whiteSpace: 'nowrap' }}>{vectorGridResolution}³</span>
                   </div>
                 )}
                 <label className="toggle-row">
