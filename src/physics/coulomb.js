@@ -138,95 +138,98 @@ export function calculatePotentialFromLine(dist, targetPos, ke = KE_REAL, rMin =
   return linePotentialAnalytical(targetPos[0], targetPos[1], targetPos[2], dist.length / 2, dist.density, ke, rMin)
 }
 
-/* ---------- Cylinder (infinite) ---------- */
+/* ---------- Cylinder (finite) — rings along the axis ---------- */
+
+function cylinderShellRanges(dist) {
+  const { radius: b, innerRadius = 0, e_ext = 0, e_int = 0, hollow } = dist
+  const a = innerRadius || 0
+  if (hollow) return [{ mode: 'surface', r1: b, r2: b }]
+  const shells = []
+  if (e_ext > 0) shells.push({ mode: 'volume', r1: Math.max(b - e_ext, 1e-9), r2: b })
+  if (a > 0 && e_int > 0) shells.push({ mode: 'volume', r1: Math.max(a - e_int, 1e-9), r2: a })
+  if (e_ext === 0 && e_int === 0) {
+    shells.push({ mode: 'volume', r1: a, r2: b })
+  }
+  return shells
+}
+
+function cylinderRingGrid(dist, rho, ax) {
+  const R = dist.radius, H = dist.height
+  const dAx = Math.abs(ax) - H / 2
+  const dRad = rho - R
+  const dOut = Math.sqrt(Math.max(0, dRad) * Math.max(0, dRad) + Math.max(0, dAx) * Math.max(0, dAx))
+  let d = dOut
+  if (dRad < 0 && dAx < 0) d = Math.min(-dRad, -dAx)
+  let nz, nr
+  if (d < 0.75) { nz = 16; nr = 8 }
+  else if (d < 2.5) { nz = 12; nr = 6 }
+  else if (d < 7) { nz = 8; nr = 4 }
+  else { nz = 6; nr = 3 }
+  if (dist.hollow) nr = 0
+  return { nr, nz }
+}
 
 export function calculateFieldFromCylinder(dist, targetPos, ke = KE_REAL, rMin = 0.5) {
   const E = new THREE.Vector3()
-  const { density, center, axis, radius, hollow, innerRadius = 0, e_ext = 0, e_int = 0 } = dist
-  const P = new THREE.Vector3(...targetPos)
+  const { density, center, axis, height } = dist
+  if (height < 1e-10) return E
+  const H = height, H2 = H / 2
   const frame = makeLocalFrame(center, axis)
+  const P = new THREE.Vector3(...targetPos)
   const local = new THREE.Vector3().copy(P).sub(frame.origin)
-  const px = local.dot(frame.x)
-  const py = local.dot(frame.y)
-  const d = Math.sqrt(px * px + py * py)
-  if (d < 1e-14) return E
-  if (hollow) {
-    const lambda = density * (2 * Math.PI * radius)
-    if (d < radius) return E
-    const dClamped = Math.max(d, rMin)
-    const factor = 2 * ke * lambda / (dClamped * dClamped)
-    return E.addScaledVector(frame.x, factor * px).addScaledVector(frame.y, factor * py)
-  }
-  const a = innerRadius || 0
-  const b = radius
-  if (e_ext === 0 && e_int === 0) {
-    if (a > 0) {
-      const lambdaTotal = density * Math.PI * (b * b - a * a)
-      if (d >= b) {
-        const dClamped = Math.max(d, rMin)
-        const factor = 2 * ke * lambdaTotal / (dClamped * dClamped)
-        return E.addScaledVector(frame.x, factor * px).addScaledVector(frame.y, factor * py)
+  const ax = local.dot(frame.z)
+  const rho = Math.sqrt(Math.max(0, local.dot(frame.x) * local.dot(frame.x) + local.dot(frame.y) * local.dot(frame.y)))
+  const { nr, nz } = cylinderRingGrid(dist, rho, ax)
+  const dz = H / nz
+  const ringNormal = frame.z
+  const shells = cylinderShellRanges(dist)
+  for (const shell of shells) {
+    const nRad = shell.mode === 'surface' ? 1 : Math.max(nr, 1)
+    const r1 = shell.r1, r2 = shell.r2
+    const dr = shell.mode === 'surface' ? 0 : (r2 - r1) / nRad
+    for (let iz = 0; iz < nz; iz++) {
+      const z = (iz + 0.5) * dz - H2
+      const ringCenter = new THREE.Vector3().copy(frame.origin).addScaledVector(frame.z, z)
+      for (let ir = 0; ir < nRad; ir++) {
+        const r = shell.mode === 'surface' ? r2 : r1 + (ir + 0.5) * dr
+        const lambda = shell.mode === 'surface' ? density * dz : density * dr * dz
+        const ring = { density: lambda, center: [ringCenter.x, ringCenter.y, ringCenter.z], normal: [ringNormal.x, ringNormal.y, ringNormal.z], radius: r }
+        E.add(calculateFieldFromCircle(ring, targetPos, ke, rMin))
       }
-      if (d <= a) return E
-      const factor = 2 * ke * Math.PI * density * (1 - a * a / (d * d))
-      return E.addScaledVector(frame.x, factor * px).addScaledVector(frame.y, factor * py)
     }
-    const lambda = density * Math.PI * b * b
-    if (d < b) {
-      const factor = 2 * ke * Math.PI * density
-      return E.addScaledVector(frame.x, factor * px).addScaledVector(frame.y, factor * py)
-    }
-    const dClamped = Math.max(d, rMin)
-    const factor = 2 * ke * lambda / (dClamped * dClamped)
-    return E.addScaledVector(frame.x, factor * px).addScaledVector(frame.y, factor * py)
   }
-  let Emag = 0
-  if (e_ext > 0) Emag += thickCylShell(density, radius - e_ext, radius, d, ke)
-  if (innerRadius > 0 && e_int > 0) Emag += thickCylShell(density, innerRadius - e_int, innerRadius, d, ke)
-  if (Emag === 0) return E
-  const dClamped = Math.max(d, rMin)
-  const factor = Emag / dClamped
-  return E.addScaledVector(frame.x, factor * px).addScaledVector(frame.y, factor * py)
+  return E
 }
 
 export function calculatePotentialFromCylinder(dist, targetPos, ke = KE_REAL, rMin = 0.5) {
-  const { density, center, axis, radius, hollow, innerRadius = 0, e_ext = 0, e_int = 0 } = dist
-  const P = new THREE.Vector3(...targetPos)
+  const { density, center, axis, height } = dist
+  if (height < 1e-10) return 0
+  const H = height, H2 = H / 2
   const frame = makeLocalFrame(center, axis)
+  const P = new THREE.Vector3(...targetPos)
   const local = new THREE.Vector3().copy(P).sub(frame.origin)
-  const px = local.dot(frame.x)
-  const py = local.dot(frame.y)
-  const d = Math.sqrt(px * px + py * py)
-  const dClamped = Math.max(d, rMin)
-  if (hollow) {
-    const lambda = density * (2 * Math.PI * radius)
-    if (d < radius) return -2 * ke * lambda * Math.log(Math.max(radius, rMin))
-    return -2 * ke * lambda * Math.log(dClamped)
-  }
-  const a = innerRadius || 0
-  const b = radius
-  if (e_ext === 0 && e_int === 0) {
-    if (a > 0) {
-      const lambdaTotal = density * Math.PI * (b * b - a * a)
-      if (d >= b) return -2 * ke * lambdaTotal * Math.log(dClamped)
-      if (d <= a) {
-        return -2 * ke * lambdaTotal * Math.log(Math.max(b, rMin))
-          + ke * Math.PI * density * (b * b - a * a)
-          - 2 * ke * Math.PI * density * a * a * Math.log(Math.max(b / Math.max(a, 1e-14), 1))
-      }
-      return -2 * ke * lambdaTotal * Math.log(Math.max(b, rMin))
-        + ke * Math.PI * density * (b * b - d * d)
-        - 2 * ke * Math.PI * density * a * a * Math.log(Math.max(b / Math.max(d, 1e-14), 1))
-    }
-    const lambda = density * Math.PI * b * b
-    if (d < b) {
-      return ke * Math.PI * density * (b * b - d * d) - 2 * ke * lambda * Math.log(Math.max(b, rMin))
-    }
-    return -2 * ke * lambda * Math.log(dClamped)
-  }
+  const ax = local.dot(frame.z)
+  const rho = Math.sqrt(Math.max(0, local.dot(frame.x) * local.dot(frame.x) + local.dot(frame.y) * local.dot(frame.y)))
+  const { nr, nz } = cylinderRingGrid(dist, rho, ax)
+  const dz = H / nz
+  const ringNormal = frame.z
+  const shells = cylinderShellRanges(dist)
   let V = 0
-  if (e_ext > 0) V += thickCylShellPotential(density, radius - e_ext, radius, d, ke, rMin)
-  if (innerRadius > 0 && e_int > 0) V += thickCylShellPotential(density, innerRadius - e_int, innerRadius, d, ke, rMin)
+  for (const shell of shells) {
+    const nRad = shell.mode === 'surface' ? 1 : Math.max(nr, 1)
+    const r1 = shell.r1, r2 = shell.r2
+    const dr = shell.mode === 'surface' ? 0 : (r2 - r1) / nRad
+    for (let iz = 0; iz < nz; iz++) {
+      const z = (iz + 0.5) * dz - H2
+      const ringCenter = new THREE.Vector3().copy(frame.origin).addScaledVector(frame.z, z)
+      for (let ir = 0; ir < nRad; ir++) {
+        const r = shell.mode === 'surface' ? r2 : r1 + (ir + 0.5) * dr
+        const lambda = shell.mode === 'surface' ? density * dz : density * dr * dz
+        const ring = { density: lambda, center: [ringCenter.x, ringCenter.y, ringCenter.z], normal: [ringNormal.x, ringNormal.y, ringNormal.z], radius: r }
+        V += calculatePotentialFromCircle(ring, targetPos, ke, rMin)
+      }
+    }
+  }
   return V
 }
 
@@ -469,7 +472,7 @@ export function calculatePotentialFromCircle(dist, targetPos, ke = KE_REAL, rMin
 
   const k = Math.sqrt(k2)
   const Kk = ellipticK(k)
-  return ke * 4 * lambda / Math.sqrt(A) * Kk
+  return ke * 4 * lambda * R / Math.sqrt(A) * Kk
 }
 
 /* ---------- Frame (rectangular wire loop) — exact analytical ---------- */
@@ -901,6 +904,19 @@ export function getDistributionSeeds(dist, numSeeds) {
           seeds.push({ point: worldFromLocal(local, frame), direction: sign })
         }
       }
+      // Lignes radiales dans le plan de l'anneau (de l'intérieur du fil vers le centre)
+      const nInPlane = Math.max(Math.floor(nSeeds / 2), 3)
+      const rIn = Math.max(dist.radius - offset, offset)
+      for (let i = 0; i < nInPlane; i++) {
+        const a = (i / nInPlane) * Math.PI * 2
+        const local = new THREE.Vector3(rIn * Math.cos(a), rIn * Math.sin(a), 0)
+        seeds.push({ point: worldFromLocal(local, frame), direction: sign })
+      }
+      // Lignes le long de l'axe de symétrie (±normal, à travers le centre)
+      for (const d of [0.35, 0.9]) {
+        seeds.push({ point: worldFromLocal(new THREE.Vector3(0, 0, d), frame), direction: sign })
+        seeds.push({ point: worldFromLocal(new THREE.Vector3(0, 0, -d), frame), direction: sign })
+      }
       break
     }
     case 'frame': {
@@ -931,6 +947,11 @@ export function getDistributionSeeds(dist, numSeeds) {
             seeds.push({ point: worldFromLocal(local, frame), direction: sign })
           }
         }
+      }
+      // Axe de symétrie (±normal) : lignes émergeant du centre le long de l'axe
+      for (const d of [0.35, 0.9]) {
+        seeds.push({ point: worldFromLocal(new THREE.Vector3(0, 0, d), frame), direction: sign })
+        seeds.push({ point: worldFromLocal(new THREE.Vector3(0, 0, -d), frame), direction: sign })
       }
       break
     }
