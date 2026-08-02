@@ -1,4 +1,4 @@
-import { useRef, useMemo, useState, useEffect, useCallback } from 'react'
+import { useRef, useMemo, useState, useEffect } from 'react'
 import * as THREE from 'three'
 import { Billboard, Text, Html } from '@react-three/drei'
 import { useStore, UNIT_FACTORS } from '../store/useStore'
@@ -33,7 +33,7 @@ function getVertexNormal(px, py, pz, surfaceType, radius, height, width, depth) 
   }
 }
 
-function applyFluxColors(geometry, fields, surfaceType, params, center) {
+function applyFluxColors(geometry, fields, surfaceType, params) {
   const pos = geometry.attributes.position
   const n = pos.count
   const colors = new Float32Array(n * 3)
@@ -110,7 +110,6 @@ export function GaussianSurfaceVis() {
   useEffect(() => {
     cancelledRef.current = false
     if (gaussStep < 3 || hasChargesOnly) {
-      setFluxGeos({ sphere: null, cylinder: null, box: null })
       return
     }
 
@@ -129,7 +128,6 @@ export function GaussianSurfaceVis() {
       geo = new THREE.BoxGeometry(gaussSurfaceWidth, gaussSurfaceHeight, gaussSurfaceDepth)
       surfaceType = 'box'
     } else {
-      setFluxGeos({ sphere: null, cylinder: null, box: null })
       return
     }
 
@@ -150,7 +148,7 @@ export function GaussianSurfaceVis() {
           geo.dispose()
           return
         }
-        applyFluxColors(geo, fields, surfaceType, fluxSurfaceParams, gaussCenter)
+        applyFluxColors(geo, fields, surfaceType, fluxSurfaceParams)
         if (!cancelledRef.current) {
           setFluxGeos({ sphere: geoType === 'sphere' ? geo : null, cylinder: geoType === 'cylinder' ? geo : null, box: geoType === 'box' ? geo : null })
         } else {
@@ -235,19 +233,19 @@ export function GaussianSurfaceVis() {
   const arrowLen = 1.2
 
   // Calculate plane orientations for Step 1 so that BOTH planes are centered DIRECTLY AT Point M
-  
+
   // Both planes are centered at Point M (relM) so that their intersection passes right through M
   let plane1Pos = [relM.x, relM.y, relM.z]
   let plane1Rot = [0, 0, 0]
   let plane2Pos = [relM.x, relM.y, relM.z]
   let plane2Rot = [0, Math.PI / 2, 0]
-  
+
   if (configType === 'cylinder' || configType === 'line' || gaussSurfaceType === 'cylinder') {
     const thetaM = Math.atan2(relM.z, relM.x)
     // Plan 1 (Bleu): Plan méridien (M, e_r, e_z) contenant l'axe z (O) et le point M
     plane1Pos = [0, relM.y, 0]
     plane1Rot = [0, -thetaM, 0]
-    
+
     // Plan 2 (Rose): Plan transversal (M, e_r, e_θ) perpendiculaire à l'axe z à la hauteur yM de M
     plane2Pos = [0, relM.y, 0]
     plane2Rot = [Math.PI / 2, 0, 0]
@@ -256,16 +254,16 @@ export function GaussianSurfaceVis() {
     // Quaternion q1 aligne l'axe local Y (0, 1, 0) du plan sur la direction OM
     const q1 = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), omDir)
     const euler1 = new THREE.Euler().setFromQuaternion(q1)
-    
+
     // Plan 1 (Bleu): Contient l'origine O et le point M
     plane1Pos = [0, 0, 0]
     plane1Rot = [euler1.x, euler1.y, euler1.z]
-    
+
     // Plan 2 (Rose): Orthogonal au plan 1, tourné de 90° autour de l'axe OM (contient aussi O et M)
     const q90 = new THREE.Quaternion().setFromAxisAngle(omDir, Math.PI / 2)
     const q2 = q90.clone().multiply(q1)
     const euler2 = new THREE.Euler().setFromQuaternion(q2)
-    
+
     plane2Pos = [0, 0, 0]
     plane2Rot = [euler2.x, euler2.y, euler2.z]
   } else if (configType === 'plane' || gaussSurfaceType === 'box') {
@@ -274,7 +272,7 @@ export function GaussianSurfaceVis() {
     // PlaneGeometry par défaut est dans le plan XY (face vers Z) → rotation [0, 0, 0], centré sur M
     plane1Pos = [relM.x, relM.y, relM.z]
     plane1Rot = [0, 0, 0]
-    
+
     // Plan 2 (Rose) : Π_S2 = (M, e_y, e_z) → plan YZ de Three.js
     // Pour le plan YZ : rotation autour de Y de 90° → [0, Math.PI/2, 0], centré sur M
     plane2Pos = [relM.x, relM.y, relM.z]
@@ -410,8 +408,8 @@ export function GaussianSurfaceVis() {
       {/* Local Basis Vector Triad (er, eteta, ephi/ez) ATTACHED DIRECTLY TO POINT M */}
       <group position={relM}>
         {/* Vector 1 (Radial / Normal e_r or e_z) - RED / GOLD */}
-        <primitive 
-          object={new THREE.ArrowHelper(e_rad, new THREE.Vector3(0, 0, 0), arrowLen, '#ef4444', 0.25, 0.15)} 
+        <primitive
+          object={new THREE.ArrowHelper(e_rad, new THREE.Vector3(0, 0, 0), arrowLen, '#ef4444', 0.25, 0.15)}
         />
         <Billboard position={e_rad.clone().multiplyScalar(arrowLen + 0.2)}>
           <Text fontSize={0.35} color="#ef4444" anchorX="center" anchorY="middle" outlineColor="#000" outlineWidth={0.04}>
@@ -420,8 +418,8 @@ export function GaussianSurfaceVis() {
         </Billboard>
 
         {/* Vector 2 (Tangent e_θ or e_x) - GREEN */}
-        <primitive 
-          object={new THREE.ArrowHelper(e_tan, new THREE.Vector3(0, 0, 0), arrowLen * 0.8, '#10b981', 0.2, 0.12)} 
+        <primitive
+          object={new THREE.ArrowHelper(e_tan, new THREE.Vector3(0, 0, 0), arrowLen * 0.8, '#10b981', 0.2, 0.12)}
         />
         <Billboard position={e_tan.clone().multiplyScalar(arrowLen * 0.8 + 0.2)}>
           <Text fontSize={0.32} color="#10b981" anchorX="center" anchorY="middle" outlineColor="#000" outlineWidth={0.04}>
@@ -430,8 +428,8 @@ export function GaussianSurfaceVis() {
         </Billboard>
 
         {/* Vector 3 (Azimuthal / Axial e_φ or e_z) - BLUE */}
-        <primitive 
-          object={new THREE.ArrowHelper(e_third, new THREE.Vector3(0, 0, 0), arrowLen * 0.8, '#3b82f6', 0.2, 0.12)} 
+        <primitive
+          object={new THREE.ArrowHelper(e_third, new THREE.Vector3(0, 0, 0), arrowLen * 0.8, '#3b82f6', 0.2, 0.12)}
         />
         <Billboard position={e_third.clone().multiplyScalar(arrowLen * 0.8 + 0.2)}>
           <Text fontSize={0.32} color="#3b82f6" anchorX="center" anchorY="middle" outlineColor="#000" outlineWidth={0.04}>

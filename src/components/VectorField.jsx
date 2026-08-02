@@ -29,7 +29,6 @@ export function VectorField() {
   useEffect(() => {
     cancelledRef.current = false
     if (!showFieldVectors || (charges.length === 0 && distributions.length === 0)) {
-      setVectors([])
       return
     }
     const { ke, rMin } = useStore.getState()

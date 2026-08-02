@@ -80,7 +80,6 @@ export function Equipotentials() {
   useEffect(() => {
     cancelledRef.current = false
     if (!showEquipotentials || (charges.length === 0 && distributions.length === 0)) {
-      setContours([])
       return
     }
 

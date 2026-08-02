@@ -281,7 +281,6 @@ describe('calculateFieldFromCylinder - along x-axis', () => {
   const rMin = 0.001
   const center = [0, 0, 0]
   const axis = [0, 0, 1]
-  const cylLambda = (r) => rho * Math.PI * r * r
   const cylLambdaEnc = (r, a) => rho * Math.PI * (r * r - a * a)
 
   // The cylinder is FINITE: unlike the infinite model, a finite cylinder is
@@ -368,7 +367,6 @@ describe('calculateFieldFromCylinder - along x-axis', () => {
     const eExt = 0.3
     const eInt = 0.3
     const dist = { type: 'cylinder', center, axis, radius: R, density: rho, hollow: false, innerRadius: a, height: 2, e_ext: eExt, e_int: eInt }
-    const innerOuter = R - eExt
     const innerInner = a - eInt
     const E1 = calculateFieldFromCylinder(dist, [innerInner - 0.2, 0, 0], ke, rMin)
     expect(Math.abs(E1.length())).toBeLessThan(1e-5)

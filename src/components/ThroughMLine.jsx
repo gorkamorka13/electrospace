@@ -18,7 +18,6 @@ export function ThroughMLine() {
     cancelledRef.current = true
 
     if (!showThroughMLine || (charges.length === 0 && distributions.length === 0)) {
-      setLineData(null)
       return
     }
 

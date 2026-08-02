@@ -44,7 +44,6 @@ export function Equipotentials3D() {
 
   useEffect(() => {
     if (!showEquipotentials3D || (charges.length === 0 && distributions.length === 0)) {
-      setGeometries([])
       return
     }
     let cancelled = false

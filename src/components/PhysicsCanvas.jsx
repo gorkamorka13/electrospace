@@ -1,5 +1,5 @@
 /* global __GIT_VERSION__ */
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls, Billboard, Text, PerspectiveCamera, OrthographicCamera } from "@react-three/drei";
 import * as THREE from "three";
@@ -27,21 +27,31 @@ import { IndividualFieldArrows } from "./IndividualFieldArrows";
 
 function CameraController({ animationTargetRef, controlsRef }) {
   const { camera } = useThree();
+  const [done, setDone] = useState(false);
+  const lastTargetRef = useRef(null);
 
   useFrame(() => {
-    if (animationTargetRef.current && controlsRef.current) {
-      const { cameraPos, lookAt } = animationTargetRef.current;
-      const step = 0.08;
+    const target = animationTargetRef.current;
+    if (target && controlsRef.current) {
+      // Detect a new animation target (new object reference) and reset the done flag
+      if (lastTargetRef.current !== target) {
+        lastTargetRef.current = target;
+        setDone(false);
+      }
+      if (!done) {
+        const { cameraPos, lookAt } = target;
+        const step = 0.08;
 
-      camera.position.lerp(cameraPos, step);
-      controlsRef.current.target.lerp(lookAt, step);
-      controlsRef.current.update();
-
-      if (camera.position.distanceTo(cameraPos) < 0.005 && controlsRef.current.target.distanceTo(lookAt) < 0.005) {
-        camera.position.copy(cameraPos);
-        controlsRef.current.target.copy(lookAt);
+        camera.position.lerp(cameraPos, step);
+        controlsRef.current.target.lerp(lookAt, step);
         controlsRef.current.update();
-        animationTargetRef.current = null;
+
+        if (camera.position.distanceTo(cameraPos) < 0.005 && controlsRef.current.target.distanceTo(lookAt) < 0.005) {
+          camera.position.copy(cameraPos);
+          controlsRef.current.target.copy(lookAt);
+          controlsRef.current.update();
+          setDone(true);
+        }
       }
     }
   });
@@ -94,7 +104,7 @@ export function PhysicsCanvas() {
   const canvasRef = useRef();
   const [toolbarOpen, setToolbarOpen] = useState(true);
 
-  const handleSetView = (viewName) => {
+  const handleSetView = useCallback((viewName) => {
     setActiveView(viewName);
     let cameraPos, lookAt;
 
@@ -117,12 +127,12 @@ export function PhysicsCanvas() {
     }
 
     animationTarget.current = { cameraPos, lookAt };
-  };
+  }, [setActiveView, setCameraMode]);
 
   // Active view from sidebar — trigger camera animation when changed
   useEffect(() => {
     if (activeView) handleSetView(activeView);
-  }, [activeView]);
+  }, [activeView, handleSetView]);
 
   return (
     <ErrorBoundary>

@@ -175,18 +175,21 @@ export function FieldGraph() {
     let other = null
     try { other = JSON.parse(localStorage.getItem('pgxWin') || 'null') } catch { other = null }
     if (!other || typeof other.x !== 'number') return
-    setWinRaw(prev => {
-      const ow = other.w || 300, oh = other.h || 180
-      const ix = Math.max(0, Math.min(prev.x + prev.w, other.x + ow) - Math.max(prev.x, other.x))
-      const iy = Math.max(0, Math.min(prev.y + prev.h, other.y + oh) - Math.max(prev.y, other.y))
-      const inter = ix * iy
-      const area = Math.min(prev.w * prev.h, ow * oh)
-      if (area > 0 && inter / area > 0.5) {
-        const next = clampPos(prev.x + CASCADE, prev.y + CASCADE, prev.w, prev.h)
-        return { ...next, w: prev.w, h: prev.h }
-      }
-      return prev
+    const raf = requestAnimationFrame(() => {
+      setWinRaw(prev => {
+        const ow = other.w || 300, oh = other.h || 180
+        const ix = Math.max(0, Math.min(prev.x + prev.w, other.x + ow) - Math.max(prev.x, other.x))
+        const iy = Math.max(0, Math.min(prev.y + prev.h, other.y + oh) - Math.max(prev.y, other.y))
+        const inter = ix * iy
+        const area = Math.min(prev.w * prev.h, ow * oh)
+        if (area > 0 && inter / area > 0.5) {
+          const next = clampPos(prev.x + CASCADE, prev.y + CASCADE, prev.w, prev.h)
+          return { ...next, w: prev.w, h: prev.h }
+        }
+        return prev
+      })
     })
+    return () => cancelAnimationFrame(raf)
   }, [show])
 
   const zIndex = useStore((s) => s.fieldGraphZ)

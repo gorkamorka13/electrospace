@@ -7,6 +7,7 @@ export function useFieldWorker() {
   const pendingRef = useRef(new Map())
 
   useEffect(() => {
+    const pending = pendingRef.current
     const worker = new Worker(
       new URL('../workers/fieldWorker.js', import.meta.url),
       { type: 'module' }
@@ -15,7 +16,6 @@ export function useFieldWorker() {
 
     worker.onmessage = (e) => {
       const { id, result, error } = e.data
-      const pending = pendingRef.current
       const resolve = pending.get(id)
       if (resolve) {
         pending.delete(id)
@@ -26,14 +26,14 @@ export function useFieldWorker() {
 
     worker.onerror = (err) => {
       // Reject all pending on worker error
-      pendingRef.current.forEach(({ reject }) => reject(err))
-      pendingRef.current.clear()
+      pending.forEach(({ reject }) => reject(err))
+      pending.clear()
     }
 
     return () => {
       worker.terminate()
       workerRef.current = null
-      pendingRef.current.clear()
+      pending.clear()
     }
   }, [])
 

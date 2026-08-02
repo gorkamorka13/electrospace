@@ -91,7 +91,6 @@ function fibonacciSphere(N, center, radius) {
 
 // ---- Constants ----
 const KE_REAL = 8.9875517923e9
-const E_CHARGE = 1.602176634e-19
 
 // ---- Helper functions ----
 

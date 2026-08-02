@@ -222,7 +222,7 @@ describe('computeFieldGridBounds — grid scales with distribution extent', () =
 
   it('rotated plane extends along world axes', () => {
     const d = { type: 'plane', center: [0, 0, 0], normal: [0, 0, 1], width: 4, height: 2, mode: 'finite' }
-    const { min, max } = computeFieldGridBounds({ distributions: [d] })
+    const { max } = computeFieldGridBounds({ distributions: [d] })
     // normal +z: width 4 -> x extent, height 2 -> y extent, z only padding
     expect(max.x).toBeCloseTo(4, 6)
     expect(max.y).toBeCloseTo(3, 6)

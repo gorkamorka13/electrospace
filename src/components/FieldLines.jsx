@@ -24,7 +24,6 @@ export function FieldLines() {
   useEffect(() => {
     cancelledRef.current = false
     if (!showFieldLines || (charges.length === 0 && distributions.length === 0)) {
-      setAllLinePoints([])
       return
     }
 
@@ -52,7 +51,6 @@ export function FieldLines() {
     }
 
     if (seeds.length === 0) {
-      setAllLinePoints([])
       return
     }
 

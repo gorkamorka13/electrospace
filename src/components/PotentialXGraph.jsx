@@ -6,6 +6,7 @@ import { useFieldWorker } from '../hooks/useFieldWorker'
 
 const PAD = 34
 const SAMPLES = 300
+
 const AXIS_RANGE = 10
 const MIN_W = 200
 const MIN_H = 140
@@ -181,18 +182,21 @@ export function PotentialXGraph() {
     let other = null
     try { other = JSON.parse(localStorage.getItem('efWin') || 'null') } catch { other = null }
     if (!other || typeof other.x !== 'number') return
-    setWinRaw(prev => {
-      const ow = other.w || 300, oh = other.h || 180
-      const ix = Math.max(0, Math.min(prev.x + prev.w, other.x + ow) - Math.max(prev.x, other.x))
-      const iy = Math.max(0, Math.min(prev.y + prev.h, other.y + oh) - Math.max(prev.y, other.y))
-      const inter = ix * iy
-      const area = Math.min(prev.w * prev.h, ow * oh)
-      if (area > 0 && inter / area > 0.5) {
-        const next = clampPos(prev.x + CASCADE, prev.y + CASCADE, prev.w, prev.h)
-        return { ...next, w: prev.w, h: prev.h }
-      }
-      return prev
+    const raf = requestAnimationFrame(() => {
+      setWinRaw(prev => {
+        const ow = other.w || 300, oh = other.h || 180
+        const ix = Math.max(0, Math.min(prev.x + prev.w, other.x + ow) - Math.max(prev.x, other.x))
+        const iy = Math.max(0, Math.min(prev.y + prev.h, other.y + oh) - Math.max(prev.y, other.y))
+        const inter = ix * iy
+        const area = Math.min(prev.w * prev.h, ow * oh)
+        if (area > 0 && inter / area > 0.5) {
+          const next = clampPos(prev.x + CASCADE, prev.y + CASCADE, prev.w, prev.h)
+          return { ...next, w: prev.w, h: prev.h }
+        }
+        return prev
+      })
     })
+    return () => cancelAnimationFrame(raf)
   }, [show])
 
   const { computePotentialGrid } = useFieldWorker()
@@ -259,7 +263,6 @@ export function PotentialXGraph() {
     const gridColor = isDark ? 'rgba(255,255,255,0.07)' : 'rgba(15,23,42,0.08)'
     const axisColor = isDark ? 'rgba(255,255,255,0.3)' : 'rgba(15,23,42,0.2)'
     const labelColor = isDark ? 'rgba(255,255,255,0.35)' : 'rgba(15,23,42,0.55)'
-    const titleColor = isDark ? 'rgba(255,255,255,0.7)' : 'rgba(15,23,42,0.75)'
     const infoColor = isDark ? 'rgba(255,255,255,0.4)' : 'rgba(15,23,42,0.6)'
 
     ctx.strokeStyle = borderColor
@@ -373,7 +376,7 @@ export function PotentialXGraph() {
     ctx.fillStyle = curveColor
     ctx.fill()
     ctx.fillText(`Balayage: V=${sv.toExponential(2)} V`, x2 + 8, textY)
-  }, [show, data, w, h, theme, cursorPos, axisRange, potAxis])
+  }, [show, data, w, h, theme, cursorPos, axisRange, potAxis, curveColor])
 
   const winRefState = useRef(win)
   useEffect(() => { winRefState.current = win }, [win])
