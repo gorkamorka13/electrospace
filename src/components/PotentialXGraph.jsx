@@ -399,7 +399,7 @@ export function PotentialXGraph() {
     URL.revokeObjectURL(link.href)
   }, [data, potAxis])
 
-  const handleWheel = useCallback((e) => {
+  const handleWheelCapture = useCallback((e) => {
     e.preventDefault()
     e.stopPropagation()
     setAxisRange(prev => Math.max(0.5, Math.min(50, prev + e.deltaY * 0.01)))
@@ -412,7 +412,6 @@ export function PotentialXGraph() {
   return (
     <div className="pg-window" ref={winRef} style={{ left: x, top: y, width: w, height: minimized ? 'auto' : h, minHeight: minimized ? 'auto' : undefined, zIndex }} data-window="potentialGraph"
       onMouseDown={(e) => e.stopPropagation()}
-      onWheel={(e) => e.stopPropagation()}
       onTouchStart={(e) => e.stopPropagation()}
       onPointerDown={(e) => {
         // Bring this window to front on any pointer down event
@@ -497,7 +496,7 @@ export function PotentialXGraph() {
             onPointerDown={handleCanvasPointerDown}
             onPointerMove={handleCanvasPointerMove}
             onPointerUp={handleCanvasPointerUp}
-            onWheel={handleWheel}
+            onWheelCapture={handleWheelCapture}
             style={{ cursor: 'pointer' }}
           />
         </div>
