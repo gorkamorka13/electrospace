@@ -1,6 +1,6 @@
 export const WORLD_SIZE = 24
 export const HALF_WORLD = WORLD_SIZE / 2
-export const R_MIN = 0.5
+export const R_MIN = 0.05
 export const BOUNDARY = 12
 
 export const FORCE_SCALE = 0.5

@@ -1,7 +1,13 @@
 # Electrospace — Fix Plan
 Generated: 2026-07-27
 
-Based on the Application Audit Summary.md verification against the actual codebase (build, tests, lint, source inspection).
+
+> ## ⚠️ SUPERSEDED — 10 Août 2026
+> Ce document liste des problèmes **déjà corrigés** dans le code actuel. Vérifié sur la branche `master` :
+> - ESLint : **0 erreur / 0 avertissement** (les 63 erreurs / 8 warnings listés n'existent plus).
+> - Tests : **117/117** passent (et non 90).
+> - Code mort & zones à risque : **nettoyés** (dead code supprimé, `rMin` centralisé via `constants.R_MIN`).
+> Ce plan est conservé à titre historique. Se référer à l'état réel du code pour tout travail futur.
 
 ---
 

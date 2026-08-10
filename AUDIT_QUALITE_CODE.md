@@ -5,6 +5,15 @@
 > **Statut** : Rapport d'Audit & Plan d'Action (Aucune modification de code source effectuée)  
 > **Fichier généré** : `AUDIT_QUALITE_CODE.md`
 
+> ## ⚠️ MISE À JOUR (10 Août 2026) — ce rapport est historique et dépassé
+> Ce rapport a été rédigé en **mode plan** et décrit l'état initial du codebase. Depuis, les préconisations ont été **appliquées et validées** :
+> - **Linter** : désormais **0 erreur / 0 avertissement** (`npm run lint` → exit 0) — les 46 alertes d'origine ont été corrigées.
+> - **Tests** : **117/117** passent (`npx vitest run`).
+> - **Code mort supprimé** : `sample3DGrid` (marchingCubes, dupliqué dans le worker), états de store zombies `showPotentialGraph` / `potentialGraphAxis`, assets inutilisés (`hero.png`, `react.svg`, `vite.svg`) et journaux (`texput.log`, `dev.log`).
+> - **Harmonisation physique (§4.1)** : `rMin` **centralisé** via `constants.R_MIN = 0.05`, appliqué dans le store (`physicsSlice`), `coulomb.js` (champ & potentiel, y compris `traceFieldLine` qui était à 0.5) et `fieldWorker.js`. La divergence champ/potentiel est résolue.
+> Les chapitres 2 à 5 ci-dessous correspondent à l'état d'origine (avant correction) et sont conservés à titre historique.
+
+
 ---
 
 ## 📋 Sommaire
@@ -25,9 +34,9 @@ Cet audit examine la santé globale du codebase de l'application **ElectroSpace*
 
 | Domaine | État | Constat / Détails |
 | :--- | :---: | :--- |
-| **Tests Unitaires (Vitest)** | ✅ **PASSING** | **90/90 tests validés** (`gauss.test.js`, `plane-verify.test.js`, `utils.test.js`). |
+| **Tests Unitaires (Vitest)** | ✅ **PASSING** | **117/117 tests validés** (`gauss.test.js`, `plane-verify.test.js`, `utils.test.js`). |
 | **Build Production (Vite)** | ✅ **OK** | Compilation fonctionnelle sans erreur bloquante de bundling. |
-| **Linter ESLint** | ❌ **FAIL** | **46 avertissements / erreurs** de variables inutilisées et de règles de Hooks. |
+| **Linter ESLint** | ✅ **PASS** | **0 erreur / 0 avertissement** (constantes ET variables inutilisées nettoyées, règles Hooks conformes). |
 | **Règles des Hooks React 19** | ⚠️ **RISQUES** | Invocations synchrones de `setState` dans les effets, mutations de refs dans `useFrame`, hoisting incorrect. |
 | **Gestion des Singularités Physiques** | 🟠 **INCOHÉRENT** | Rayon d'arrêt anti-singularité ($r_{\min}$) divergent entre le champ $\vec{E}$ ($0.05$) et le potentiel $V$ ($0.5$). |
 

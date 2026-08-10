@@ -1,10 +1,11 @@
 import * as THREE from 'three'
 import { makeLocalFrame, worldFromLocal, fibonacciSphere } from './utils'
+import { R_MIN } from './constants'
 
 export const KE_REAL = 8.9875517923e9
 export const E_CHARGE = 1.602176634e-19
 
-export function calculateFieldFromCharge(charge, targetPos, ke = KE_REAL, rMin = 0.05) {
+export function calculateFieldFromCharge(charge, targetPos, ke = KE_REAL, rMin = R_MIN) {
   const q = charge.q
   const chargePos = new THREE.Vector3(...charge.position)
   const M = new THREE.Vector3(...targetPos)
@@ -15,14 +16,14 @@ export function calculateFieldFromCharge(charge, targetPos, ke = KE_REAL, rMin =
   return u.multiplyScalar((ke * q) / (r * r))
 }
 
-export function calculateTotalField(charges, targetPos, ke = KE_REAL, rMin = 0.05, distributions = []) {
+export function calculateTotalField(charges, targetPos, ke = KE_REAL, rMin = R_MIN, distributions = []) {
   const totalField = new THREE.Vector3(0, 0, 0)
   charges.forEach(c => totalField.add(calculateFieldFromCharge(c, targetPos, ke, rMin)))
   distributions.forEach(d => totalField.add(calculateFieldFromDistribution(d, targetPos, ke, rMin)))
   return totalField
 }
 
-export function calculatePotentialFromCharge(charge, targetPos, ke = KE_REAL, rMin = 0.05) {
+export function calculatePotentialFromCharge(charge, targetPos, ke = KE_REAL, rMin = R_MIN) {
   const chargePos = new THREE.Vector3(...charge.position)
   const M = new THREE.Vector3(...targetPos)
   const rVec = new THREE.Vector3().subVectors(M, chargePos)
@@ -31,7 +32,7 @@ export function calculatePotentialFromCharge(charge, targetPos, ke = KE_REAL, rM
   return (ke * charge.q) / r
 }
 
-export function calculateTotalPotential(charges, targetPos, ke = KE_REAL, rMin = 0.05, distributions = []) {
+export function calculateTotalPotential(charges, targetPos, ke = KE_REAL, rMin = R_MIN, distributions = []) {
   let V = 0
   charges.forEach(c => V += calculatePotentialFromCharge(c, targetPos, ke, rMin))
   distributions.forEach(d => V += calculatePotentialFromDistribution(d, targetPos, ke, rMin))
@@ -130,7 +131,7 @@ function segmentPotentialLocal(start, end, lambda, target, ke, rMin) {
   return linePotentialAnalytical(px, py, pz, half, lambda, ke, rMin)
 }
 
-export function calculateFieldFromLine(dist, targetPos, ke = KE_REAL, rMin = 0.05) {
+export function calculateFieldFromLine(dist, targetPos, ke = KE_REAL, rMin = R_MIN) {
   if (dist.mode === 'infinite') {
     // Infinite line along world Y axis: E = 2·ke·λ/ρ radial
     const x = targetPos[0]
@@ -144,7 +145,7 @@ export function calculateFieldFromLine(dist, targetPos, ke = KE_REAL, rMin = 0.0
   return lineFieldAnalytical(targetPos[0], targetPos[1], targetPos[2], dist.length / 2, dist.density, ke, rMin)
 }
 
-export function calculatePotentialFromLine(dist, targetPos, ke = KE_REAL, rMin = 0.05) {
+export function calculatePotentialFromLine(dist, targetPos, ke = KE_REAL, rMin = R_MIN) {
   if (dist.mode === 'infinite') {
     const x = targetPos[0]
     const z = targetPos[2]
@@ -185,7 +186,7 @@ function cylinderRingGrid(dist, rho, ax) {
   return { nr, nz }
 }
 
-export function calculateFieldFromCylinder(dist, targetPos, ke = KE_REAL, rMin = 0.05) {
+export function calculateFieldFromCylinder(dist, targetPos, ke = KE_REAL, rMin = R_MIN) {
   const E = new THREE.Vector3()
   const { density, center, axis, height } = dist
   if (height < 1e-10 && dist.mode !== 'infinite') return E
@@ -236,7 +237,7 @@ export function calculateFieldFromCylinder(dist, targetPos, ke = KE_REAL, rMin =
   return E
 }
 
-export function calculatePotentialFromCylinder(dist, targetPos, ke = KE_REAL, rMin = 0.05) {
+export function calculatePotentialFromCylinder(dist, targetPos, ke = KE_REAL, rMin = R_MIN) {
   const { density, center, axis, height } = dist
   if (height < 1e-10 && dist.mode !== 'infinite') return 0
   const H = height, H2 = H / 2
@@ -286,7 +287,7 @@ export function calculatePotentialFromCylinder(dist, targetPos, ke = KE_REAL, rM
 
 /* ---------- Plane (infinite) ---------- */
 
-export function calculateFieldFromPlane(dist, targetPos, ke = KE_REAL, rMin = 0.05) {
+export function calculateFieldFromPlane(dist, targetPos, ke = KE_REAL, rMin = R_MIN) {
   const { density: sigma, center, normal, width, height, mode } = dist
   const C = new THREE.Vector3(...center)
   const P = new THREE.Vector3(...targetPos)
@@ -319,7 +320,7 @@ export function calculateFieldFromPlane(dist, targetPos, ke = KE_REAL, rMin = 0.
   return E
 }
 
-export function calculatePotentialFromPlane(dist, targetPos, ke = KE_REAL, rMin = 0.05) {
+export function calculatePotentialFromPlane(dist, targetPos, ke = KE_REAL, rMin = R_MIN) {
   const { density: sigma, center, normal, width, height, mode } = dist
   if (mode === 'infinite') {
     const C = new THREE.Vector3(...center)
@@ -345,7 +346,7 @@ export function calculatePotentialFromPlane(dist, targetPos, ke = KE_REAL, rMin 
 
 /* ---------- Disk ---------- */
 
-export function calculateFieldFromDisk(dist, targetPos, ke = KE_REAL, rMin = 0.05) {
+export function calculateFieldFromDisk(dist, targetPos, ke = KE_REAL, rMin = R_MIN) {
   const { density: sigma, center, normal, radius } = dist
   const C = new THREE.Vector3(...center)
   const P = new THREE.Vector3(...targetPos)
@@ -372,7 +373,7 @@ export function calculateFieldFromDisk(dist, targetPos, ke = KE_REAL, rMin = 0.0
   return E
 }
 
-export function calculatePotentialFromDisk(dist, targetPos, ke = KE_REAL, rMin = 0.05) {
+export function calculatePotentialFromDisk(dist, targetPos, ke = KE_REAL, rMin = R_MIN) {
   const { density: sigma, center, normal, radius } = dist
   const C = new THREE.Vector3(...center)
   const P = new THREE.Vector3(...targetPos)
@@ -435,7 +436,7 @@ function ellipticE(k) {
 
 /* ---------- Circle (ring / circular line charge) — exact via elliptic integrals ---------- */
 
-export function calculateFieldFromCircle(dist, targetPos, ke = KE_REAL, rMin = 0.05) {
+export function calculateFieldFromCircle(dist, targetPos, ke = KE_REAL, rMin = R_MIN) {
   const { density: lambda, center, normal, radius } = dist
   const R = radius
   const Q = lambda * 2 * Math.PI * R // total charge
@@ -499,7 +500,7 @@ export function calculateFieldFromCircle(dist, targetPos, ke = KE_REAL, rMin = 0
   return E
 }
 
-export function calculatePotentialFromCircle(dist, targetPos, ke = KE_REAL, rMin = 0.05) {
+export function calculatePotentialFromCircle(dist, targetPos, ke = KE_REAL, rMin = R_MIN) {
   const { density: lambda, center, normal, radius } = dist
   const R = radius
   const Q = lambda * 2 * Math.PI * R // total charge
@@ -539,7 +540,7 @@ export function calculatePotentialFromCircle(dist, targetPos, ke = KE_REAL, rMin
 
 /* ---------- Frame (rectangular wire loop) — exact analytical ---------- */
 
-export function calculateFieldFromFrame(dist, targetPos, ke = KE_REAL, rMin = 0.05) {
+export function calculateFieldFromFrame(dist, targetPos, ke = KE_REAL, rMin = R_MIN) {
   const { density: lambda, center, normal, width, height } = dist
   const E = new THREE.Vector3()
   const frame = makeLocalFrame(center, new THREE.Vector3(...normal))
@@ -565,7 +566,7 @@ export function calculateFieldFromFrame(dist, targetPos, ke = KE_REAL, rMin = 0.
   )
 }
 
-export function calculatePotentialFromFrame(dist, targetPos, ke = KE_REAL, rMin = 0.05) {
+export function calculatePotentialFromFrame(dist, targetPos, ke = KE_REAL, rMin = R_MIN) {
   const { density: lambda, center, normal, width, height } = dist
   const frame = makeLocalFrame(center, new THREE.Vector3(...normal))
   const P = new THREE.Vector3(...targetPos)
@@ -587,7 +588,7 @@ export function calculatePotentialFromFrame(dist, targetPos, ke = KE_REAL, rMin 
 
 /* ---------- Box (parallelepiped, hollow / solid) ---------- */
 
-export function calculateFieldFromBox(dist, targetPos, ke = KE_REAL, rMin = 0.05) {
+export function calculateFieldFromBox(dist, targetPos, ke = KE_REAL, rMin = R_MIN) {
   const E = new THREE.Vector3()
   const { density, center, normal, width, height: h, depth, hollow } = dist
   const frame = makeLocalFrame(center, new THREE.Vector3(...normal))
@@ -660,7 +661,7 @@ export function calculateFieldFromBox(dist, targetPos, ke = KE_REAL, rMin = 0.05
   return E
 }
 
-export function calculatePotentialFromBox(dist, targetPos, ke = KE_REAL, rMin = 0.05) {
+export function calculatePotentialFromBox(dist, targetPos, ke = KE_REAL, rMin = R_MIN) {
   const { density, center, normal, width, height: h, depth, hollow } = dist
   const frame = makeLocalFrame(center, new THREE.Vector3(...normal))
   const w2 = width / 2, h2 = h / 2, d2 = depth / 2
@@ -783,7 +784,7 @@ function thickCylShellPotential(rho, inner, outer, d, ke, rMin) {
 
 /* ---------- Sphere (hollow / solid / two-shell) ---------- */
 
-export function calculateFieldFromSphere(dist, targetPos, ke = KE_REAL, rMin = 0.05) {
+export function calculateFieldFromSphere(dist, targetPos, ke = KE_REAL, rMin = R_MIN) {
   const { density, center, radius, innerRadius = 0, hollow, e_ext = 0, e_int = 0 } = dist
   const C = new THREE.Vector3(...center)
   const P = new THREE.Vector3(...targetPos)
@@ -812,7 +813,7 @@ export function calculateFieldFromSphere(dist, targetPos, ke = KE_REAL, rMin = 0
   return E.copy(rVec).multiplyScalar(Emag / Math.max(r, 1e-14))
 }
 
-export function calculatePotentialFromSphere(dist, targetPos, ke = KE_REAL, rMin = 0.05) {
+export function calculatePotentialFromSphere(dist, targetPos, ke = KE_REAL, rMin = R_MIN) {
   const { density, center, radius, innerRadius = 0, hollow, e_ext = 0, e_int = 0 } = dist
   const C = new THREE.Vector3(...center)
   const P = new THREE.Vector3(...targetPos)
@@ -840,7 +841,7 @@ export function calculatePotentialFromSphere(dist, targetPos, ke = KE_REAL, rMin
 
 /* ---------- Dispatchers ---------- */
 
-export function calculateFieldFromDistribution(dist, targetPos, ke = KE_REAL, rMin = 0.05) {
+export function calculateFieldFromDistribution(dist, targetPos, ke = KE_REAL, rMin = R_MIN) {
   switch (dist.type) {
     case 'line': return calculateFieldFromLine(dist, targetPos, ke, rMin)
     case 'cylinder': return calculateFieldFromCylinder(dist, targetPos, ke, rMin)
@@ -854,7 +855,7 @@ export function calculateFieldFromDistribution(dist, targetPos, ke = KE_REAL, rM
   }
 }
 
-export function calculatePotentialFromDistribution(dist, targetPos, ke = KE_REAL, rMin = 0.05) {
+export function calculatePotentialFromDistribution(dist, targetPos, ke = KE_REAL, rMin = R_MIN) {
   switch (dist.type) {
     case 'line': return calculatePotentialFromLine(dist, targetPos, ke, rMin)
     case 'cylinder': return calculatePotentialFromCylinder(dist, targetPos, ke, rMin)
@@ -1057,7 +1058,7 @@ export function getDistributionSeeds(dist, numSeeds) {
 
 /* ---------- Force ---------- */
 
-export function calculateCoulombForce(chargeA, chargeB, ke = KE_REAL, rMin = 0.05) {
+export function calculateCoulombForce(chargeA, chargeB, ke = KE_REAL, rMin = R_MIN) {
   const posA = new THREE.Vector3(...chargeA.position)
   const posB = new THREE.Vector3(...chargeB.position)
   const rVec = new THREE.Vector3().subVectors(posB, posA)
@@ -1066,7 +1067,7 @@ export function calculateCoulombForce(chargeA, chargeB, ke = KE_REAL, rMin = 0.0
   return rVec.clone().normalize().multiplyScalar((ke * chargeA.q * chargeB.q) / (r * r))
 }
 
-export function calculateTotalForceOnCharge(targetCharge, allCharges, ke = KE_REAL, rMin = 0.05) {
+export function calculateTotalForceOnCharge(targetCharge, allCharges, ke = KE_REAL, rMin = R_MIN) {
   const resultant = new THREE.Vector3()
   const contributions = []
   allCharges.forEach(s => {
@@ -1124,7 +1125,7 @@ export function formatForce(val) {
 export function traceFieldLine(seed, charges, options = {}) {
   const {
     ke = KE_REAL,
-    rMin = 0.5,
+    rMin = R_MIN,
     rStop = 0.6,
     maxDist = 25,
     maxSteps = 800,

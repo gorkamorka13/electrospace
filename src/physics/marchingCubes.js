@@ -1,5 +1,4 @@
 import * as THREE from 'three'
-import { calculateTotalPotential } from './coulomb'
 
 const edgeTable = new Uint16Array([
   0x0, 0x109, 0x203, 0x30a, 0x406, 0x50f, 0x605, 0x70c,
@@ -305,30 +304,6 @@ const edgeVertices = [
   [4,5],[5,6],[6,7],[7,4],
   [0,4],[1,5],[2,6],[3,7],
 ]
-
-export function sample3DGrid(bounds, res, charges, ke, rMin, distributions) {
-  const { min: bmin, max: bmax } = bounds
-  const nx = res, ny = res, nz = res
-  const total = nx * ny * nz
-  const grid = new Float32Array(total)
-  const pos = [0, 0, 0]
-  let minV = Infinity, maxV = -Infinity
-  for (let iz = 0; iz < nz; iz++) {
-    pos[2] = bmin[2] + (iz / (nz - 1)) * (bmax[2] - bmin[2])
-    for (let iy = 0; iy < ny; iy++) {
-      pos[1] = bmin[1] + (iy / (ny - 1)) * (bmax[1] - bmin[1])
-      for (let ix = 0; ix < nx; ix++) {
-        pos[0] = bmin[0] + (ix / (nx - 1)) * (bmax[0] - bmin[0])
-        const V = calculateTotalPotential(charges, pos, ke, rMin, distributions)
-        const idx = iz * nx * ny + iy * nx + ix
-        grid[idx] = V
-        if (V < minV) minV = V
-        if (V > maxV) maxV = V
-      }
-    }
-  }
-  return { grid, nx, ny, nz, minV, maxV }
-}
 
 function worldPos(ix, iy, iz, bounds, res) {
   const { min: bmin, max: bmax } = bounds

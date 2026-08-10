@@ -85,7 +85,6 @@ function snapshot(state) {
     showEquipotentials3D: state.showEquipotentials3D,
     showDipoleMoment: state.showDipoleMoment,
     showTrajectoryTrails: state.showTrajectoryTrails,
-    showPotentialGraph: state.showPotentialGraph,
     showPotentialXGraph: state.showPotentialXGraph,
     showFieldGraph: state.showFieldGraph,
     showIndividualFields: state.showIndividualFields,

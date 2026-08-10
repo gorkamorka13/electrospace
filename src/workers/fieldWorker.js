@@ -91,6 +91,7 @@ function fibonacciSphere(N, center, radius) {
 
 // ---- Constants ----
 const KE_REAL = 8.9875517923e9
+const R_MIN = 0.05
 
 // ---- Helper functions ----
 
@@ -896,7 +897,7 @@ function fieldDirectionAt(pos, charges, opts) {
  * @returns {number[][]} Tableau de points [x, y, z] formant la ligne
  */
 function traceFieldLineEuler(startPos, charges, opts) {
-  const { ke = KE_REAL, rMin = 0.05, rStop = 0.6, maxDist = 25, maxSteps = 1500, stepSize = 0.08, direction = 1, epsilon = 1e-25, sourcePos, distributions = [] } = opts
+  const { ke = KE_REAL, rMin = R_MIN, rStop = 0.6, maxDist = 25, maxSteps = 1500, stepSize = 0.08, direction = 1, epsilon = 1e-25, sourcePos, distributions = [] } = opts
   const pts = [new Vector3(...startPos)]
   const pos = new Vector3(...startPos)
   const fieldOpts = { ke, rMin, distributions, epsilon, direction }
@@ -934,7 +935,7 @@ function traceFieldLineEuler(startPos, charges, opts) {
  * @returns {number[][]} Tableau de points [x, y, z] formant la ligne
  */
 function traceFieldLineRK4(startPos, charges, opts) {
-  const { ke = KE_REAL, rMin = 0.05, rStop = 0.6, maxDist = 25, maxSteps = 800, stepSize = 0.15, direction = 1, epsilon = 1e-25, sourcePos, distributions = [] } = opts
+  const { ke = KE_REAL, rMin = R_MIN, rStop = 0.6, maxDist = 25, maxSteps = 800, stepSize = 0.15, direction = 1, epsilon = 1e-25, sourcePos, distributions = [] } = opts
   const pts = [new Vector3(...startPos)]
   const pos = new Vector3(...startPos)
   const fieldOpts = { ke, rMin, distributions, epsilon, direction }
@@ -1154,33 +1155,33 @@ self.onmessage = function (e) {
     switch (type) {
       case 'totalField': {
         const { charges, targetPos, ke, rMin, distributions } = payload
-        const E = calculateTotalField(charges || [], targetPos, ke || KE_REAL, rMin || 0.5, distributions || [])
+        const E = calculateTotalField(charges || [], targetPos, ke || KE_REAL, rMin || R_MIN, distributions || [])
         result = { x: E.x, y: E.y, z: E.z }
         break
       }
       case 'totalPotential': {
         const { charges, targetPos, ke, rMin, distributions } = payload
-        result = calculateTotalPotential(charges || [], targetPos, ke || KE_REAL, rMin || 0.5, distributions || [])
+        result = calculateTotalPotential(charges || [], targetPos, ke || KE_REAL, rMin || R_MIN, distributions || [])
         break
       }
       case 'fieldGrid': {
         const { charges, positions, ke, rMin, distributions } = payload
         result = positions.map(pos => {
-          const E = calculateTotalField(charges || [], pos, ke || KE_REAL, rMin || 0.5, distributions || [])
+          const E = calculateTotalField(charges || [], pos, ke || KE_REAL, rMin || R_MIN, distributions || [])
           return { x: E.x, y: E.y, z: E.z }
         })
         break
       }
       case 'potentialGrid': {
         const { charges, positions, ke, rMin, distributions } = payload
-        result = positions.map(pos => calculateTotalPotential(charges || [], pos, ke || KE_REAL, rMin || 0.5, distributions || []))
+        result = positions.map(pos => calculateTotalPotential(charges || [], pos, ke || KE_REAL, rMin || R_MIN, distributions || []))
         break
       }
       case 'traceFieldLines': {
         const { seeds, charges, ke, rMin, stepSize, maxSteps, distributions, rStop, maxDist, epsilon, method } = payload
         result = seeds.map(seed => traceFieldLine(seed.point, charges || [], {
           ke: ke || KE_REAL,
-          rMin: rMin || 0.5,
+          rMin: rMin || R_MIN,
           stepSize: stepSize || 0.15,
           maxSteps: maxSteps || 800,
           direction: seed.direction,
@@ -1217,7 +1218,7 @@ self.onmessage = function (e) {
             pos[1] = bmin[1] + (iy / (ny - 1)) * (bmax[1] - bmin[1])
             for (let ix = 0; ix < nx; ix++) {
               pos[0] = bmin[0] + (ix / (nx - 1)) * (bmax[0] - bmin[0])
-              const V = calculateTotalPotential(charges || [], pos, ke || KE_REAL, rMin || 0.5, distributions || [])
+              const V = calculateTotalPotential(charges || [], pos, ke || KE_REAL, rMin || R_MIN, distributions || [])
               const idx = iz * nx * ny + iy * nx + ix
               grid[idx] = V
               if (V < minV) minV = V
@@ -1231,7 +1232,7 @@ self.onmessage = function (e) {
       }
       case 'totalForceOnCharge': {
         const { targetCharge, allCharges, ke, rMin } = payload
-        result = calculateTotalForceOnCharge(targetCharge, allCharges, ke || KE_REAL, rMin || 0.5)
+        result = calculateTotalForceOnCharge(targetCharge, allCharges, ke || KE_REAL, rMin || R_MIN)
         break
       }
       case 'ping':

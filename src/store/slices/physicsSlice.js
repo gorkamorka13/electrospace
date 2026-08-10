@@ -1,4 +1,5 @@
 import { KE_REAL } from '../../physics/coulomb'
+import { R_MIN } from '../../physics/constants'
 
 /**
  * Slice de store pour les paramètres physiques.
@@ -6,7 +7,7 @@ import { KE_REAL } from '../../physics/coulomb'
  */
 export const createPhysicsSlice = (set) => ({
   ke: KE_REAL,
-  rMin: 0.5,
+  rMin: R_MIN,
   eMax: 15,
   chargeUnit: 'e',
   vectorScale: 1.0,
