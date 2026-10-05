@@ -5,6 +5,9 @@ import { Billboard, Text } from '@react-three/drei'
 import { useStore } from '../store/useStore'
 import { formatElectricField } from '../physics/coulomb'
 
+// Height of the E label above M (or above the arrow tip when the arrow points up)
+const LABEL_LIFT = 0.45
+
 export function ElectricFieldArrow() {
   const theme = useStore((state) => state.theme)
   const arrowRef = useRef()
@@ -29,12 +32,13 @@ export function ElectricFieldArrow() {
     // 1. Calculate field using the store getter (returns real physical vector E in V/m)
     const E = state.getElectricField(currentTestPoint)
     const length = E.length()
+    const onCharge = state.isOnPointCharge(currentTestPoint)
 
-    if (length < 1e-25) {
+    if (onCharge || length < 1e-25) {
       arrowRef.current.visible = false
       billboardRef.current.visible = true
-      textRef.current.text = 'E = 0 V/m'
-      const zeroPos = new THREE.Vector3(...currentTestPoint).add(new THREE.Vector3(0, 0.45, 0))
+      textRef.current.text = onCharge ? 'E non défini' : 'E = 0 V/m'
+      const zeroPos = new THREE.Vector3(...currentTestPoint).add(new THREE.Vector3(0, 0, LABEL_LIFT))
       billboardRef.current.position.copy(zeroPos)
       return
     }
@@ -62,19 +66,19 @@ export function ElectricFieldArrow() {
     const dir = E.clone().normalize()
     arrowRef.current.setDirection(dir)
 
-    // Smooth head length and width proportional to the rendering length
-    const headLength = Math.min(renderLength * 0.25, 0.7)
-    const headWidth = Math.min(renderLength * 0.12, 0.25)
+    // Head proportional to the rendering length, with a floor so a short arrow still reads as an arrow
+    const headLength = Math.min(Math.max(renderLength * 0.25, 0.18), 0.7, renderLength * 0.6)
+    const headWidth = Math.min(Math.max(renderLength * 0.12, 0.11), 0.25, headLength * 0.7)
     arrowRef.current.setLength(renderLength, headLength, headWidth)
     arrowRef.current.setColor(new THREE.Color(theme === 'dark' ? '#00ff66' : '#059669'))
 
     // Place the origin of the arrow helper exactly at the test point M
     arrowRef.current.position.set(currentTestPoint[0], currentTestPoint[1], currentTestPoint[2])
 
-    // 4. Position the text billboard at arrow midpoint + world-up offset
+    // 4. Position the text billboard over the arrow midpoint, above whichever end is higher (world up is Z)
     const textPos = new THREE.Vector3(...currentTestPoint)
       .add(dir.clone().multiplyScalar(renderLength * 0.5))
-      .add(new THREE.Vector3(0, 0.45, 0))
+    textPos.z = currentTestPoint[2] + Math.max(0, dir.z * renderLength) + LABEL_LIFT
 
     billboardRef.current.position.copy(textPos)
 

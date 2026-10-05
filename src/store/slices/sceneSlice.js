@@ -15,8 +15,8 @@ export const PRESETS = {
   ],
   quadrupole: [
     { id: '1', q: 1.0, position: [2, 2, 0], name: 'A' },
-    { id: '2', q: -1.0, position: [-2, 2, 0], name: 'B' },
-    { id: '3', q: -1.0, position: [2, -2, 0], name: 'C' },
+    { id: '2', q: 1.0, position: [-2, 2, 0], name: 'B' },
+    { id: '3', q: 1.0, position: [2, -2, 0], name: 'C' },
     { id: '4', q: 1.0, position: [-2, -2, 0], name: 'D' },
   ],
   capacitor: [
@@ -273,6 +273,12 @@ export const createSceneSlice = (set, get) => ({
     const multiplier = UNIT_FACTORS[chargeUnit] || 1e-6
     const physicalCharges = distributions.length > 0 ? [] : charges.map(c => ({ ...c, q: c.q * multiplier }))
     return calculateTotalPotential(physicalCharges, point, ke, rMin, distributions)
+  },
+
+  // The Coulomb field is singular on a point charge: true when `point` sits exactly on one
+  isOnPointCharge: (point) => {
+    const { charges, distributions } = get()
+    return distributions.length === 0 && charges.some(c => c.position.every((v, i) => v === point[i]))
   },
 
   getCoulombForces: (chargeId) => {

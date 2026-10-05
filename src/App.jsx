@@ -35,9 +35,15 @@ function App() {
 
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (document.activeElement.tagName === 'INPUT') return
-
       const key = e.key
+      const active = document.activeElement
+
+      if (active.tagName === 'INPUT') {
+        // A focused slider or checkbox has no undo of its own, so Ctrl+Z still reaches the scene;
+        // text fields keep the browser's own undo
+        const isUndoKey = key.toLowerCase() === 'z' && (e.ctrlKey || e.metaKey)
+        if (!isUndoKey || !['range', 'checkbox', 'radio'].includes(active.type)) return
+      }
 
       // e.key is 'Z' when Shift is held, so compare case-insensitively
       if (key.toLowerCase() === 'z' && (e.ctrlKey || e.metaKey)) {

@@ -157,6 +157,20 @@ describe('calculateTotalField', () => {
     expect(E.length()).toBe(0)
   })
 
+  it('zeroes a cancelling component without touching the others', () => {
+    const q = 1.602176634e-19
+    const charges = [
+      { q, position: [2, 0, 0] },
+      { q, position: [-1, Math.sqrt(3), 0] },
+      { q, position: [-1, -Math.sqrt(3), 0] },
+      { q, position: [0, 0, 2 * Math.SQRT2] },
+    ]
+    const E = calculateTotalField(charges, [0, 0, 0])
+    expect(E.x).toBe(0)
+    expect(E.y).toBe(0)
+    expect(E.z).toBeCloseTo(-8.9875517923e9 * q / 8, 20)
+  })
+
   it('keeps a small but real residual when the triangle is not exactly equilateral', () => {
     const charges = [
       { q: 1, position: [2, 0, 0] },

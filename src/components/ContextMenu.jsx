@@ -266,7 +266,7 @@ export function ContextMenu() {
         </div>
         <div className="ctx-param-row">
           <span className="ctx-param-label" style={{ color: '#34d399' }}>|E|</span>
-          <span className="ctx-value">{fmt(magE)} V/m</span>
+          <span className="ctx-value">{s.isOnPointCharge(testPoint) ? 'non défini' : `${fmt(magE)} V/m`}</span>
         </div>
         <div className="ctx-separator" />
         <CoordInput value={testPoint[0]} onChange={(v) => { useStore.getState().moveTestPoint([v, testPoint[1], testPoint[2]]) }} label="X" />

@@ -20,9 +20,10 @@ function CoordInput({ value, onChange, label }) {
   }
 
   const handleBlur = () => {
-    const parsed = parseFloat(display)
+    // Commit only what was typed: re-committing the rounded display would alter an untouched value
+    const parsed = raw !== null ? parseFloat(raw) : NaN
     setRaw(null)
-    if (!isNaN(parsed)) {
+    if (!isNaN(parsed) && parsed !== value) {
       onChange(parsed)
     }
   }
@@ -94,33 +95,36 @@ const FieldAndPotential = memo(({ testPoint }) => {
   const chargeUnit = useStore((s) => s.chargeUnit)
   const showTestPoint = useStore((s) => s.showTestPoint)
 
-  const { E, V, ENorm } = useMemo(() => {
+  const { E, V, ENorm, onCharge } = useMemo(() => {
     // Reference state deps for electric field & potential calculation
     const E = useStore.getState().getElectricField(testPoint)
     const V = useStore.getState().getPotential(testPoint)
-    return { E, V, ENorm: E.length() }
+    return { E, V, ENorm: E.length(), onCharge: useStore.getState().isOnPointCharge(testPoint) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [charges, distributions, chargeUnit, testPoint])
 
   if (!showTestPoint) return null
 
+  // M exactly on a point charge: the field has no defined value there
+  const fmtE = (v) => (onCharge ? 'non défini' : formatElectricField(v))
+
   return (
     <div className="data-box highlight">
       <div className="data-row">
         <span className="label">||E|| (Champ)</span>
-        <span className="value font-mono highlight-text">{formatElectricField(ENorm)}</span>
+        <span className="value font-mono highlight-text">{fmtE(ENorm)}</span>
       </div>
       <div className="data-row separator">
         <span className="label">Ex</span>
-        <span className="value font-mono">{formatElectricField(E.x)}</span>
+        <span className="value font-mono">{fmtE(E.x)}</span>
       </div>
       <div className="data-row">
         <span className="label">Ey</span>
-        <span className="value font-mono">{formatElectricField(E.y)}</span>
+        <span className="value font-mono">{fmtE(E.y)}</span>
       </div>
       <div className="data-row">
         <span className="label">Ez</span>
-        <span className="value font-mono">{formatElectricField(E.z)}</span>
+        <span className="value font-mono">{fmtE(E.z)}</span>
       </div>
       <div className="data-row data-row-sep">
         <span className="label data-row-label">V (Potentiel)</span>

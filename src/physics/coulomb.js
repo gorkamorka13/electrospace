@@ -5,7 +5,7 @@ import { R_MIN } from './constants'
 export const KE_REAL = 8.9875517923e9
 export const E_CHARGE = 1.602176634e-19
 
-// Total field below this fraction of the summed contribution norms is cancellation noise
+// A field component below this fraction of the summed contribution norms is cancellation noise
 const CANCEL_EPS = 1e-12
 
 export function calculateFieldFromCharge(charge, targetPos, ke = KE_REAL, rMin = R_MIN) {
@@ -25,8 +25,11 @@ export function calculateTotalField(charges, targetPos, ke = KE_REAL, rMin = R_M
   const add = (E) => { totalField.add(E); sumNorms += E.length() }
   charges.forEach(c => add(calculateFieldFromCharge(c, targetPos, ke, rMin)))
   distributions.forEach(d => add(calculateFieldFromDistribution(d, targetPos, ke, rMin)))
-  // Contributions that cancel leave floating-point noise: report it as an exact zero
-  if (totalField.length() <= CANCEL_EPS * sumNorms) totalField.set(0, 0, 0)
+  // Components that cancel leave floating-point noise: report them as exact zeros
+  const tol = CANCEL_EPS * sumNorms
+  if (Math.abs(totalField.x) <= tol) totalField.x = 0
+  if (Math.abs(totalField.y) <= tol) totalField.y = 0
+  if (Math.abs(totalField.z) <= tol) totalField.z = 0
   return totalField
 }
 
