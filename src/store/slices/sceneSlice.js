@@ -14,44 +14,49 @@ export const PRESETS = {
     { id: '2', q: -1.0, position: [-2, 0, 0], name: 'B' },
   ],
   quadrupole: [
-    { id: '1', q: 1.0, position: [2, 0, 2], name: 'A' },
-    { id: '2', q: -1.0, position: [-2, 0, 2], name: 'B' },
-    { id: '3', q: -1.0, position: [2, 0, -2], name: 'C' },
-    { id: '4', q: 1.0, position: [-2, 0, -2], name: 'D' },
+    { id: '1', q: 1.0, position: [2, 2, 0], name: 'A' },
+    { id: '2', q: -1.0, position: [-2, 2, 0], name: 'B' },
+    { id: '3', q: -1.0, position: [2, -2, 0], name: 'C' },
+    { id: '4', q: 1.0, position: [-2, -2, 0], name: 'D' },
   ],
   capacitor: [
     { id: '1', q: 1.0, position: [3, 0, 0], name: 'A' },
     { id: '2', q: -1.0, position: [-3, 0, 0], name: 'B' },
-    { id: '3', q: 1.0, position: [3, 0, 1.5], name: 'C' },
-    { id: '4', q: -1.0, position: [-3, 0, 1.5], name: 'D' },
-    { id: '5', q: 1.0, position: [3, 0, -1.5], name: 'E' },
-    { id: '6', q: -1.0, position: [-3, 0, -1.5], name: 'F' },
+    { id: '3', q: 1.0, position: [3, 1.5, 0], name: 'C' },
+    { id: '4', q: -1.0, position: [-3, 1.5, 0], name: 'D' },
+    { id: '5', q: 1.0, position: [3, -1.5, 0], name: 'E' },
+    { id: '6', q: -1.0, position: [-3, -1.5, 0], name: 'F' },
   ],
   single: [
     { id: '1', q: 1.0, position: [0, 0, 0], name: 'A' },
   ],
   cubicQuadrupole: [
     { id: '1', q: 1, position: [2, 2, 2], name: 'A' },
-    { id: '2', q: -1, position: [2, 2, -2], name: 'B' },
-    { id: '3', q: -1, position: [2, -2, 2], name: 'C' },
+    { id: '2', q: -1, position: [2, -2, 2], name: 'B' },
+    { id: '3', q: -1, position: [2, 2, -2], name: 'C' },
     { id: '4', q: 1, position: [2, -2, -2], name: 'D' },
     { id: '5', q: -1, position: [-2, 2, 2], name: 'E' },
-    { id: '6', q: 1, position: [-2, 2, -2], name: 'F' },
-    { id: '7', q: 1, position: [-2, -2, 2], name: 'G' },
+    { id: '6', q: 1, position: [-2, -2, 2], name: 'F' },
+    { id: '7', q: 1, position: [-2, 2, -2], name: 'G' },
     { id: '8', q: -1, position: [-2, -2, -2], name: 'H' },
   ],
-  tripole: [
-    { id: '1', q: 1.0, position: [0, 2, 0], name: 'A' },
-    { id: '2', q: -1.0, position: [1.732, -1, 0], name: 'B' },
-    { id: '3', q: 1.0, position: [-1.732, -1, 0], name: 'C' },
+  // Equilateral triangle in the z = 0 plane (circumradius 2, side 2√3), all positive
+  triangle: [
+    { id: '1', q: 1.0, position: [2, 0, 0], name: 'A' },
+    { id: '2', q: 1.0, position: [-1, Math.sqrt(3), 0], name: 'B' },
+    { id: '3', q: 1.0, position: [-1, -Math.sqrt(3), 0], name: 'C' },
   ],
+  // Regular tetrahedron: same base in z = 0, apex at height side·√(2/3) = 2√2, all positive
   tetrahedron: [
-    { id: '1', q: -1.0, position: [0, 3, 0], name: 'A' },
-    { id: '2', q: 1.0, position: [2, 0, 0], name: 'B' },
-    { id: '3', q: 1.0, position: [-1, 0, 1.732], name: 'C' },
-    { id: '4', q: 1.0, position: [-1, 0, -1.732], name: 'D' },
+    { id: '1', q: 1.0, position: [2, 0, 0], name: 'A' },
+    { id: '2', q: 1.0, position: [-1, Math.sqrt(3), 0], name: 'B' },
+    { id: '3', q: 1.0, position: [-1, -Math.sqrt(3), 0], name: 'C' },
+    { id: '4', q: 1.0, position: [0, 0, 2 * Math.SQRT2], name: 'D' },
   ],
 }
+
+// Scene files before version 3 were Y-up: swap y and z to load them in the Z-up world
+const swapYZ = (v) => (Array.isArray(v) && v.length === 3 ? [v[0], v[2], v[1]] : v)
 
 export const DIST_TYPE_NAMES = {
   line: 'Ligne',
@@ -106,13 +111,20 @@ function snapshot(state) {
   }
 }
 
+// Returns `patch` plus a history entry capturing the state before it is applied.
+function withHistory(state, patch = {}) {
+  const history = [...state.history, snapshot(state)]
+  if (history.length > MAX_HISTORY) history.shift()
+  return { ...patch, history, future: [] }
+}
+
 export const createSceneSlice = (set, get) => ({
   charges: [
     { id: '1', q: 1.0, position: [2, 0, 0], name: 'A' },
     { id: '2', q: -1.0, position: [-2, 0, 0], name: 'B' },
   ],
   chargeInitialPositions: { '1': [2, 0, 0], '2': [-2, 0, 0] },
-  testPoint: [1, 0.5, 2],
+  testPoint: [0, 0, 0],
   freeCharges: {},
   distributions: [],
   fieldGraphZ: 1000,
@@ -120,12 +132,7 @@ export const createSceneSlice = (set, get) => ({
   history: [],
   future: [],
 
-  pushHistory: () => set((state) => {
-    const s = snapshot(state)
-    const history = [...state.history, s]
-    if (history.length > MAX_HISTORY) history.shift()
-    return { history, future: [] }
-  }),
+  pushHistory: () => set((state) => withHistory(state)),
 
   undo: () => set((state) => {
     if (state.history.length === 0) return state
@@ -165,7 +172,8 @@ export const createSceneSlice = (set, get) => ({
     } else {
       next[id] = true
     }
-    return { freeCharges: next }
+    // Recorded so that undoing a release puts the charge back where it was
+    return withHistory(state, { freeCharges: next })
   }),
 
   zIndexCounter: 1002,
@@ -178,7 +186,7 @@ export const createSceneSlice = (set, get) => ({
     try {
       const state = get()
       const data = {
-        version: 2,
+        version: 3,
         chargeUnit: state.chargeUnit,
         activeView: state.activeView,
         testPoint: state.testPoint,
@@ -205,14 +213,20 @@ export const createSceneSlice = (set, get) => ({
         return { success: false, error: 'Fichier invalide : propriété "charges" manquante ou non valide.' }
       }
       get().pushHistory()
+      const legacyYUp = !(data.version >= 3)
+      const vec = (v) => (legacyYUp ? swapYZ(v) : v)
       const charges = data.charges.map((c, i) => ({
         id: String(i + 1),
         q: c.q ?? 1,
-        position: c.position ?? [0, 0, 0],
+        position: vec(c.position ?? [0, 0, 0]),
         name: c.name ?? String.fromCharCode(65 + i),
       }))
       const chargeInitialPositions = Object.fromEntries(charges.map((c) => [c.id, [...c.position]]))
-      const distributions = (data.distributions || []).map((d) => {
+      const distributions = (data.distributions || []).map((raw) => {
+        const d = { ...raw }
+        for (const key of ['center', 'normal', 'axis']) {
+          if (key in d) d[key] = vec(d[key])
+        }
         if (d.type === 'sphere' || d.type === 'cylinder') {
           const hasHollow = 'hollow' in d
           const hasInner = 'innerRadius' in d
@@ -236,7 +250,7 @@ export const createSceneSlice = (set, get) => ({
         chargeInitialPositions,
         freeCharges: {},
         distributions,
-        testPoint: data.testPoint || [0, 0.5, 2],
+        testPoint: data.testPoint ? vec(data.testPoint) : [0, -2, 0.5],
         chargeUnit: data.chargeUnit || 'e',
         activeView: data.activeView || 'isometric',
         selectedObjectId: null,
@@ -270,51 +284,54 @@ export const createSceneSlice = (set, get) => ({
     return calculateTotalForceOnCharge(target, physicalCharges, ke, rMin)
   },
 
-  nudgePosition: (dx, dz) => set((state) => {
+  // `record` is false for key-repeat events so a held key yields a single history entry.
+  nudgePosition: (dx, dy, record = true) => set((state) => {
     if ((!state.selectedObjectId || state.selectedObjectId === 'testPoint') && state.showTestPoint) {
       const step = state.snapEnabled ? state.snapSize : 0.1
       const [x, y, z] = state.testPoint
       const nx = x + Math.sign(dx) * step
-      const nz = z + Math.sign(dz) * step
-      return {
+      const ny = y + Math.sign(dy) * step
+      const patch = {
         testPoint: state.snapEnabled
-          ? [Math.round(nx / state.snapSize) * state.snapSize, y, Math.round(nz / state.snapSize) * state.snapSize]
-          : [nx, y, nz]
+          ? [Math.round(nx / state.snapSize) * state.snapSize, Math.round(ny / state.snapSize) * state.snapSize, z]
+          : [nx, ny, z]
       }
+      return record ? withHistory(state, patch) : patch
     }
+    if (!state.charges.some((c) => c.id === state.selectedObjectId)) return {}
     const step = state.snapEnabled ? state.snapSize : 0.1
     const finalDx = Math.sign(dx) * step
-    const finalDz = Math.sign(dz) * step
-    return {
+    const finalDy = Math.sign(dy) * step
+    const patch = {
       charges: state.charges.map((c) => {
         if (c.id === state.selectedObjectId) {
           const nx = c.position[0] + finalDx
-          const nz = c.position[2] + finalDz
+          const ny = c.position[1] + finalDy
           return { ...c, position: state.snapEnabled
-            ? [Math.round(nx / state.snapSize) * state.snapSize, c.position[1], Math.round(nz / state.snapSize) * state.snapSize]
-            : [nx, c.position[1], nz]
+            ? [Math.round(nx / state.snapSize) * state.snapSize, Math.round(ny / state.snapSize) * state.snapSize, c.position[2]]
+            : [nx, ny, c.position[2]]
           }
         }
         return c
       })
     }
+    return record ? withHistory(state, patch) : patch
   }),
 
-  nudgeY: (dy) => set((state) => {
-    if (state.selectedObjectId && state.selectedObjectId !== 'testPoint') {
-      const step = state.snapEnabled ? state.snapSize : 0.1
-      const finalDy = Math.sign(dy) * step
-      return {
-        charges: state.charges.map((c) => {
-          if (c.id === state.selectedObjectId) {
-            const ny = c.position[1] + finalDy
-            return { ...c, position: [c.position[0], ny, c.position[2]] }
-          }
-          return c
-        })
-      }
+  nudgeZ: (dz, record = true) => set((state) => {
+    if (!state.charges.some((c) => c.id === state.selectedObjectId)) return {}
+    const step = state.snapEnabled ? state.snapSize : 0.1
+    const finalDz = Math.sign(dz) * step
+    const patch = {
+      charges: state.charges.map((c) => {
+        if (c.id === state.selectedObjectId) {
+          const nz = c.position[2] + finalDz
+          return { ...c, position: [c.position[0], c.position[1], nz] }
+        }
+        return c
+      })
     }
-    return {}
+    return record ? withHistory(state, patch) : patch
   }),
 
   addCharge: (q) => {
@@ -352,10 +369,19 @@ export const createSceneSlice = (set, get) => ({
     })
   },
 
+  // Raw setter, no history — for intermediate drag frames and the free-charge simulation.
   updateChargePosition: (id, position) => {
     set((state) => ({
       charges: state.charges.map((c) => (c.id === id ? { ...c, position } : c)),
     }))
+  },
+
+  // Undoable move of a charge: one history entry per logical action.
+  moveCharge: (id, position) => {
+    const charge = get().charges.find((c) => c.id === id)
+    if (!charge || position.every((v, i) => v === charge.position[i])) return
+    get().pushHistory()
+    get().updateChargePosition(id, position)
   },
 
   updateChargeQ: (id, q) => {
@@ -376,7 +402,16 @@ export const createSceneSlice = (set, get) => ({
     }))
   },
 
+  // Raw setter, no history — for intermediate drag frames only.
   updateTestPoint: (position) => set({ testPoint: position }),
+
+  // Undoable move of M: one history entry per logical action.
+  moveTestPoint: (position) => {
+    const current = get().testPoint
+    if (position.every((v, i) => v === current[i])) return
+    get().pushHistory()
+    set({ testPoint: position })
+  },
 
   clearCharges: () => {
     get().pushHistory()
@@ -389,7 +424,7 @@ export const createSceneSlice = (set, get) => ({
       const id = Math.random().toString(36).substring(2, 9)
       const defaults = {
         line: { length: 10, density: 1e-9, mode: 'finite' },
-        cylinder: { center: [0, 0, 0], axis: [0, 1, 0], radius: 2, height: 5, density: 1e-6, hollow: false, innerRadius: 0, e_ext: 0, e_int: 0, mode: 'finite' },
+        cylinder: { center: [0, 0, 0], axis: [0, 0, 1], radius: 2, height: 5, density: 1e-6, hollow: false, innerRadius: 0, e_ext: 0, e_int: 0, mode: 'finite' },
         plane: { center: [0, 0, 0], normal: [1, 0, 0], width: 10, height: 10, density: 1e-9, linkWH: false, mode: 'finite' },
         disk: { center: [0, 0, 0], normal: [1, 0, 0], radius: 2, density: 1e-9 },
         circle: { center: [0, 0, 0], normal: [1, 0, 0], radius: 2, density: 1e-9 },

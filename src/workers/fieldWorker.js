@@ -61,7 +61,7 @@ THREE.Quaternion = class Quaternion {
 
 function makeLocalFrame(origin, normal) {
   const n = new Vector3(...normal).normalize()
-  const up = Math.abs(n.y) > 0.9 ? new Vector3(1, 0, 0) : new Vector3(0, 1, 0)
+  const up = Math.abs(n.z) > 0.9 ? new Vector3(1, 0, 0) : new Vector3(0, 0, 1)
   const x = new Vector3().crossVectors(up, n).normalize()
   const y = new Vector3().crossVectors(n, x).normalize()
   return { x, y, z: n, origin: new Vector3(...origin) }
@@ -176,25 +176,28 @@ function segmentPotentialLocal(start, end, lambda, target, ke, rMin) {
 
 function calculateFieldFromLine(dist, targetPos, ke, rMin) {
   if (dist.mode === 'infinite') {
+    // Infinite line along world Z axis
     const x = targetPos[0]
-    const z = targetPos[2]
-    const rho = Math.max(Math.sqrt(x * x + z * z), rMin)
+    const y = targetPos[1]
+    const rho = Math.max(Math.sqrt(x * x + y * y), rMin)
     const E = new Vector3()
     E.x = (2 * ke * dist.density * x) / (rho * rho)
-    E.z = (2 * ke * dist.density * z) / (rho * rho)
+    E.y = (2 * ke * dist.density * y) / (rho * rho)
     return E
   }
-  return lineFieldAnalytical(targetPos[0], targetPos[1], targetPos[2], dist.length / 2, dist.density, ke, rMin)
+  // Line along world Z: the segment helper is axial along its local y, so swap y/z in and out
+  const segE = lineFieldAnalytical(targetPos[0], targetPos[2], targetPos[1], dist.length / 2, dist.density, ke, rMin)
+  return new Vector3(segE.x, segE.z, segE.y)
 }
 
 function calculatePotentialFromLine(dist, targetPos, ke, rMin) {
   if (dist.mode === 'infinite') {
     const x = targetPos[0]
-    const z = targetPos[2]
-    const rho = Math.max(Math.sqrt(x * x + z * z), rMin)
+    const y = targetPos[1]
+    const rho = Math.max(Math.sqrt(x * x + y * y), rMin)
     return -2 * ke * dist.density * Math.log(rho)
   }
-  return linePotentialAnalytical(targetPos[0], targetPos[1], targetPos[2], dist.length / 2, dist.density, ke, rMin)
+  return linePotentialAnalytical(targetPos[0], targetPos[2], targetPos[1], dist.length / 2, dist.density, ke, rMin)
 }
 
 function cylinderShellRanges(dist) {
@@ -1008,8 +1011,8 @@ function getDistributionSeeds(dist, numSeeds) {
     case 'line': {
       const len = dist.mode === 'infinite' ? 6 : dist.length
       const half = len / 2
-      const s = new Vector3(0, -half, 0)
-      const dir = new Vector3(0, 1, 0)
+      const s = new Vector3(0, 0, -half)
+      const dir = new Vector3(0, 0, 1)
       if (len < 1e-10) return seeds
       const segments = Math.max(Math.floor(N / 4), 2)
       const perRing = Math.max(Math.floor(N / segments), 4)

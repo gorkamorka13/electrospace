@@ -5,6 +5,9 @@ import { R_MIN } from './constants'
 export const KE_REAL = 8.9875517923e9
 export const E_CHARGE = 1.602176634e-19
 
+// Total field below this fraction of the summed contribution norms is cancellation noise
+const CANCEL_EPS = 1e-12
+
 export function calculateFieldFromCharge(charge, targetPos, ke = KE_REAL, rMin = R_MIN) {
   const q = charge.q
   const chargePos = new THREE.Vector3(...charge.position)
@@ -18,8 +21,12 @@ export function calculateFieldFromCharge(charge, targetPos, ke = KE_REAL, rMin =
 
 export function calculateTotalField(charges, targetPos, ke = KE_REAL, rMin = R_MIN, distributions = []) {
   const totalField = new THREE.Vector3(0, 0, 0)
-  charges.forEach(c => totalField.add(calculateFieldFromCharge(c, targetPos, ke, rMin)))
-  distributions.forEach(d => totalField.add(calculateFieldFromDistribution(d, targetPos, ke, rMin)))
+  let sumNorms = 0
+  const add = (E) => { totalField.add(E); sumNorms += E.length() }
+  charges.forEach(c => add(calculateFieldFromCharge(c, targetPos, ke, rMin)))
+  distributions.forEach(d => add(calculateFieldFromDistribution(d, targetPos, ke, rMin)))
+  // Contributions that cancel leave floating-point noise: report it as an exact zero
+  if (totalField.length() <= CANCEL_EPS * sumNorms) totalField.set(0, 0, 0)
   return totalField
 }
 
@@ -133,26 +140,28 @@ function segmentPotentialLocal(start, end, lambda, target, ke, rMin) {
 
 export function calculateFieldFromLine(dist, targetPos, ke = KE_REAL, rMin = R_MIN) {
   if (dist.mode === 'infinite') {
-    // Infinite line along world Y axis: E = 2·ke·λ/ρ radial
+    // Infinite line along world Z axis: E = 2·ke·λ/ρ radial
     const x = targetPos[0]
-    const z = targetPos[2]
-    const rho = Math.max(Math.sqrt(x * x + z * z), rMin)
+    const y = targetPos[1]
+    const rho = Math.max(Math.sqrt(x * x + y * y), rMin)
     const E = new THREE.Vector3()
     E.x = (2 * ke * dist.density * x) / (rho * rho)
-    E.z = (2 * ke * dist.density * z) / (rho * rho)
+    E.y = (2 * ke * dist.density * y) / (rho * rho)
     return E
   }
-  return lineFieldAnalytical(targetPos[0], targetPos[1], targetPos[2], dist.length / 2, dist.density, ke, rMin)
+  // Line along world Z: the segment helper is axial along its local y, so swap y/z in and out
+  const segE = lineFieldAnalytical(targetPos[0], targetPos[2], targetPos[1], dist.length / 2, dist.density, ke, rMin)
+  return new THREE.Vector3(segE.x, segE.z, segE.y)
 }
 
 export function calculatePotentialFromLine(dist, targetPos, ke = KE_REAL, rMin = R_MIN) {
   if (dist.mode === 'infinite') {
     const x = targetPos[0]
-    const z = targetPos[2]
-    const rho = Math.max(Math.sqrt(x * x + z * z), rMin)
+    const y = targetPos[1]
+    const rho = Math.max(Math.sqrt(x * x + y * y), rMin)
     return -2 * ke * dist.density * Math.log(rho)
   }
-  return linePotentialAnalytical(targetPos[0], targetPos[1], targetPos[2], dist.length / 2, dist.density, ke, rMin)
+  return linePotentialAnalytical(targetPos[0], targetPos[2], targetPos[1], dist.length / 2, dist.density, ke, rMin)
 }
 
 /* ---------- Cylinder (finite) — rings along the axis ---------- */
@@ -880,8 +889,8 @@ export function getDistributionSeeds(dist, numSeeds) {
     case 'line': {
       const len = dist.mode === 'infinite' ? 6 : dist.length
       const half = len / 2
-      const s = new THREE.Vector3(0, -half, 0)
-      const dir = new THREE.Vector3(0, 1, 0)
+      const s = new THREE.Vector3(0, 0, -half)
+      const dir = new THREE.Vector3(0, 0, 1)
       if (len < 1e-10) return seeds
       const segments = Math.max(Math.floor(N / 4), 2)
       const perRing = Math.max(Math.floor(N / segments), 4)

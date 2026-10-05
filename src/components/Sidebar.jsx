@@ -237,7 +237,7 @@ const ChargeListSection = memo(({ selectedObjectId, setSelectedObjectId }) => {
         </button>
       </div>
       <div className="flex-row gap-3 mb-6">
-        <CustomSelect value="" options={[{key:'single',label:'Charge unique'},{key:'dipole',label:'Dipôle (+ / -)'},{key:'tripole',label:'Tripôle'},{key:'quadrupole',label:'Quadrupôle'},{key:'tetrahedron',label:'Tétraèdre'},{key:'capacitor',label:'Condensateur'},{key:'cubicQuadrupole',label:'Quadripôle cubique'}]} onChange={loadPreset} className="preset-select" placeholder="Préréglages..." />
+        <CustomSelect value="" options={[{key:'single',label:'Charge unique'},{key:'dipole',label:'Dipôle (+ / -)'},{key:'triangle',label:'Triangle (+ + +)'},{key:'quadrupole',label:'Quadrupôle'},{key:'tetrahedron',label:'Tétraèdre (+ + + +)'},{key:'capacitor',label:'Condensateur'},{key:'cubicQuadrupole',label:'Quadripôle cubique'}]} onChange={loadPreset} className="preset-select" placeholder="Préréglages..." />
       </div>
       <div className="charges-list">
         {charges.length === 0 ? (
@@ -399,7 +399,7 @@ export function Sidebar() {
 
   // Analysis tab
   const testPoint = useStore((s) => s.testPoint)
-  const updateTestPoint = useStore((s) => s.updateTestPoint)
+  const moveTestPoint = useStore((s) => s.moveTestPoint)
   const showFieldGraph = useStore((s) => s.showFieldGraph)
   const setShowFieldGraph = useStore((s) => s.setShowFieldGraph)
   const showPotentialXGraph = useStore((s) => s.showPotentialXGraph)
@@ -461,13 +461,13 @@ export function Sidebar() {
   const handleMCoordinateChange = (axis, val) => {
     const newPos = [...testPoint]
     newPos[axis] = val
-    updateTestPoint(newPos)
+    moveTestPoint(newPos)
   }
 
   const snapMToAxis = (axis) => {
     const newPos = [0, 0, 0]
     newPos[axis] = testPoint[axis]
-    updateTestPoint(newPos)
+    moveTestPoint(newPos)
   }
 
   // Screenshot capture of the 3D scene — find the WebGL canvas, not 2D graph canvases

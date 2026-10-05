@@ -110,20 +110,20 @@ export function PhysicsCanvas() {
 
     if (viewName === "top") {
       setCameraMode("orthographic");
-      cameraPos = new THREE.Vector3(0.001, 15, 0);
-      lookAt = new THREE.Vector3(0, 0.5, 0);
+      cameraPos = new THREE.Vector3(0, -0.001, 15);
+      lookAt = new THREE.Vector3(0, 0, 0.5);
     } else if (viewName === "front") {
       setCameraMode("orthographic");
-      cameraPos = new THREE.Vector3(0, 0.5, 15);
-      lookAt = new THREE.Vector3(0, 0.5, 0);
+      cameraPos = new THREE.Vector3(0, -15, 0.5);
+      lookAt = new THREE.Vector3(0, 0, 0.5);
     } else if (viewName === "side") {
       setCameraMode("orthographic");
-      cameraPos = new THREE.Vector3(15, 0.5, 0);
-      lookAt = new THREE.Vector3(0, 0.5, 0);
+      cameraPos = new THREE.Vector3(15, 0, 0.5);
+      lookAt = new THREE.Vector3(0, 0, 0.5);
     } else if (viewName === "isometric") {
       setCameraMode("perspective");
-      cameraPos = new THREE.Vector3(1.7, 8, 12);
-      lookAt = new THREE.Vector3(0, 0.5, 0);
+      cameraPos = new THREE.Vector3(1.7, -12, 8);
+      lookAt = new THREE.Vector3(0, 0, 0.5);
     }
 
     animationTarget.current = { cameraPos, lookAt };
@@ -598,7 +598,7 @@ export function PhysicsCanvas() {
           {cameraMode === "orthographic" ? (
             <OrthographicCamera makeDefault zoom={45} near={-1000} far={1000} />
           ) : (
-            <PerspectiveCamera makeDefault position={[1.7, 8, 12]} fov={50} />
+            <PerspectiveCamera makeDefault position={[1.7, -12, 8]} fov={50} />
           )}
           <CameraController animationTargetRef={animationTarget} controlsRef={controlsRef} />
 
@@ -608,7 +608,7 @@ export function PhysicsCanvas() {
           {/* Environment Lights */}
           <ambientLight intensity={theme === "dark" ? 0.5 : 0.7} />
           <directionalLight
-            position={[10, 15, 10]}
+            position={[10, -10, 15]}
             intensity={theme === "dark" ? 1.2 : 1.4}
             castShadow
             shadow-mapSize-width={2048}
@@ -616,10 +616,11 @@ export function PhysicsCanvas() {
           />
           <pointLight position={[-10, -10, -10]} intensity={theme === "dark" ? 0.3 : 0.4} />
 
-          {/* Reference grid on the XZ plane */}
+          {/* Reference grid on the XY plane (gridHelper is XZ by default, world is Z-up) */}
           <gridHelper
             args={[30, 30, theme === "dark" ? "#1d263b" : "#cbd5e1", theme === "dark" ? "#111827" : "#e2e8f0"]}
             position={[0, 0, 0]}
+            rotation={[Math.PI / 2, 0, 0]}
           />
 
           {/* Colored axes helper with custom arrows and Billboard labels (X, Y, Z) centered at the origin */}

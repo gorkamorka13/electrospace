@@ -7,7 +7,6 @@ function clamp(v) { return Number(v.toFixed(2)) }
 
 export function ChargeSphere({ charge }) {
   const updateChargePosition = useStore((state) => state.updateChargePosition)
-  const pushHistory = useStore((state) => state.pushHistory)
   const setDragging = useStore((state) => state.setDragging)
   const selectedObjectId = useStore((state) => state.selectedObjectId)
   const setSelectedObjectId = useStore((state) => state.setSelectedObjectId)
@@ -18,6 +17,7 @@ export function ChargeSphere({ charge }) {
   const theme = useStore((state) => state.theme)
 
   const meshRef = useRef()
+  const dragRecorded = useRef(false)
   const coordTipTimeout = useRef(null)
   const [showCoordTip, setShowCoordTip] = useState(false)
   const isSelected = selectedObjectId === charge.id
@@ -27,6 +27,7 @@ export function ChargeSphere({ charge }) {
     e.stopPropagation()
     e.target.setPointerCapture(e.pointerId)
     setDragging(true)
+    dragRecorded.current = false
     setSelectedObjectId(charge.id)
     if (coordTipTimeout.current) clearTimeout(coordTipTimeout.current)
     setShowCoordTip(true)
@@ -45,11 +46,11 @@ export function ChargeSphere({ charge }) {
 
     if (activeView && ['front', 'side', 'top'].includes(activeView)) {
       if (activeView === 'front') {
-        plane.setFromNormalAndCoplanarPoint(new THREE.Vector3(0, 0, 1), new THREE.Vector3(0, 0, currentPos[2]))
+        plane.setFromNormalAndCoplanarPoint(new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, currentPos[1], 0))
       } else if (activeView === 'side') {
         plane.setFromNormalAndCoplanarPoint(new THREE.Vector3(1, 0, 0), new THREE.Vector3(currentPos[0], 0, 0))
       } else {
-        plane.setFromNormalAndCoplanarPoint(new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, currentPos[1], 0))
+        plane.setFromNormalAndCoplanarPoint(new THREE.Vector3(0, 0, 1), new THREE.Vector3(0, 0, currentPos[2]))
       }
     } else {
       const camDir = new THREE.Vector3()
@@ -62,11 +63,11 @@ export function ChargeSphere({ charge }) {
       const snap = (v) => snapEnabled ? Math.round(v / snapSize) * snapSize : v
       let finalPos
       if (activeView === 'front') {
-        finalPos = [snap(targetPos.x), snap(targetPos.y), currentPos[2]]
+        finalPos = [snap(targetPos.x), currentPos[1], snap(targetPos.z)]
       } else if (activeView === 'side') {
         finalPos = [currentPos[0], snap(targetPos.y), snap(targetPos.z)]
       } else if (activeView === 'top') {
-        finalPos = [snap(targetPos.x), currentPos[1], snap(targetPos.z)]
+        finalPos = [snap(targetPos.x), snap(targetPos.y), currentPos[2]]
       } else {
         finalPos = [snap(targetPos.x), snap(targetPos.y), snap(targetPos.z)]
       }
@@ -74,7 +75,14 @@ export function ChargeSphere({ charge }) {
       if (locked.x) finalPos[0] = currentPos[0]
       if (locked.y) finalPos[1] = currentPos[1]
       if (locked.z) finalPos[2] = currentPos[2]
-      updateChargePosition(charge.id, finalPos)
+      if (finalPos.every((v, i) => v === currentPos[i])) return
+      // Push history once per drag, on the first frame that actually moves the charge
+      if (!dragRecorded.current) {
+        dragRecorded.current = true
+        useStore.getState().moveCharge(charge.id, finalPos)
+      } else {
+        updateChargePosition(charge.id, finalPos)
+      }
     }
   }
 
@@ -86,7 +94,6 @@ export function ChargeSphere({ charge }) {
       // ignore if already released
     }
     setDragging(false)
-    pushHistory()
     if (coordTipTimeout.current) clearTimeout(coordTipTimeout.current)
     coordTipTimeout.current = setTimeout(() => setShowCoordTip(false), 1000)
   }
@@ -136,7 +143,7 @@ export function ChargeSphere({ charge }) {
         </mesh>
 
         {/* 3D Billboard label displaying point name */}
-        <Billboard position={[0, radius + 0.35, 0]}>
+        <Billboard position={[0, 0, radius + 0.35]}>
           <Text
             fontSize={Math.max(0.25, radius * 0.8)}
             color={color}
@@ -152,7 +159,7 @@ export function ChargeSphere({ charge }) {
 
         {/* Drag coordinate tooltip — shown while dragging + 1s after */}
         {showCoordTip && (
-          <Billboard position={[0, -radius - 0.35, 0]}>
+          <Billboard position={[0, 0, -radius - 0.35]}>
             <Text
               fontSize={0.22}
               color="#facc15"
@@ -169,7 +176,7 @@ export function ChargeSphere({ charge }) {
 
         {/* Neon selection ring under the charge */}
         {isSelected && (
-          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -radius - 0.05, 0]}>
+          <mesh position={[0, 0, -radius - 0.05]}>
             <ringGeometry args={[radius * 1.35, radius * 1.5, 32]} />
             <meshBasicMaterial color="#00ff66" side={THREE.DoubleSide} transparent opacity={0.9} />
           </mesh>

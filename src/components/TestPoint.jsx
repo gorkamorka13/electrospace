@@ -33,6 +33,7 @@ export function TestPoint() {
   }, [charges, distributions, chargeUnit, testPoint])
 
   const meshRef = useRef()
+  const dragRecorded = useRef(false)
   const coordTipTimeout = useRef(null)
   const [showCoordTip, setShowCoordTip] = useState(false)
 
@@ -44,6 +45,7 @@ export function TestPoint() {
     e.stopPropagation()
     e.target.setPointerCapture(e.pointerId)
     setDragging(true)
+    dragRecorded.current = false
     setSelectedObjectId('testPoint')
     if (coordTipTimeout.current) clearTimeout(coordTipTimeout.current)
     setShowCoordTip(true)
@@ -59,11 +61,11 @@ export function TestPoint() {
 
     const plane = new THREE.Plane()
     if (activeView === 'front') {
-      plane.setFromNormalAndCoplanarPoint(new THREE.Vector3(0, 0, 1), new THREE.Vector3(0, 0, currentPos[2]))
+      plane.setFromNormalAndCoplanarPoint(new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, currentPos[1], 0))
     } else if (activeView === 'side') {
       plane.setFromNormalAndCoplanarPoint(new THREE.Vector3(1, 0, 0), new THREE.Vector3(currentPos[0], 0, 0))
     } else if (activeView === 'top') {
-      plane.setFromNormalAndCoplanarPoint(new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, currentPos[1], 0))
+      plane.setFromNormalAndCoplanarPoint(new THREE.Vector3(0, 0, 1), new THREE.Vector3(0, 0, currentPos[2]))
     } else {
       const origin = new THREE.Vector3(...currentPos)
       const camDir = new THREE.Vector3()
@@ -76,11 +78,11 @@ export function TestPoint() {
       const snap = (v) => snapEnabled ? Math.round(v / snapSize) * snapSize : v
       let finalPos
       if (activeView === 'front') {
-        finalPos = [snap(targetPos.x), snap(targetPos.y), currentPos[2]]
+        finalPos = [snap(targetPos.x), currentPos[1], snap(targetPos.z)]
       } else if (activeView === 'side') {
         finalPos = [currentPos[0], snap(targetPos.y), snap(targetPos.z)]
       } else if (activeView === 'top') {
-        finalPos = [snap(targetPos.x), currentPos[1], snap(targetPos.z)]
+        finalPos = [snap(targetPos.x), snap(targetPos.y), currentPos[2]]
       } else {
         finalPos = [snap(targetPos.x), snap(targetPos.y), snap(targetPos.z)]
       }
@@ -88,7 +90,14 @@ export function TestPoint() {
       if (locked.x) finalPos[0] = currentPos[0]
       if (locked.y) finalPos[1] = currentPos[1]
       if (locked.z) finalPos[2] = currentPos[2]
-      updateTestPoint(finalPos)
+      if (finalPos.every((v, i) => v === currentPos[i])) return
+      // Push history once per drag, on the first frame that actually moves M
+      if (!dragRecorded.current) {
+        dragRecorded.current = true
+        useStore.getState().moveTestPoint(finalPos)
+      } else {
+        updateTestPoint(finalPos)
+      }
     }
   }
 
@@ -138,7 +147,7 @@ export function TestPoint() {
         </mesh>
       </mesh>
 
-      <Billboard position={[0, 0.95, 0]}>
+      <Billboard position={[0, 0, 0.95]}>
         <Text
           fontSize={0.28}
           color={labelColor}
@@ -152,7 +161,7 @@ export function TestPoint() {
         </Text>
       </Billboard>
 
-      <Billboard position={[0, -0.7, 0]}>
+      <Billboard position={[0, 0, -0.7]}>
         <Text
           fontSize={0.2}
           color={potColor}
@@ -166,7 +175,7 @@ export function TestPoint() {
       </Billboard>
 
       {showCoordTip && (
-        <Billboard position={[0, -1.1, 0]}>
+        <Billboard position={[0, 0, -1.1]}>
           <Text
             fontSize={0.2}
             color="#facc15"
@@ -182,7 +191,7 @@ export function TestPoint() {
       )}
 
       {isSelected && (
-        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.5, 0]}>
+        <mesh position={[0, 0, -0.5]}>
           <ringGeometry args={[0.35, 0.42, 32]} />
           <meshBasicMaterial color="#00ff66" side={THREE.DoubleSide} transparent opacity={0.9} />
         </mesh>

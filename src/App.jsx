@@ -39,7 +39,8 @@ function App() {
 
       const key = e.key
 
-      if (key === 'z' && (e.ctrlKey || e.metaKey)) {
+      // e.key is 'Z' when Shift is held, so compare case-insensitively
+      if (key.toLowerCase() === 'z' && (e.ctrlKey || e.metaKey)) {
         e.preventDefault()
         if (e.shiftKey) {
           useStore.getState().redo()
@@ -77,7 +78,7 @@ function App() {
         const axis = key === 'X' ? 0 : key === 'Y' ? 1 : 2
         const newPos = [0, 0, 0]
         newPos[axis] = tp[axis]
-        useStore.getState().updateTestPoint(newPos)
+        useStore.getState().moveTestPoint(newPos)
         return
       }
 
@@ -88,10 +89,10 @@ function App() {
 
       if (key === 'PageUp' || key === 'e') {
         if (key === 'PageUp') e.preventDefault()
-        dy = step
+        dz = step
       } else if (key === 'PageDown' || key === 'c') {
         if (key === 'PageDown') e.preventDefault()
-        dy = -step
+        dz = -step
       } else {
         const k = key.toLowerCase()
         if (k === 'arrowleft' || k === 'q' || k === 'a') {
@@ -99,9 +100,9 @@ function App() {
         } else if (k === 'arrowright' || k === 'd') {
           dx = step
         } else if (k === 'arrowup' || k === 'z' || k === 'w') {
-          dz = -step
+          dy = step
         } else if (k === 'arrowdown' || k === 's') {
-          dz = step
+          dy = -step
         }
       }
 
@@ -109,11 +110,11 @@ function App() {
         e.preventDefault()
         const id = useStore.getState().selectedObjectId
         if (id && id !== 'testPoint') useStore.getState().removeCharge(id)
-      } else if (dx !== 0 || dz !== 0) {
+      } else if (dx !== 0 || dy !== 0) {
         e.preventDefault()
-        useStore.getState().nudgePosition(dx, dz)
-      } else if (dy !== 0) {
-        useStore.getState().nudgeY(dy)
+        useStore.getState().nudgePosition(dx, dy, !e.repeat)
+      } else if (dz !== 0) {
+        useStore.getState().nudgeZ(dz, !e.repeat)
       }
     }
 

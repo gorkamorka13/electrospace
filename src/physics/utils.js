@@ -3,10 +3,16 @@ import * as THREE from 'three'
 export function makeLocalFrame(origin, normal) {
   const n = normal.isVector3 ? normal : new THREE.Vector3(...normal)
   const z = n.clone().normalize()
-  const up = Math.abs(z.y) > 0.9 ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 1, 0)
+  // World is Z-up: for a horizontal normal, local y (height) ends up vertical
+  const up = Math.abs(z.z) > 0.9 ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 0, 1)
   const x = new THREE.Vector3().crossVectors(up, z).normalize()
   const y = new THREE.Vector3().crossVectors(z, x).normalize()
   return { x, y, z, origin: new THREE.Vector3(...origin) }
+}
+
+// Rotation taking local (x, y, z) onto the frame axes, so meshes share the physics orientation
+export function frameQuaternion(frame) {
+  return new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(frame.x, frame.y, frame.z))
 }
 
 export function worldFromLocal(local, frame) {
@@ -30,7 +36,7 @@ export function computeFieldGridBounds(sources, fallback = 10) {
   for (const c of sources.charges || []) expand(new THREE.Vector3(...c.position))
 
   for (const d of sources.distributions || []) {
-    const center = d.center || [0, 0, 0] // line defaults to origin along +y
+    const center = d.center || [0, 0, 0] // line defaults to origin along +z
     const C = new THREE.Vector3(...center)
     expand(C)
     // half-extents in the local frame (z = normal / axis)
@@ -86,7 +92,7 @@ export function computeFieldGridBounds(sources, fallback = 10) {
       y = new THREE.Vector3(0, 1, 0)
       z = new THREE.Vector3(0, 0, 1)
     } else {
-      const n = d.normal ? d.normal : (d.axis || [0, 1, 0])
+      const n = d.normal ? d.normal : (d.axis || [0, 0, 1])
       const frame = makeLocalFrame(center, n)
       x = frame.x; y = frame.y; z = frame.z
     }

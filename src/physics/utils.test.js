@@ -29,9 +29,15 @@ describe('makeLocalFrame', () => {
   })
 
   it('handles near-vertical normal', () => {
-    const frame = makeLocalFrame([0, 0, 0], new THREE.Vector3(0, 0.99, 0.1))
+    const frame = makeLocalFrame([0, 0, 0], new THREE.Vector3(0, 0.1, 0.99))
     expect(frame.y.dot(frame.z)).toBeCloseTo(0)
     expect(frame.x.length()).toBeCloseTo(1)
+  })
+
+  it('horizontal normal: local y (height) is world vertical z', () => {
+    const frame = makeLocalFrame([0, 0, 0], new THREE.Vector3(1, 0, 0))
+    expect(frame.x.y).toBeCloseTo(1)
+    expect(frame.y.z).toBeCloseTo(1)
   })
 })
 
@@ -47,9 +53,10 @@ describe('worldFromLocal', () => {
   it('converts local coords correctly', () => {
     const frame = makeLocalFrame([0, 0, 0], new THREE.Vector3(0, 1, 0))
     const p = worldFromLocal({ x: 1, y: 2, z: 3 }, frame)
-    expect(p.x).toBeCloseTo(2)
+    // normal +y: local x -> -X, local y -> +Z, local z -> +Y
+    expect(p.x).toBeCloseTo(-1)
     expect(p.y).toBeCloseTo(3)
-    expect(p.z).toBeCloseTo(1)
+    expect(p.z).toBeCloseTo(2)
   })
 })
 
@@ -137,6 +144,27 @@ describe('calculateTotalField', () => {
     expect(E.x).toBeCloseTo(-2, 5)
     expect(E.y).toBe(0)
     expect(E.z).toBe(0)
+  })
+
+  it('is exactly zero at the centroid of three equal charges in an equilateral triangle', () => {
+    const q = 1.602176634e-19
+    const charges = [
+      { q, position: [2, 0, 0] },
+      { q, position: [-1, Math.sqrt(3), 0] },
+      { q, position: [-1, -Math.sqrt(3), 0] },
+    ]
+    const E = calculateTotalField(charges, [0, 0, 0])
+    expect(E.length()).toBe(0)
+  })
+
+  it('keeps a small but real residual when the triangle is not exactly equilateral', () => {
+    const charges = [
+      { q: 1, position: [2, 0, 0] },
+      { q: 1, position: [-1, 1.732, 0] },
+      { q: 1, position: [-1, -1.732, 0] },
+    ]
+    const E = calculateTotalField(charges, [0, 0, 0], 1, 0.1)
+    expect(E.length()).toBeGreaterThan(1e-6)
   })
 })
 
@@ -409,12 +437,13 @@ describe('Infinite distributions (mode: infinite)', () => {
 
   it('infinite line: E = 2·ke·λ/ρ radial, zero axial', () => {
     const dist = { type: 'line', density: lam, mode: 'infinite', length: 10 }
-    const E = calculateFieldFromLine(dist, [3, 7, 4], ke, rMin)
+    // line along world z: radial in xy, axial component along z
+    const E = calculateFieldFromLine(dist, [3, 4, 7], ke, rMin)
     const rho = Math.hypot(3, 4)
     const mag = 2 * ke * lam / rho
-    expect(E.x).toBeCloseTo(mag * 3 / rho, 6)
-    expect(E.y).toBeCloseTo(0, 6)
-    expect(E.z).toBeCloseTo(mag * 4 / rho, 6)
+    expect(E.x / (mag * 3 / rho)).toBeCloseTo(1, 6)
+    expect(E.y / (mag * 4 / rho)).toBeCloseTo(1, 6)
+    expect(E.z).toBe(0)
   })
 
   it('infinite line: potential V = -2·ke·λ·ln(ρ)', () => {
@@ -423,11 +452,27 @@ describe('Infinite distributions (mode: infinite)', () => {
     expect(V).toBeCloseTo(-2 * ke * lam * Math.log(2), 6)
   })
 
-  it('infinite line: E is independent of y (translation invariant)', () => {
+  it('infinite line: E is independent of z (translation invariant)', () => {
     const dist = { type: 'line', density: lam, mode: 'infinite', length: 10 }
-    const E1 = calculateFieldFromLine(dist, [2, -5, 0], ke, rMin)
-    const E2 = calculateFieldFromLine(dist, [2, 100, 0], ke, rMin)
-    expect(E1.x).toBeCloseTo(E2.x, 10)
+    const E1 = calculateFieldFromLine(dist, [2, 0, -5], ke, rMin)
+    const E2 = calculateFieldFromLine(dist, [2, 0, 100], ke, rMin)
+    expect(E1.x).toBeCloseTo(E2.x, 15)
+  })
+
+  it('finite line lies along z: axial field on the axis, radial field in the mid-plane', () => {
+    const dist = { type: 'line', density: lam, mode: 'finite', length: 4 }
+    // On the axis beyond the end: E = ke·λ·(1/(z-L/2) - 1/(z+L/2)) along +z
+    const onAxis = calculateFieldFromLine(dist, [0, 0, 5], ke, rMin)
+    expect(onAxis.z / (ke * lam * (1 / 3 - 1 / 7))).toBeCloseTo(1, 6)
+    expect(Math.abs(onAxis.x)).toBeLessThan(1e-20)
+    expect(Math.abs(onAxis.y)).toBeLessThan(1e-20)
+    // In the mid-plane: E = 2·ke·λ·(L/2) / (ρ·√(ρ² + (L/2)²)), radial, no axial part
+    const mid = calculateFieldFromLine(dist, [0, 3, 0], ke, rMin)
+    expect(mid.y / (2 * ke * lam * 2 / (3 * Math.hypot(3, 2)))).toBeCloseTo(1, 6)
+    expect(Math.abs(mid.z)).toBeLessThan(1e-20)
+    // Potential matches the same geometry
+    const V = calculatePotentialFromLine(dist, [0, 3, 0], ke, rMin)
+    expect(V / (ke * lam * Math.log((2 + Math.hypot(3, 2)) / (-2 + Math.hypot(3, 2))))).toBeCloseTo(1, 6)
   })
 
   it('infinite plane: E = 2π·ke·σ constant, sign flips across', () => {

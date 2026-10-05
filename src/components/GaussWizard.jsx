@@ -200,10 +200,10 @@ export function GaussWizard() {
       const rM = Math.max(0.2, Math.min(8.0, relM.length()))
       setGaussSurfaceRadius(rM)
     } else if (gaussSurfaceType === 'cylinder') {
-      const rM = Math.max(0.2, Math.min(8.0, Math.sqrt(relM.x * relM.x + relM.z * relM.z)))
+      const rM = Math.max(0.2, Math.min(8.0, Math.sqrt(relM.x * relM.x + relM.y * relM.y)))
       setGaussSurfaceRadius(rM)
     } else if (gaussSurfaceType === 'box') {
-      const hM = Math.max(0.5, Math.min(8.0, 2 * Math.abs(relM.y)))
+      const hM = Math.max(0.5, Math.min(8.0, 2 * Math.abs(relM.z)))
       setGaussSurfaceHeight(hM)
     }
   }, [showGaussCompanion, testPoint, gaussSurfaceType, gaussCenter, setGaussSurfaceRadius, setGaussSurfaceHeight])

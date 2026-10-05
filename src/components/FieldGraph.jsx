@@ -121,8 +121,8 @@ export function FieldGraph() {
     const t = Math.max(-curAR, Math.min(curAR, ((px - PAD) / plotW) * (curAR * 2) - curAR))
     const newPos = [...storeTestPoint]
     newPos[axisIdx] = t
-    updateTestPoint(newPos)
-  }, [sweepAxis, storeTestPoint, updateTestPoint])
+    useStore.getState().moveTestPoint(newPos)
+  }, [sweepAxis, storeTestPoint])
 
   const handleCanvasPointerMove = useCallback((e) => {
     e.stopPropagation()

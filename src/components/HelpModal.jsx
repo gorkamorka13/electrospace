@@ -1,9 +1,9 @@
 import { useStore } from '../store/useStore'
 
 const SHORTCUTS = [
-  ['Flèches / A/W/S/D/Q', 'Déplacer l\'objet sélectionné (plan XZ)'],
-  ['PageUp / E', 'Monter l\'objet sélectionné (Y+)'],
-  ['PageDown / C', 'Descendre l\'objet sélectionné (Y-)'],
+  ['Flèches / A/W/S/D/Q', 'Déplacer l\'objet sélectionné (plan XY)'],
+  ['PageUp / E', 'Monter l\'objet sélectionné (Z+)'],
+  ['PageDown / C', 'Descendre l\'objet sélectionné (Z-)'],
   ['Suppr', 'Supprimer la charge sélectionnée'],
   ['Échap', 'Fermer le menu contextuel / l\'aide'],
   ['Ctrl+Z', 'Annuler la dernière action'],

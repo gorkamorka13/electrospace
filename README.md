@@ -114,7 +114,7 @@ electrospace/
 │   │   └── fieldWorker.js           # Calcul déporté de la grille 3D de champ & potentiel
 │   ├── App.jsx            # Composant racine de l'application
 │   └── main.jsx           # Point d'entrée React 19
-├── AUDIT_COMPLET_ELECTROSPACE.md  # Audit exhaustif de la qualité et plan technique
+├── ROADMAP.md              # Statut du projet et pointeur vers le plan d'amélioration courant
 ├── package.json           # Dépendances npm et scripts de build/test
 └── vite.config.js         # Configuration du bundler Vite
 ```
@@ -137,7 +137,7 @@ npm run test:run
 npm run lint
 ```
 
-Actuellement, **90/90 tests unitaires sont validés avec succès** (couvrant `gauss.test.js`, `plane-verify.test.js` et `utils.test.js`).
+Actuellement, **117/117 tests unitaires sont validés avec succès** (couvrant `gauss.test.js`, `plane-verify.test.js` et `utils.test.js`).
 
 ---
 
@@ -154,28 +154,7 @@ npm run deploy
 
 ## 💡 Préconisations d'Améliorations (Audit & Roadmap)
 
-À la suite d'un audit technique complet du codebase, voici les **préconisations d'améliorations prioritaires** réparties par axes :
-
-### 1. 🧹 Nettoyage du Code Mort & Résolution des Avertissements ESLint
-- **Problème** : Une quarantaine d'avertissements et d'erreurs ESLint ont été répertoriés (constantes inutilisées comme `E_FIELD_GRID_SIZE` dans `constants.js`, variables locales non lues, refs instanciées sans emploi comme `seededRef` dans `ChargeTrajectory.jsx`).
-- **Préconisation** : Effectuer un nettoyage du code mort et configurer des règles strictes CI/CD pour interdire les variables inutilisées.
-
-### 2. ⚛️ Conformité React 19 & Correctifs sur les Hooks
-- **Accès prématuré aux fonctions** : Dans `FieldGraph.jsx` et `PotentialXGraph.jsx`, déplacer la définition de `scheduleWindowRaf` au-dessus de ses appels dans les `useEffect`.
-- **Mutations directes de Refs pendant le rendu** : Dans `PhysicsCanvas.jsx`, remplacer la mutation `animationTarget.current = null` au sein du callback `useFrame` par une mise à jour d'état synchrone ou contrôlée.
-- **Réactivité du Store Zustand dans `useMemo`** : Dans `Equipotentials3D.jsx`, remplacer `useStore.getState()` impératif par un sélecteur réactif `useStore((state) => state.ke)` afin que la géométrie 3D réagisse instantanément si l'utilisateur modifie la constante de Coulomb.
-
-### 3. 🔬 Harmonisation de la Physique & Centralisation de $r_{\min}$
-- **Calcul des Singularités** : La distance minimale de tolérance $r_{\min}$ (cut-off de la loi en $1/r^2$) présente des divergences selon les fichiers (ex: $10^{-6}$ vs $10^{-3}$).
-- **Préconisation** : Centraliser $r_{\min}$ dans `physics/constants.js` et garantir sa propagation uniforme dans les calculs de champ et de potentiel des distributions continues.
-
-### 4. ⚡ Optimisation des Performances WebGL & Web Workers
-- **Flèches du Champ Vectoriel via `InstancedMesh`** : Migrer la grille de flèches 3D vers un `THREE.InstancedMesh` pour réduire le nombre d'appels de rendu (*draw calls*) de plusieurs centaines à un seul.
-- **Isosurfaces 3D en Web Worker** : Déporter l'exécution du `marchingCubes.js` dans le `fieldWorker.js` pour éliminer les micro-lags du thread UI lors de l'actualisation des équipotentielles 3D.
-
-### 5. 📘 Migration vers TypeScript & Refactoring Composants
-- **Adoption de TypeScript (`.ts` / `.tsx`)** : Permettra de typer fermement les entités physiques (`Charge`, `Distribution`, `GaussSurface`, `Vector3`), évitant les erreurs de structure au runtime.
-- **Décomposition de `Sidebar.jsx`** : Découper le composant `Sidebar.jsx` (+700 lignes) en sous-composants autonomes (`ChargeManager`, `GaussManager`, `VisualSettings`).
+Le statut du projet et le plan d'amélioration courant sont maintenant centralisés dans **[ROADMAP.md](ROADMAP.md)** (statut vérifié : lint, tests, build) et **[docs/evolution-plan.md](docs/evolution-plan.md)** (plan détaillé : architecture, performance, qualité/process, feuille de route fonctionnelle). Les anciens rapports d'audit (`AUDIT_QUALITE_CODE.md`, `implementation_plan.md`, `walkthrough.md`, `docs/fix-plan.md`, `docs/improvements-recommendations.md`) sont archivés dans [docs/archive/](docs/archive/) — leurs préconisations ont déjà été appliquées et vérifiées, voir ROADMAP.md pour le détail.
 
 ---
 

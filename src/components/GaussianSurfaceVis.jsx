@@ -11,20 +11,22 @@ function getVertexNormal(px, py, pz, surfaceType, radius, height, width, depth) 
       return r > 1e-8 ? new THREE.Vector3(px / r, py / r, pz / r) : new THREE.Vector3(1, 0, 0)
     }
     case 'cylinder': {
-      const r = Math.sqrt(px * px + pz * pz)
+      // Cylinder axis is world Z
+      const r = Math.sqrt(px * px + py * py)
       const hh = height / 2
-      if (r < 1e-6 || Math.abs(Math.abs(py) - hh) < 0.001) {
-        return new THREE.Vector3(0, py >= 0 ? 1 : -1, 0)
+      if (r < 1e-6 || Math.abs(Math.abs(pz) - hh) < 0.001) {
+        return new THREE.Vector3(0, 0, pz >= 0 ? 1 : -1)
       }
-      return new THREE.Vector3(px / r, 0, pz / r).normalize()
+      return new THREE.Vector3(px / r, py / r, 0).normalize()
     }
     case 'box': {
-      const hw = width / 2, hh = height / 2, hd = depth / 2
+      // Box is (width, depth, height) along (x, y, z)
+      const hw = width / 2, hd = depth / 2, hh = height / 2
       const dx = Math.abs(px), dy = Math.abs(py), dz = Math.abs(pz)
       const dists = [
         { d: Math.abs(dx - hw), n: new THREE.Vector3(Math.sign(px), 0, 0) },
-        { d: Math.abs(dy - hh), n: new THREE.Vector3(0, Math.sign(py), 0) },
-        { d: Math.abs(dz - hd), n: new THREE.Vector3(0, 0, Math.sign(pz)) },
+        { d: Math.abs(dy - hd), n: new THREE.Vector3(0, Math.sign(py), 0) },
+        { d: Math.abs(dz - hh), n: new THREE.Vector3(0, 0, Math.sign(pz)) },
       ]
       return dists.sort((a, b) => a.d - b.d)[0].n
     }
@@ -93,11 +95,11 @@ export function GaussianSurfaceVis() {
   const hasChargesOnly = charges.length > 0 && distributions.length === 0
 
   const sphereEdgesGeo = useMemo(() => new THREE.SphereGeometry(gaussSurfaceRadius, 16, 16), [gaussSurfaceRadius])
-  const cylinderEdgesGeo = useMemo(() => new THREE.CylinderGeometry(gaussSurfaceRadius, gaussSurfaceRadius, gaussSurfaceHeight, 16), [gaussSurfaceRadius, gaussSurfaceHeight])
-  const boxEdgesGeo = useMemo(() => new THREE.BoxGeometry(gaussSurfaceWidth, gaussSurfaceHeight, gaussSurfaceDepth), [gaussSurfaceWidth, gaussSurfaceHeight, gaussSurfaceDepth])
+  const cylinderEdgesGeo = useMemo(() => new THREE.CylinderGeometry(gaussSurfaceRadius, gaussSurfaceRadius, gaussSurfaceHeight, 16).rotateX(Math.PI / 2), [gaussSurfaceRadius, gaussSurfaceHeight])
+  const boxEdgesGeo = useMemo(() => new THREE.BoxGeometry(gaussSurfaceWidth, gaussSurfaceDepth, gaussSurfaceHeight), [gaussSurfaceWidth, gaussSurfaceHeight, gaussSurfaceDepth])
   const innerSphereEdgesGeo = useMemo(() => new THREE.SphereGeometry(innerVolRadius, 16, 16), [innerVolRadius])
   const innerCylinderEdgesGeo = useMemo(() => new THREE.CylinderGeometry(innerVolRadius, innerVolRadius, gaussSurfaceHeight, 16), [innerVolRadius, gaussSurfaceHeight])
-  const innerBoxEdgesGeo = useMemo(() => new THREE.BoxGeometry(gaussSurfaceWidth, 0.1, gaussSurfaceDepth), [gaussSurfaceWidth, gaussSurfaceDepth])
+  const innerBoxEdgesGeo = useMemo(() => new THREE.BoxGeometry(gaussSurfaceWidth, gaussSurfaceDepth, 0.1), [gaussSurfaceWidth, gaussSurfaceDepth])
   const planeEdgesGeo = useMemo(() => new THREE.PlaneGeometry(planeSize, planeSize), [planeSize])
   const fluxSurfaceParams = useMemo(() => ({
     radius: gaussSurfaceRadius, height: gaussSurfaceHeight, width: gaussSurfaceWidth, depth: gaussSurfaceDepth,
@@ -122,10 +124,10 @@ export function GaussianSurfaceVis() {
       geo = new THREE.SphereGeometry(gaussSurfaceRadius, 32, 32)
       surfaceType = 'sphere'
     } else if (geoType === 'cylinder') {
-      geo = new THREE.CylinderGeometry(gaussSurfaceRadius, gaussSurfaceRadius, gaussSurfaceHeight, 32)
+      geo = new THREE.CylinderGeometry(gaussSurfaceRadius, gaussSurfaceRadius, gaussSurfaceHeight, 32).rotateX(Math.PI / 2)
       surfaceType = 'cylinder'
     } else if (geoType === 'box') {
-      geo = new THREE.BoxGeometry(gaussSurfaceWidth, gaussSurfaceHeight, gaussSurfaceDepth)
+      geo = new THREE.BoxGeometry(gaussSurfaceWidth, gaussSurfaceDepth, gaussSurfaceHeight)
       surfaceType = 'box'
     } else {
       return
@@ -207,24 +209,24 @@ export function GaussianSurfaceVis() {
 
   if (gaussSurfaceType === 'sphere' || configType === 'sphere') {
     e_rad = relM.lengthSq() > 1e-6 ? relM.clone().normalize() : new THREE.Vector3(1, 0, 0)
-    e_tan = new THREE.Vector3(-e_rad.z, 0, e_rad.x).normalize()
-    if (e_tan.lengthSq() < 1e-4) e_tan = new THREE.Vector3(0, 1, 0)
+    e_tan = new THREE.Vector3(-e_rad.y, e_rad.x, 0).normalize()
+    if (e_tan.lengthSq() < 1e-4) e_tan = new THREE.Vector3(1, 0, 0)
     e_third = new THREE.Vector3().crossVectors(e_rad, e_tan).normalize()
     label1 = 'e_r'
     label2 = 'e_θ'
     label3 = 'e_φ'
   } else if (gaussSurfaceType === 'cylinder' || configType === 'cylinder' || configType === 'line') {
-    e_rad = new THREE.Vector3(relM.x, 0, relM.z).normalize()
+    e_rad = new THREE.Vector3(relM.x, relM.y, 0).normalize()
     if (e_rad.lengthSq() < 1e-4) e_rad = new THREE.Vector3(1, 0, 0)
-    e_tan = new THREE.Vector3(-e_rad.z, 0, e_rad.x).normalize()
-    e_third = new THREE.Vector3(0, 1, 0)
+    e_tan = new THREE.Vector3(-e_rad.y, e_rad.x, 0).normalize()
+    e_third = new THREE.Vector3(0, 0, 1)
     label1 = 'e_r'
     label2 = 'e_θ'
     label3 = 'e_z'
   } else if (gaussSurfaceType === 'box' || configType === 'plane') {
-    e_rad = relM.y >= 0 ? new THREE.Vector3(0, 1, 0) : new THREE.Vector3(0, -1, 0)
+    e_rad = relM.z >= 0 ? new THREE.Vector3(0, 0, 1) : new THREE.Vector3(0, 0, -1)
     e_tan = new THREE.Vector3(1, 0, 0)
-    e_third = new THREE.Vector3(0, 0, 1)
+    e_third = new THREE.Vector3(0, 1, 0)
     label1 = 'e_z (e_n)'
     label2 = 'e_x'
     label3 = 'e_y'
@@ -241,14 +243,15 @@ export function GaussianSurfaceVis() {
   let plane2Rot = [0, Math.PI / 2, 0]
 
   if (configType === 'cylinder' || configType === 'line' || gaussSurfaceType === 'cylinder') {
-    const thetaM = Math.atan2(relM.z, relM.x)
+    const thetaM = Math.atan2(relM.y, relM.x)
     // Plan 1 (Bleu): Plan méridien (M, e_r, e_z) contenant l'axe z (O) et le point M
-    plane1Pos = [0, relM.y, 0]
-    plane1Rot = [0, -thetaM, 0]
+    // PlaneGeometry (XY) basculé en XZ puis tourné de θ_M autour de z (ordre d'Euler ZXY)
+    plane1Pos = [0, 0, relM.z]
+    plane1Rot = [Math.PI / 2, 0, thetaM, 'ZXY']
 
-    // Plan 2 (Rose): Plan transversal (M, e_r, e_θ) perpendiculaire à l'axe z à la hauteur yM de M
-    plane2Pos = [0, relM.y, 0]
-    plane2Rot = [Math.PI / 2, 0, 0]
+    // Plan 2 (Rose): Plan transversal (M, e_r, e_θ) perpendiculaire à l'axe z à la hauteur zM de M
+    plane2Pos = [0, 0, relM.z]
+    plane2Rot = [0, 0, 0]
   } else if (configType === 'sphere' || gaussSurfaceType === 'sphere') {
     const omDir = relM.lengthSq() > 1e-4 ? relM.clone().normalize() : new THREE.Vector3(1, 0, 0)
     // Quaternion q1 aligne l'axe local Y (0, 1, 0) du plan sur la direction OM
@@ -267,13 +270,13 @@ export function GaussianSurfaceVis() {
     plane2Pos = [0, 0, 0]
     plane2Rot = [euler2.x, euler2.y, euler2.z]
   } else if (configType === 'plane' || gaussSurfaceType === 'box') {
-    // Pour un plan infini chargé horizontal (y=0 dans Three.js), la normale est e_y
-    // Plan 1 (Bleu) : Π_S1 = (M, e_x, e_y) → plan XY de Three.js, vertical selon xz
-    // PlaneGeometry par défaut est dans le plan XY (face vers Z) → rotation [0, 0, 0], centré sur M
+    // Pour un plan infini chargé horizontal (z=0), la normale est e_z
+    // Plan 1 (Bleu) : Π_S1 = (M, e_x, e_z) → plan XZ, vertical
+    // PlaneGeometry par défaut est dans le plan XY → rotation de 90° autour de X, centré sur M
     plane1Pos = [relM.x, relM.y, relM.z]
-    plane1Rot = [0, 0, 0]
+    plane1Rot = [Math.PI / 2, 0, 0]
 
-    // Plan 2 (Rose) : Π_S2 = (M, e_y, e_z) → plan YZ de Three.js
+    // Plan 2 (Rose) : Π_S2 = (M, e_y, e_z) → plan YZ, vertical
     // Pour le plan YZ : rotation autour de Y de 90° → [0, Math.PI/2, 0], centré sur M
     plane2Pos = [relM.x, relM.y, relM.z]
     plane2Rot = [0, Math.PI / 2, 0]
@@ -358,7 +361,7 @@ export function GaussianSurfaceVis() {
           )}
 
           {(configType === 'cylinder' || configType === 'line' || gaussSurfaceType === 'cylinder') && (
-            <mesh>
+            <mesh rotation={[Math.PI / 2, 0, 0]}>
               <cylinderGeometry args={[Math.min(gaussSurfaceRadius, activeDist?.radius || 1.5), Math.min(gaussSurfaceRadius, activeDist?.radius || 1.5), gaussSurfaceHeight, 32]} />
               <meshBasicMaterial color="#f59e0b" transparent opacity={0.35} side={THREE.DoubleSide} depthWrite={false} />
               <lineSegments>
@@ -370,7 +373,7 @@ export function GaussianSurfaceVis() {
 
           {(configType === 'plane' || gaussSurfaceType === 'box') && (
             <mesh>
-              <boxGeometry args={[gaussSurfaceWidth, 0.1, gaussSurfaceDepth]} />
+              <boxGeometry args={[gaussSurfaceWidth, gaussSurfaceDepth, 0.1]} />
               <meshBasicMaterial color="#f59e0b" transparent opacity={0.4} side={THREE.DoubleSide} depthWrite={false} />
               <lineSegments>
                 <edgesGeometry args={[innerBoxEdgesGeo]} />

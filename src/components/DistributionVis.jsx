@@ -1,7 +1,7 @@
 import * as THREE from 'three'
 import { useMemo } from 'react'
 import { useStore } from '../store/useStore'
-import { makeLocalFrame } from '../physics/utils'
+import { makeLocalFrame, frameQuaternion } from '../physics/utils'
 
 const DIST_COLOR = '#9b59b6'
 const DIST_OPACITY = 0.5
@@ -16,7 +16,7 @@ function LineVis({ dist }) {
   const len = dist.length
   if (len < 1e-6) return null
   return (
-    <mesh onContextMenu={ctxMenuDist(dist, openContextMenu)} position={[0, 0, 0]}>
+    <mesh onContextMenu={ctxMenuDist(dist, openContextMenu)} position={[0, 0, 0]} rotation={[Math.PI / 2, 0, 0]}>
       <capsuleGeometry args={[0.08, len, 4, 8]} />
       <meshPhongMaterial color={DIST_COLOR} transparent opacity={DIST_OPACITY} />
     </mesh>
@@ -168,7 +168,7 @@ function CylinderVis({ dist }) {
 function PlaneVis({ dist }) {
   const openContextMenu = useStore((s) => s.openContextMenu)
   const frame = makeLocalFrame(dist.center, dist.normal)
-  const quat = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), frame.z)
+  const quat = frameQuaternion(frame)
 
   const showGauss = useStore((state) => state.showGaussCompanion && state.gaussStep >= 3)
   const w_g = useStore((state) => state.gaussSurfaceWidth)
@@ -257,7 +257,7 @@ function RingVis({ dist }) {
 
 function FrameVis({ dist }) {
   const frame = makeLocalFrame(dist.center, dist.normal)
-  const quat = useMemo(() => new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), frame.z), [frame.z])
+  const quat = frameQuaternion(frame)
   const geometry = useMemo(() => {
     const hw = dist.width / 2, hh = dist.height / 2
     const pts = new Float32Array([
@@ -280,7 +280,7 @@ function FrameVis({ dist }) {
 function BoxVis({ dist }) {
   const openContextMenu = useStore((s) => s.openContextMenu)
   const frame = makeLocalFrame(dist.center, dist.normal)
-  const quat = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), frame.z)
+  const quat = frameQuaternion(frame)
   if (dist.hollow) {
     return (
       <mesh onContextMenu={ctxMenuDist(dist, openContextMenu)} position={frame.origin} quaternion={quat}>

@@ -200,7 +200,7 @@ describe('computeFieldGridBounds — grid scales with distribution extent', () =
   it('plane 10x10 (normal +x) spans yz plane, thin in x', () => {
     const d = { type: 'plane', center: [0, 0, 0], normal: [1, 0, 0], width: 10, height: 10, mode: 'finite' }
     const { min, max } = computeFieldGridBounds({ distributions: [d] })
-    // plane lies in yz (width -> z, height -> y), x only padding
+    // plane lies in yz (width -> y, height -> z), x only padding
     expect(min.x).toBeCloseTo(-2, 6)
     expect(max.x).toBeCloseTo(2, 6)
     expect(min.y).toBeCloseTo(-7, 6)
@@ -214,18 +214,18 @@ describe('computeFieldGridBounds — grid scales with distribution extent', () =
     const big = { ...small, width: 20, height: 2 }
     const bSmall = computeFieldGridBounds({ distributions: [small] })
     const bBig = computeFieldGridBounds({ distributions: [big] })
-    // width -> z extent grows; height (-> y) unchanged
-    expect(bBig.max.z).toBeGreaterThan(bSmall.max.z)
-    expect(bBig.min.z).toBeLessThan(bSmall.min.z)
-    expect(bBig.max.y).toBeCloseTo(bSmall.max.y, 6)
+    // width -> y extent grows; height (-> z, vertical) unchanged
+    expect(bBig.max.y).toBeGreaterThan(bSmall.max.y)
+    expect(bBig.min.y).toBeLessThan(bSmall.min.y)
+    expect(bBig.max.z).toBeCloseTo(bSmall.max.z, 6)
   })
 
   it('rotated plane extends along world axes', () => {
     const d = { type: 'plane', center: [0, 0, 0], normal: [0, 0, 1], width: 4, height: 2, mode: 'finite' }
     const { max } = computeFieldGridBounds({ distributions: [d] })
-    // normal +z: width 4 -> x extent, height 2 -> y extent, z only padding
-    expect(max.x).toBeCloseTo(4, 6)
-    expect(max.y).toBeCloseTo(3, 6)
+    // normal +z (horizontal plane): width 4 -> y extent, height 2 -> x extent, z only padding
+    expect(max.x).toBeCloseTo(3, 6)
+    expect(max.y).toBeCloseTo(4, 6)
     expect(max.z).toBeCloseTo(2, 6)
   })
 
@@ -252,11 +252,12 @@ describe('computeFieldGridBounds — grid scales with distribution extent', () =
     expect(max.x).toBeCloseTo(10, 6)
   })
 
-  it('line (no center) defaults to origin, extent along y', () => {
+  it('line (no center) defaults to origin, extent along z', () => {
     const d = { type: 'line', length: 10, mode: 'finite' }
     const { min, max } = computeFieldGridBounds({ distributions: [d] })
-    expect(min.y).toBeCloseTo(-7, 6)
-    expect(max.y).toBeCloseTo(7, 6)
+    expect(min.z).toBeCloseTo(-7, 6)
+    expect(max.z).toBeCloseTo(7, 6)
     expect(max.x).toBeCloseTo(2, 6)
+    expect(max.y).toBeCloseTo(2, 6)
   })
 })
