@@ -3,6 +3,7 @@ import * as THREE from 'three'
 import { useStore } from '../store/useStore'
 import { calculateGaussParameters } from '../physics/gauss'
 import { formatElectricField } from '../physics/coulomb'
+import { lengthFactor } from '../physics/units'
 import { InlineMath, BlockMath, TextWithMath } from '../utils/math'
 
 // Component to render 2D SVG schematics of Coordinate Basis Vectors (er, eteta, ephi/ez)
@@ -128,6 +129,7 @@ export function GaussWizard() {
   const testPoint = useStore((state) => state.testPoint)
   const gaussCenter = useStore((state) => state.gaussCenter)
   const distributions = useStore((state) => state.distributions)
+  const lengthUnit = useStore((state) => state.lengthUnit)
 
   const [minimized, setMinimized] = useState(false)
   const [isMobile, setIsMobile] = useState(() => window.innerWidth <= 768)
@@ -622,7 +624,7 @@ export function GaussWizard() {
             
             <div className="gw-stats-card">
               <div className="stat-row"><span className="stat-label">Bilan Charge Enfermée (<InlineMath math="Q_{\text{int}}" />) :</span><span className="stat-val highlight-gold">{(qInt * 1e9).toFixed(3)} nC</span></div>
-              <div className="stat-row"><span className="stat-label">Aire Active de Gauss (<InlineMath math="A_{\text{active}}" />) :</span><span className="stat-val">{area.toFixed(3)} m²</span></div>
+              <div className="stat-row"><span className="stat-label">Aire Active de Gauss (<InlineMath math="A_{\text{active}}" />) :</span><span className="stat-val">{(area / lengthFactor(lengthUnit) ** 2).toFixed(3)} {lengthUnit}²</span></div>
               <div className="stat-row border-top"><span className="stat-label">Norme du Champ Électrique (<InlineMath math="E" />) :</span><span className="stat-val highlight-green">{formatElectricField(eField)}</span></div>
             </div>
             

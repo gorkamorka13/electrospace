@@ -1,8 +1,11 @@
 import * as THREE from 'three'
 import { KE_REAL } from './coulomb'
+import { lengthFactor, densityDimension } from './units'
 
 export function calculateGaussParameters(state) {
-  const { distributions, charges, gaussSurfaceType, gaussSurfaceRadius, gaussSurfaceHeight, gaussSurfaceWidth, gaussSurfaceDepth, gaussCenter, chargeUnit } = state
+  const { distributions, charges, gaussSurfaceType, gaussSurfaceRadius, gaussSurfaceHeight, gaussSurfaceWidth, gaussSurfaceDepth, gaussCenter, chargeUnit, lengthUnit } = state
+  // Mètres par unité de scène : les longueurs ci-dessous sont en unités de scène
+  const L = lengthFactor(lengthUnit)
 
   const activeDist = distributions[0] || null
   const configName = activeDist ? activeDist.type : 'charges'
@@ -118,6 +121,14 @@ export function calculateGaussParameters(state) {
       : 2 * (gaussSurfaceWidth * gaussSurfaceDepth + gaussSurfaceWidth * gaussSurfaceHeight + gaussSurfaceHeight * gaussSurfaceDepth)
   }
 
+  // Passage en SI : densités saisies en C/m^dim, aire en m²
+  if (activeDist) {
+    const densityScale = L ** densityDimension(activeDist)
+    Q *= densityScale
+    qInt *= densityScale
+  }
+  area *= L * L
+
   const flux = qInt > 0 ? qInt / (1 / (4 * Math.PI * KE_REAL)) : 0
   const eps0 = 1 / (4 * Math.PI * KE_REAL)
   const eField = area > 1e-30 ? Math.abs(qInt) / (eps0 * area) : 0
@@ -185,14 +196,14 @@ export function calculateGaussParameters(state) {
     if (r_g < R) {
       if (hollow) {
         vFieldFormula = "V(r) = \\frac{k_e Q}{R} \\text{ (Constant à l'intérieur)}"
-        vValue = R > 0 ? (KE_REAL * Q) / R : 0
+        vValue = R > 0 ? (KE_REAL * Q) / (R * L) : 0
       } else {
         vFieldFormula = "V(r) = \\frac{k_e Q}{2 R} \\cdot \\left[3 - \\left(\\frac{r}{R}\\right)^2\\right]"
-        vValue = R > 0 ? (KE_REAL * Q / (2 * R)) * (3 - Math.pow(r_g / R, 2)) : 0
+        vValue = R > 0 ? (KE_REAL * Q / (2 * R * L)) * (3 - Math.pow(r_g / R, 2)) : 0
       }
     } else {
       vFieldFormula = "V(r) = \\frac{k_e Q}{r}"
-      vValue = r_g > 0 ? (KE_REAL * Q) / r_g : 0
+      vValue = r_g > 0 ? (KE_REAL * Q) / (r_g * L) : 0
     }
 
     gaussStep4Detail = {
@@ -334,7 +345,7 @@ export function calculateGaussParameters(state) {
     }
 
     const xM = Math.abs(gaussCenter ? gaussCenter[0] : 0)
-    const vValue = -2 * Math.PI * KE_REAL * sigma * xM
+    const vValue = -2 * Math.PI * KE_REAL * sigma * xM * L
     const vFieldFormula = "V(x) = -\\frac{\\sigma |x|}{2 \\varepsilon_0} = -2\\pi k_e \\sigma |x| \\text{ (Référence } V(0) = 0\\text{)}"
 
     gaussStep4Detail = {

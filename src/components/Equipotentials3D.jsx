@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import * as THREE from 'three'
 import { useStore, UNIT_FACTORS } from '../store/useStore'
+import { scaleForLength } from '../physics/units'
 import { buildIsosurfaceGeometry } from '../physics/marchingCubes'
 import { MC_RESOLUTION, MC_HALF, MC_NUM_LEVELS } from '../physics/constants'
 import { useFieldWorker } from '../hooks/useFieldWorker'
@@ -20,12 +21,13 @@ export function Equipotentials3D() {
   const distributions = useStore((state) => state.distributions)
   const showEquipotentials3D = useStore((state) => state.showEquipotentials3D)
   const chargeUnit = useStore((state) => state.chargeUnit)
+  const lengthUnit = useStore((state) => state.lengthUnit)
   const ke = useStore((state) => state.ke)
   const rMin = useStore((state) => state.rMin)
   const { sample3DGrid } = useFieldWorker()
   const [geometries, setGeometries] = useState([])
   const geoCacheRef = useRef([])
-  const computationKey = `${showEquipotentials3D}|${charges.length}|${distributions.length}|${chargeUnit}|${ke}|${rMin}`
+  const computationKey = `${showEquipotentials3D}|${charges.length}|${distributions.length}|${chargeUnit}|${lengthUnit}|${ke}|${rMin}`
 
   const buildMeshes = useCallback((gridData) => {
     const range = gridData.maxV - gridData.minV
@@ -50,8 +52,9 @@ export function Equipotentials3D() {
 
     const multiplier = UNIT_FACTORS[chargeUnit] || 1e-6
     const physicalCharges = distributions.length > 0 ? [] : charges.map(c => ({ ...c, q: c.q * multiplier }))
+    const scaled = scaleForLength(distributions, ke, lengthUnit)
 
-    sample3DGrid(BOUNDS, MC_RESOLUTION, physicalCharges, ke, rMin, distributions)
+    sample3DGrid(BOUNDS, MC_RESOLUTION, physicalCharges, scaled.kePotential, rMin, scaled.distributions)
       .then((gridData) => {
         if (cancelled) return
         const meshes = buildMeshes(gridData)
@@ -66,7 +69,7 @@ export function Equipotentials3D() {
       })
 
     return () => { cancelled = true }
-  }, [computationKey, showEquipotentials3D, charges, distributions, chargeUnit, ke, rMin, sample3DGrid, buildMeshes])
+  }, [computationKey, showEquipotentials3D, charges, distributions, chargeUnit, lengthUnit, ke, rMin, sample3DGrid, buildMeshes])
 
   // Dispose previous geometries
   useEffect(() => {

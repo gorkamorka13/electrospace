@@ -18,7 +18,7 @@ export const useStore = create((set, get, api) => ({
 export const DIST_PARAMS = {
   line: [
     { key: 'mode', label: 'Mode', type: 'mode' },
-    { key: 'length', label: 'Longueur (m)', type: 'range', hideInfinite: true },
+    { key: 'length', label: 'Longueur', unit: 'length', type: 'range', hideInfinite: true },
     { key: 'density', label: 'λ (C/m)', type: 'number', step: 1e-10, min: 1e-12 },
   ],
   cylinder: [
@@ -27,34 +27,34 @@ export const DIST_PARAMS = {
     { key: 'axis', label: 'Axe', type: 'vec3' },
     { key: 'radius', label: 'Rayon', type: 'radii', innerKey: 'innerRadius', outerLabel: 'Cyl. 1', innerLabel: 'Cyl. 2' },
     { key: 'e_ext', label: 'Épaisseur', type: 'radii', innerKey: 'e_int', outerLabel: 'Cyl. 1', innerLabel: 'Cyl. 2' },
-    { key: 'height', label: 'Hauteur (m)', type: 'range', hideInfinite: true },
+    { key: 'height', label: 'Hauteur', unit: 'length', type: 'range', hideInfinite: true },
     { key: 'density', label: 'ρ (C/m³)', type: 'number', step: 1e-7, min: 1e-9 },
   ],
   plane: [
     { key: 'mode', label: 'Mode', type: 'mode' },
     { key: 'center', label: 'Centre', type: 'vec3' },
     { key: 'normal', label: 'Normale', type: 'vec3' },
-    { key: 'width', label: 'Largeur (m)', type: 'range', linkKey: 'height', hideInfinite: true },
-    { key: 'height', label: 'Hauteur (m)', type: 'range', linkKey: 'width', hideInfinite: true },
+    { key: 'width', label: 'Largeur', unit: 'length', type: 'range', linkKey: 'height', hideInfinite: true },
+    { key: 'height', label: 'Hauteur', unit: 'length', type: 'range', linkKey: 'width', hideInfinite: true },
     { key: 'density', label: 'σ (C/m²)', type: 'number', step: 1e-10, min: 1e-12 },
   ],
   disk: [
     { key: 'center', label: 'Centre', type: 'vec3' },
     { key: 'normal', label: 'Normale', type: 'vec3' },
-    { key: 'radius', label: 'Rayon (m)', type: 'range' },
+    { key: 'radius', label: 'Rayon', unit: 'length', type: 'range' },
     { key: 'density', label: 'σ (C/m²)', type: 'number', step: 1e-10, min: 1e-12 },
   ],
   circle: [
     { key: 'center', label: 'Centre', type: 'vec3' },
     { key: 'normal', label: 'Normale', type: 'vec3' },
-    { key: 'radius', label: 'Rayon (m)', type: 'range' },
+    { key: 'radius', label: 'Rayon', unit: 'length', type: 'range' },
     { key: 'density', label: 'λ (C/m)', type: 'number', step: 1e-10, min: 1e-12 },
   ],
   frame: [
     { key: 'center', label: 'Centre', type: 'vec3' },
     { key: 'normal', label: 'Normale', type: 'vec3' },
-    { key: 'width', label: 'Largeur (m)', type: 'range', linkKey: 'height' },
-    { key: 'height', label: 'Hauteur (m)', type: 'range', linkKey: 'width' },
+    { key: 'width', label: 'Largeur', unit: 'length', type: 'range', linkKey: 'height' },
+    { key: 'height', label: 'Hauteur', unit: 'length', type: 'range', linkKey: 'width' },
     { key: 'density', label: 'λ (C/m)', type: 'number', step: 1e-10, min: 1e-12 },
   ],
   sphere: [
@@ -66,9 +66,14 @@ export const DIST_PARAMS = {
   box: [
     { key: 'center', label: 'Centre', type: 'vec3' },
     { key: 'normal', label: 'Normale', type: 'vec3' },
-    { key: 'width', label: 'Largeur (m)', type: 'range', linkKey: 'height' },
-    { key: 'height', label: 'Hauteur (m)', type: 'range', linkKey: 'width' },
-    { key: 'depth', label: 'Profondeur (m)', type: 'range' },
+    { key: 'width', label: 'Largeur', unit: 'length', type: 'range', linkKey: 'height' },
+    { key: 'height', label: 'Hauteur', unit: 'length', type: 'range', linkKey: 'width' },
+    { key: 'depth', label: 'Profondeur', unit: 'length', type: 'range' },
     { key: 'density', label: 'ρ (C/m³)', type: 'number', step: 1e-7, min: 1e-9 },
   ],
 }
+
+/** Libellé d'un paramètre, suffixé de l'unité de distance courante pour les longueurs */
+export const distParamLabel = (param, lengthUnit) => (
+  param.unit === 'length' ? `${param.label} (${lengthUnit})` : param.label
+)

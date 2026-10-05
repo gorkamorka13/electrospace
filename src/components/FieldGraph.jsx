@@ -1,5 +1,6 @@
 import { useRef, useEffect, useMemo, useState, useCallback } from 'react'
 import { useStore, UNIT_FACTORS } from '../store/useStore'
+import { scaleForLength } from '../physics/units'
 import { calculateTotalField } from '../physics/coulomb'
 import { CustomSelect } from './CustomSelect'
 import { useFieldWorker } from '../hooks/useFieldWorker'
@@ -70,9 +71,10 @@ export function FieldGraph() {
   const charges = useStore((s) => s.charges)
   const distributions = useStore((s) => s.distributions)
   const chargeUnit = useStore((s) => s.chargeUnit)
+  const lengthUnit = useStore((s) => s.lengthUnit)
   const testPoint = useStore((s) => s.testPoint)
   const theme = useStore((s) => s.theme)
-  const [fieldKey, setFieldKey] = useState('ex')
+  const [fieldKey, setFieldKey] = useState('mag')
   const [sweepAxis, setSweepAxis] = useState('x')
   const [axisRange, setAxisRange] = useState(AXIS_RANGE)
   const axisRangeRef = useRef(axisRange)
@@ -200,11 +202,12 @@ export function FieldGraph() {
     const multiplier = UNIT_FACTORS[chargeUnit] || 1e-6
     const physicalCharges = distributions.length > 0 ? [] : charges.map(c => ({ ...c, q: c.q * multiplier }))
     const { ke, rMin } = useStore.getState()
+    const scaled = scaleForLength(distributions, ke, lengthUnit)
     const axisIndex = 'xyz'.indexOf(sweepAxis)
-    const E = calculateTotalField(physicalCharges, testPoint, ke, rMin, distributions)
+    const E = calculateTotalField(physicalCharges, testPoint, scaled.keField, rMin, scaled.distributions)
     const testVal = fieldKey === 'mag' ? E.length() : E[fieldKey[1]]
     return { testPos: testPoint[axisIndex], testVal }
-  }, [show, testPoint, charges, distributions, chargeUnit, fieldKey, sweepAxis])
+  }, [show, testPoint, charges, distributions, chargeUnit, lengthUnit, fieldKey, sweepAxis])
 
   const { computeFieldGrid } = useFieldWorker()
 
@@ -214,6 +217,7 @@ export function FieldGraph() {
     const multiplier = UNIT_FACTORS[chargeUnit] || 1e-6
     const physicalCharges = distributions.length > 0 ? [] : charges.map(c => ({ ...c, q: c.q * multiplier }))
     const { ke, rMin } = useStore.getState()
+    const scaled = scaleForLength(distributions, ke, lengthUnit)
     const axisIndex = 'xyz'.indexOf(sweepAxis)
     const positions = []
     for (let i = 0; i < SAMPLES; i++) {
@@ -223,7 +227,7 @@ export function FieldGraph() {
       positions.push(p)
     }
 
-    computeFieldGrid(physicalCharges, positions, distributions, ke, rMin)
+    computeFieldGrid(physicalCharges, positions, scaled.distributions, scaled.keField, rMin)
       .then((fields) => {
         if (version !== dataVersionRef.current) return
         const pts = []
@@ -245,7 +249,7 @@ export function FieldGraph() {
       })
       .catch((err) => { console.error('FieldGraph worker error:', err); if (version === dataVersionRef.current) setData(null) })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [show, charges, distributions, chargeUnit, fieldKey, sweepAxis, axisRange])
+  }, [show, charges, distributions, chargeUnit, lengthUnit, fieldKey, sweepAxis, axisRange])
   // Note: testPoint intentionally NOT in deps above — we don't restart async calc on every drag frame
 
   const curveColor = axisCurveColor(sweepAxis, theme === 'dark')
@@ -316,7 +320,7 @@ export function FieldGraph() {
     }
     ctx.fillStyle = labelColor
     ctx.font = '11px monospace'
-    ctx.fillText(sweepAxis + ' (m)', PAD + plotW + 2, axisY + 3)
+    ctx.fillText(`${sweepAxis} (${lengthUnit})`, PAD + plotW + 2, axisY + 3)
 
     ctx.beginPath()
     for (let i = 0; i < data.pts.length; i++) {
@@ -357,6 +361,13 @@ export function FieldGraph() {
     ctx.fillStyle = '#fbbf24'
     ctx.fill()
 
+    // Position of M along the sweep axis, riding on top of the cursor line
+    const posText = `${sweepAxis} = ${cursorPos.testPos.toFixed(2)} ${lengthUnit}`
+    ctx.font = '11px monospace'
+    const posW = ctx.measureText(posText).width
+    ctx.fillStyle = isDark ? '#fbbf24' : '#b45309'
+    ctx.fillText(posText, Math.max(PAD, Math.min(cx - posW / 2, PAD + plotW - posW)), PAD - 6)
+
     ctx.save()
     ctx.translate(PAD - 14, PAD + plotH / 2)
     ctx.rotate(-Math.PI / 2)
@@ -385,7 +396,7 @@ export function FieldGraph() {
     ctx.fillStyle = curveColor
     ctx.fill()
     ctx.fillText(`Balayage: ${flabel}=${sv.toExponential(2)} V/m`, x2 + 8, textY)
-  }, [show, data, fieldKey, curveColor, theme, sweepAxis, cursorPos, axisRange, w, h])
+  }, [show, data, fieldKey, curveColor, theme, sweepAxis, cursorPos, axisRange, w, h, lengthUnit])
 
   const winRefState = useRef(win)
   useEffect(() => { winRefState.current = win }, [win])
@@ -401,7 +412,7 @@ export function FieldGraph() {
 
   const exportCsv = useCallback(() => {
     if (!data) return
-    const header = `position_${sweepAxis}_m,${fieldKey}_Vm\n`
+    const header = `position_${sweepAxis}_${lengthUnit},${fieldKey}_Vm\n`
     const rows = data.pts.map(p => `${p.t},${p.val}`).join('\n')
     const blob = new Blob([header + rows], { type: 'text/csv' })
     const link = document.createElement('a')
@@ -409,7 +420,7 @@ export function FieldGraph() {
     link.href = URL.createObjectURL(blob)
     link.click()
     URL.revokeObjectURL(link.href)
-  }, [data, sweepAxis, fieldKey])
+  }, [data, sweepAxis, fieldKey, lengthUnit])
 
   const handleWheelCapture = useCallback((e) => {
     e.preventDefault()

@@ -1,4 +1,5 @@
 import { calculateTotalField, calculateTotalPotential, calculateTotalForceOnCharge, E_CHARGE } from '../../physics/coulomb'
+import { LENGTH_UNITS, lengthFactor, scaleForLength } from '../../physics/units'
 
 export const UNIT_FACTORS = {
   uC: 1e-6,
@@ -82,6 +83,7 @@ function snapshot(state) {
     rMin: state.rMin,
     eMax: state.eMax,
     chargeUnit: state.chargeUnit,
+    lengthUnit: state.lengthUnit,
     vectorScale: state.vectorScale,
     showForces: state.showForces,
     showFieldLines: state.showFieldLines,
@@ -188,6 +190,7 @@ export const createSceneSlice = (set, get) => ({
       const data = {
         version: 3,
         chargeUnit: state.chargeUnit,
+        lengthUnit: state.lengthUnit,
         activeView: state.activeView,
         testPoint: state.testPoint,
         charges: state.charges.map(c => ({ q: c.q, position: c.position, name: c.name })),
@@ -252,6 +255,7 @@ export const createSceneSlice = (set, get) => ({
         distributions,
         testPoint: data.testPoint ? vec(data.testPoint) : [0, -2, 0.5],
         chargeUnit: data.chargeUnit || 'e',
+        lengthUnit: data.lengthUnit in LENGTH_UNITS ? data.lengthUnit : 'm',
         activeView: data.activeView || 'isometric',
         selectedObjectId: null,
       })
@@ -262,17 +266,19 @@ export const createSceneSlice = (set, get) => ({
   },
 
   getElectricField: (point) => {
-    const { charges, chargeUnit, ke, rMin, distributions } = get()
+    const { charges, chargeUnit, lengthUnit, ke, rMin, distributions } = get()
     const multiplier = UNIT_FACTORS[chargeUnit] || 1e-6
     const physicalCharges = distributions.length > 0 ? [] : charges.map(c => ({ ...c, q: c.q * multiplier }))
-    return calculateTotalField(physicalCharges, point, ke, rMin, distributions)
+    const scaled = scaleForLength(distributions, ke, lengthUnit)
+    return calculateTotalField(physicalCharges, point, scaled.keField, rMin, scaled.distributions)
   },
 
   getPotential: (point) => {
-    const { charges, chargeUnit, ke, rMin, distributions } = get()
+    const { charges, chargeUnit, lengthUnit, ke, rMin, distributions } = get()
     const multiplier = UNIT_FACTORS[chargeUnit] || 1e-6
     const physicalCharges = distributions.length > 0 ? [] : charges.map(c => ({ ...c, q: c.q * multiplier }))
-    return calculateTotalPotential(physicalCharges, point, ke, rMin, distributions)
+    const scaled = scaleForLength(distributions, ke, lengthUnit)
+    return calculateTotalPotential(physicalCharges, point, scaled.kePotential, rMin, scaled.distributions)
   },
 
   // The Coulomb field is singular on a point charge: true when `point` sits exactly on one
@@ -282,12 +288,12 @@ export const createSceneSlice = (set, get) => ({
   },
 
   getCoulombForces: (chargeId) => {
-    const { charges, chargeUnit, ke, rMin } = get()
+    const { charges, chargeUnit, lengthUnit, ke, rMin } = get()
     const multiplier = UNIT_FACTORS[chargeUnit] || 1e-6
     const physicalCharges = charges.map(c => ({ ...c, q: c.q * multiplier }))
     const target = physicalCharges.find(c => c.id === chargeId)
     if (!target) return null
-    return calculateTotalForceOnCharge(target, physicalCharges, ke, rMin)
+    return calculateTotalForceOnCharge(target, physicalCharges, ke / lengthFactor(lengthUnit) ** 2, rMin)
   },
 
   // `record` is false for key-repeat events so a held key yields a single history entry.

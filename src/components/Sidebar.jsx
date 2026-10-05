@@ -1,5 +1,5 @@
 import { useState, useMemo, memo, useCallback } from 'react'
-import { useStore, DIST_PARAMS } from '../store/useStore'
+import { useStore, DIST_PARAMS, distParamLabel } from '../store/useStore'
 import { formatElectricField, formatPotential, formatForce } from '../physics/coulomb'
 import { InlineMath, BlockMath } from '../utils/math'
 import { CustomSelect } from './CustomSelect'
@@ -93,6 +93,7 @@ const FieldAndPotential = memo(({ testPoint }) => {
   const charges = useStore((s) => s.charges)
   const distributions = useStore((s) => s.distributions)
   const chargeUnit = useStore((s) => s.chargeUnit)
+  const lengthUnit = useStore((s) => s.lengthUnit)
   const showTestPoint = useStore((s) => s.showTestPoint)
 
   const { E, V, ENorm, onCharge } = useMemo(() => {
@@ -101,7 +102,7 @@ const FieldAndPotential = memo(({ testPoint }) => {
     const V = useStore.getState().getPotential(testPoint)
     return { E, V, ENorm: E.length(), onCharge: useStore.getState().isOnPointCharge(testPoint) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [charges, distributions, chargeUnit, testPoint])
+  }, [charges, distributions, chargeUnit, lengthUnit, testPoint])
 
   if (!showTestPoint) return null
 
@@ -139,6 +140,8 @@ const CoulombForces = memo(() => {
   const showForces = useStore((s) => s.showForces)
   const setShowForces = useStore((s) => s.setShowForces)
   const distributions = useStore((s) => s.distributions)
+  // Subscribed only so the forces below are recomputed when the distance scale changes
+  useStore((s) => s.lengthUnit)
 
   if (!showForces || charges.length < 2) return null
   if (distributions.length > 0) {
@@ -200,6 +203,7 @@ const ChargeListSection = memo(({ selectedObjectId, setSelectedObjectId }) => {
   const charges = useStore((s) => s.charges)
   const distributions = useStore((s) => s.distributions)
   const chargeUnit = useStore((s) => s.chargeUnit)
+  const lengthUnit = useStore((s) => s.lengthUnit)
   const freeCharges = useStore((s) => s.freeCharges)
   const clearCharges = useStore((s) => s.clearCharges)
   const setToast = useStore((s) => s.setToast)
@@ -324,6 +328,7 @@ const ChargeListSection = memo(({ selectedObjectId, setSelectedObjectId }) => {
                   </button>
                 </div>
                 <div className={`coord-inputs ${freeCharges[charge.id] ? 'dim-coords' : ''}`}>
+                  <span className="coord-caption">Position ({lengthUnit})</span>
                   <CoordInput
                     label="X"
                     value={charge.position[0]}
@@ -419,6 +424,8 @@ export function Sidebar() {
   const setSnapSize = useStore((s) => s.setSnapSize)
   const chargeUnit = useStore((s) => s.chargeUnit)
   const setChargeUnit = useStore((s) => s.setChargeUnit)
+  const lengthUnit = useStore((s) => s.lengthUnit)
+  const setLengthUnit = useStore((s) => s.setLengthUnit)
   const vectorScale = useStore((s) => s.vectorScale)
   const setVectorScale = useStore((s) => s.setVectorScale)
   const fieldLinesPerCharge = useStore((s) => s.fieldLinesPerCharge)
@@ -603,7 +610,7 @@ export function Sidebar() {
                         if (param.type === 'mode') {
                           return (
                             <div key={param.key} className="dist-param-row" style={{ gap: '0.25rem' }}>
-                              <span className="label dist-param-label" style={{ minWidth: 'auto', marginRight: '0.25rem' }}>{param.label}</span>
+                              <span className="label dist-param-label" style={{ minWidth: 'auto', marginRight: '0.25rem' }}>{distParamLabel(param, lengthUnit)}</span>
                               <button className={`btn-unit ${d.mode !== 'infinite' ? 'active' : ''}`}
                                 onClick={() => updateDistribution(d.id, { mode: 'finite' })}
                                 title="Géométrie finie"
@@ -622,7 +629,7 @@ export function Sidebar() {
                         if (param.type === 'vec3') {
                           return (
                             <div key={param.key} className="dist-vec3-row">
-                              <span className="label dist-vec3-label">{param.label}</span>
+                              <span className="label dist-vec3-label">{distParamLabel(param, lengthUnit)}</span>
                               {['X', 'Y', 'Z'].map((c, ci) => (
                                 <input key={c} type="text" value={Array.isArray(val) ? String(Number(val[ci]) || 0) : '0'}
                                   onChange={(e) => {
@@ -642,7 +649,7 @@ export function Sidebar() {
                           const hideInner = param.innerKey === 'e_int' && !d.innerRadius
                           return (
                             <div key={param.key} className="dist-param-row" style={{ gap: '0.25rem' }}>
-                              <span className="label dist-param-label" style={{ minWidth: 'auto', marginRight: '0.25rem' }}>{param.label}</span>
+                              <span className="label dist-param-label" style={{ minWidth: 'auto', marginRight: '0.25rem' }}>{distParamLabel(param, lengthUnit)}</span>
                               <span className="label" style={{ fontSize: '0.6rem', whiteSpace: 'nowrap' }}>{param.outerLabel}</span>
                               <input type="range" min={param.key === 'e_ext' ? 0 : 1} max={10} step={0.1}
                                 value={outerVal}
@@ -673,7 +680,7 @@ export function Sidebar() {
                             return (
                               <div key={param.key} style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem', marginBottom: '0.15rem' }}>
                                 <div className="dist-param-row">
-                                  <span className="label dist-param-label">{param.label}</span>
+                                  <span className="label dist-param-label">{distParamLabel(param, lengthUnit)}</span>
                                   <input type="range" min={1} max={200} step={1}
                                     value={val ?? 0}
                                     onChange={(e) => updateDistribution(d.id, { [param.key]: parseFloat(e.target.value), ...(linked ? { [next.key]: parseFloat(e.target.value) } : {}) })}
@@ -701,7 +708,7 @@ export function Sidebar() {
                           }
                           return (
                             <div key={param.key} className="dist-param-row">
-                              <span className="label dist-param-label">{param.label}</span>
+                              <span className="label dist-param-label">{distParamLabel(param, lengthUnit)}</span>
                               <input type="range" min={1} max={200} step={1}
                                 value={val ?? 0}
                                 onChange={(e) => updateDistribution(d.id, { [param.key]: parseFloat(e.target.value) })}
@@ -713,7 +720,7 @@ export function Sidebar() {
                         }
                         return (
                           <div key={param.key} className="dist-param-row">
-                            <span className="label dist-param-label">{param.label}</span>
+                            <span className="label dist-param-label">{distParamLabel(param, lengthUnit)}</span>
                             <DistInput value={val ?? 0} onChange={(v) => updateDistribution(d.id, { [param.key]: v })}
                               className="dist-param-input" />
                           </div>
@@ -759,7 +766,7 @@ export function Sidebar() {
                 <div className="data-row">
                   <span className="label">Position M</span>
                   <span className="value font-mono">
-                    [{testPoint[0].toFixed(2)}, {testPoint[1].toFixed(2)}, {testPoint[2].toFixed(2)}]
+                    [{testPoint[0].toFixed(2)}, {testPoint[1].toFixed(2)}, {testPoint[2].toFixed(2)}] {lengthUnit}
                   </span>
                 </div>
                 <div className="coord-inputs" onClick={(e) => e.stopPropagation()}>
@@ -1098,6 +1105,21 @@ export function Sidebar() {
                   ))}
                 </div>
 
+                <span className="label mt-3" style={{ display: 'block', marginBottom: '0.2rem' }}>Échelle de Distance</span>
+                <div className="flex-row gap-3" style={{ flexWrap: 'wrap' }}>
+                  {[
+                    { value: 'm', label: 'm', title: 'Mètre : 1 unité = 1 m' },
+                    { value: 'cm', label: 'cm', title: 'Centimètre : 1 unité = 1 cm (10⁻² m)' },
+                    { value: 'mm', label: 'mm', title: 'Millimètre : 1 unité = 1 mm (10⁻³ m)' }
+                  ].map((unit) => (
+                    <button key={unit.value} className={`btn-unit ${lengthUnit === unit.value ? 'active' : ''}`}
+                      onClick={() => setLengthUnit(unit.value)} title={unit.title}
+                    >
+                      {unit.label}
+                    </button>
+                  ))}
+                </div>
+
                 <div className="flex-col gap-2 mt-3">
                   <div className="flex-row:sb">
                     <span className="label">Échelle flèches champ E & forces F</span>
@@ -1130,7 +1152,7 @@ export function Sidebar() {
                 </div>
                 <div className="flex-row:sb">
                   <span className="label">Pas de grille</span>
-                  <CustomSelect value={snapSize} options={[{key:0.1,label:'0.1 m'},{key:0.25,label:'0.25 m'},{key:0.5,label:'0.5 m'},{key:1.0,label:'1.0 m'}]} onChange={setSnapSize} className="formula-select" triggerStyle={{ width:'80px', padding:'0.2rem' }} />
+                  <CustomSelect value={snapSize} options={[{key:0.1,label:`0.1 ${lengthUnit}`},{key:0.25,label:`0.25 ${lengthUnit}`},{key:0.5,label:`0.5 ${lengthUnit}`},{key:1.0,label:`1.0 ${lengthUnit}`}]} onChange={setSnapSize} className="formula-select" triggerStyle={{ width:'80px', padding:'0.2rem' }} />
                 </div>
               </div>
             </CollapsibleSection>

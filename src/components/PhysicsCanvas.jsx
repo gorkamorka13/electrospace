@@ -4,6 +4,7 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls, Billboard, Text, PerspectiveCamera, OrthographicCamera } from "@react-three/drei";
 import * as THREE from "three";
 import { useStore } from "../store/useStore";
+import { LENGTH_UNIT_NAMES } from "../physics/units";
 import { ErrorBoundary } from "./ErrorBoundary";
 import { ChargeSphere } from "./ChargeSphere";
 import { TestPoint } from "./TestPoint";
@@ -94,6 +95,7 @@ export function PhysicsCanvas() {
   const sidebarOpen = useStore((state) => state.sidebarOpen);
 
   const chargeUnit = useStore((state) => state.chargeUnit);
+  const lengthUnit = useStore((state) => state.lengthUnit);
   const undo = useStore((state) => state.undo);
   const redo = useStore((state) => state.redo);
   const historyLen = useStore((state) => state.history.length);
@@ -578,7 +580,7 @@ export function PhysicsCanvas() {
         <div className="canvas-legend">
           {(() => {
             const labels = { uC: "µC", nC: "nC", C: "C", e: "e⁻" };
-            return `Unité : ${labels[chargeUnit] || chargeUnit} | Échelle : 1 = 1 mètre`;
+            return `Unité : ${labels[chargeUnit] || chargeUnit} | Échelle : 1 = 1 ${LENGTH_UNIT_NAMES[lengthUnit] || lengthUnit}`;
           })()}
         </div>
 

@@ -2,6 +2,7 @@ import { useRef, useMemo, useState } from 'react'
 import * as THREE from 'three'
 import { Billboard, Text } from '@react-three/drei'
 import { useStore, UNIT_FACTORS } from '../store/useStore'
+import { scaleForLength } from '../physics/units'
 import { calculateTotalPotential } from '../physics/coulomb'
 
 export function TestPoint() {
@@ -17,6 +18,7 @@ export function TestPoint() {
   const charges = useStore((state) => state.charges)
   const distributions = useStore((state) => state.distributions)
   const chargeUnit = useStore((state) => state.chargeUnit)
+  const lengthUnit = useStore((state) => state.lengthUnit)
   const showTestPoint = useStore((state) => state.showTestPoint)
   const openContextMenu = useStore((state) => state.openContextMenu)
 
@@ -24,13 +26,14 @@ export function TestPoint() {
     const { ke, rMin } = useStore.getState()
     const multiplier = UNIT_FACTORS[chargeUnit] || 1e-6
     const physicalCharges = distributions.length > 0 ? [] : charges.map(c => ({ ...c, q: c.q * multiplier }))
-    const V = calculateTotalPotential(physicalCharges, testPoint, ke, rMin, distributions)
+    const scaled = scaleForLength(distributions, ke, lengthUnit)
+    const V = calculateTotalPotential(physicalCharges, testPoint, scaled.kePotential, rMin, scaled.distributions)
     if (V === 0) return '0 V'
     const abs = Math.abs(V)
     const sign = V < 0 ? '-' : ''
     if (abs >= 0.001 && abs < 1e6) return `${sign}${abs.toFixed(3)} V`
     return `${sign}${abs.toExponential(3)} V`
-  }, [charges, distributions, chargeUnit, testPoint])
+  }, [charges, distributions, chargeUnit, lengthUnit, testPoint])
 
   const meshRef = useRef()
   const dragRecorded = useRef(false)

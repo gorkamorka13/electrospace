@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Line } from '@react-three/drei'
 import { useStore, UNIT_FACTORS } from '../store/useStore'
+import { scaleForLength } from '../physics/units'
 import { useFieldWorker } from '../hooks/useFieldWorker'
 
 export function ThroughMLine() {
@@ -9,6 +10,7 @@ export function ThroughMLine() {
   const testPoint = useStore((state) => state.testPoint)
   const showThroughMLine = useStore((state) => state.showThroughMLine)
   const chargeUnit = useStore((state) => state.chargeUnit)
+  const lengthUnit = useStore((state) => state.lengthUnit)
   const theme = useStore((state) => state.theme)
   const { compute } = useFieldWorker()
   const [lineData, setLineData] = useState(null)
@@ -24,9 +26,10 @@ export function ThroughMLine() {
     const multiplier = UNIT_FACTORS[chargeUnit] || 1e-6
     const physicalCharges = distributions.length > 0 ? [] : charges.map(c => ({ ...c, q: c.q * multiplier }))
     const { ke, rMin } = useStore.getState()
+    const scaled = scaleForLength(distributions, ke, lengthUnit)
     const opts = {
-      ke, rMin, rStop: 0.6, maxDist: 25, maxSteps: 800, stepSize: 0.15, epsilon: 1e-25,
-      distributions,
+      ke: scaled.keField, rMin, rStop: 0.6, maxDist: 25, maxSteps: 800, stepSize: 0.15, epsilon: 1e-25,
+      distributions: scaled.distributions,
     }
 
     cancelledRef.current = false
@@ -46,7 +49,7 @@ export function ThroughMLine() {
       })
 
     return () => { cancelledRef.current = true }
-  }, [showThroughMLine, charges, distributions, chargeUnit, testPoint, compute])
+  }, [showThroughMLine, charges, distributions, chargeUnit, lengthUnit, testPoint, compute])
 
   if (!showThroughMLine || !lineData) return null
 

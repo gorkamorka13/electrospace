@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Line } from '@react-three/drei'
 import { useStore, UNIT_FACTORS } from '../store/useStore'
+import { scaleForLength } from '../physics/units'
 import { getDistributionSeeds } from '../physics/coulomb'
 import { fibonacciSphere } from '../physics/utils'
 import { useFieldWorker } from '../hooks/useFieldWorker'
@@ -13,13 +14,14 @@ export function FieldLines() {
   const distributions = useStore((state) => state.distributions)
   const showFieldLines = useStore((state) => state.showFieldLines)
   const chargeUnit = useStore((state) => state.chargeUnit)
+  const lengthUnit = useStore((state) => state.lengthUnit)
   const fieldLinesPerCharge = useStore((state) => state.fieldLinesPerCharge)
   const fieldLineStep = useStore((state) => state.fieldLineStep)
   const integrationMethod = useStore((state) => state.integrationMethod)
   const { traceFieldLines } = useFieldWorker()
   const [allLinePoints, setAllLinePoints] = useState([])
   const cancelledRef = useRef(false)
-  const key = `${showFieldLines}|${charges.length}|${distributions.length}|${chargeUnit}|${fieldLinesPerCharge}|${fieldLineStep}|${integrationMethod}`
+  const key = `${showFieldLines}|${charges.length}|${distributions.length}|${chargeUnit}|${lengthUnit}|${fieldLinesPerCharge}|${fieldLineStep}|${integrationMethod}`
 
   useEffect(() => {
     cancelledRef.current = false
@@ -31,6 +33,7 @@ export function FieldLines() {
     const multiplier = UNIT_FACTORS[chargeUnit] || 1e-6
     const physicalCharges = hasDists ? [] : charges.map(c => ({ ...c, q: c.q * multiplier }))
     const { ke, rMin } = useStore.getState()
+    const scaled = scaleForLength(distributions, ke, lengthUnit)
     const N = fieldLinesPerCharge
     const seeds = []
 
@@ -55,13 +58,13 @@ export function FieldLines() {
     }
 
     const opts = {
-      ke, rMin,
+      ke: scaled.keField, rMin,
       stepSize: fieldLineStep,
       maxSteps: 800,
       rStop: 0.6,
       maxDist: 25,
       epsilon: 1e-25,
-      distributions,
+      distributions: scaled.distributions,
       method: integrationMethod,
     }
 
@@ -83,7 +86,7 @@ export function FieldLines() {
       })
 
     return () => { cancelledRef.current = true }
-  }, [key, showFieldLines, charges, distributions, chargeUnit, fieldLinesPerCharge, fieldLineStep, integrationMethod, traceFieldLines])
+  }, [key, showFieldLines, charges, distributions, chargeUnit, lengthUnit, fieldLinesPerCharge, fieldLineStep, integrationMethod, traceFieldLines])
 
   if (!showFieldLines) return null
 

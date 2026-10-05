@@ -4,6 +4,7 @@ import * as THREE from 'three'
 import { Billboard, Text } from '@react-three/drei'
 import { useStore } from '../store/useStore'
 import { formatElectricField } from '../physics/coulomb'
+import { fieldArrowFactor } from '../physics/units'
 
 // Height of the E label above M (or above the arrow tip when the arrow points up)
 const LABEL_LIFT = 0.45
@@ -46,13 +47,14 @@ export function ElectricFieldArrow() {
     arrowRef.current.visible = true
     billboardRef.current.visible = true
 
-    // 2. Apply base scaling depending on active unit, then user vector scale, then clamp
+    // 2. Apply base scaling depending on active unit (calibrated for a scene in metres, hence the
+    // distance-scale compensation below), then user vector scale, then clamp
     let baseScale = 0.0005 // Default for uC (e.g. 1uC at 1m -> 8990 V/m -> ~4.5 units length)
     if (currentChargeUnit === 'nC') baseScale = 0.5 // (1nC at 1m -> 8.99 V/m -> ~4.5 units length)
     if (currentChargeUnit === 'C') baseScale = 5e-10 // (1C at 1m -> 8.99e9 V/m -> ~4.5 units length)
     if (currentChargeUnit === 'e') baseScale = 2e9 // (1e at 1m -> 1.44e-9 V/m -> ~2.88 units length)
 
-    const visualLength = length * baseScale * currentVectorScale
+    const visualLength = length * baseScale * fieldArrowFactor(state.distributions, state.lengthUnit) * currentVectorScale
     const renderLength = Math.min(visualLength, currentEMax)
 
     // Check if visual scaling resulted in an extremely small arrow

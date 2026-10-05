@@ -4,6 +4,7 @@ import * as THREE from 'three'
 import { useStore } from '../store/useStore'
 import { calculateFieldFromCharge } from '../physics/coulomb'
 import { UNIT_FACTORS } from '../store/useStore'
+import { lengthFactor } from '../physics/units'
 
 /**
  * IndividualArrowItem — renders one faded arrow per charge (Ei) at test point M.
@@ -14,7 +15,7 @@ function IndividualArrowItem({ chargeId }) {
 
   useFrame(() => {
     const state = useStore.getState()
-    const { charges, distributions, chargeUnit, ke, rMin, eMax, vectorScale, theme, testPoint, showIndividualFields } = state
+    const { charges, distributions, chargeUnit, lengthUnit, ke, rMin, eMax, vectorScale, theme, testPoint, showIndividualFields } = state
 
     if (!showIndividualFields || !arrowRef.current) return
 
@@ -33,7 +34,8 @@ function IndividualArrowItem({ chargeId }) {
 
     // Calculate this charge's individual field contribution
     const physicalQ = charge.q * multiplier
-    const Ei = calculateFieldFromCharge({ ...charge, q: physicalQ }, testPoint, ke, rMin)
+    const lengthScale = lengthFactor(lengthUnit) ** 2
+    const Ei = calculateFieldFromCharge({ ...charge, q: physicalQ }, testPoint, ke / lengthScale, rMin)
     const length = Ei.length()
 
     // Base scale matching ElectricFieldArrow logic
@@ -47,7 +49,7 @@ function IndividualArrowItem({ chargeId }) {
       return
     }
 
-    const visualLength = length * baseScale * vectorScale
+    const visualLength = length * baseScale * lengthScale * vectorScale
     const renderLength = Math.min(visualLength, eMax)
 
     if (renderLength < 0.01) {

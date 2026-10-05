@@ -601,6 +601,15 @@ body, html, #root {
   white-space: nowrap;
 }
 
+/* Own row above the X/Y/Z fields; not uppercased, unit symbols are case-sensitive (cm, mm) */
+.coord-caption {
+  flex-basis: 100%;
+  font-size: 0.6rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
 .coord-field input {
   width: 100%;
   background: var(--coord-input-bg);

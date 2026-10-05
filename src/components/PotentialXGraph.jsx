@@ -1,5 +1,6 @@
 import { useRef, useEffect, useState, useCallback } from 'react'
 import { useStore, UNIT_FACTORS } from '../store/useStore'
+import { scaleForLength } from '../physics/units'
 import { calculateTotalPotential } from '../physics/coulomb'
 import { CustomSelect } from './CustomSelect'
 import { useFieldWorker } from '../hooks/useFieldWorker'
@@ -64,6 +65,7 @@ export function PotentialXGraph() {
   const charges = useStore((s) => s.charges)
   const distributions = useStore((s) => s.distributions)
   const chargeUnit = useStore((s) => s.chargeUnit)
+  const lengthUnit = useStore((s) => s.lengthUnit)
   const testPoint = useStore((s) => s.testPoint)
   const theme = useStore((s) => s.theme)
   const [potAxis, setPotAxis] = useState('x')
@@ -167,8 +169,9 @@ export function PotentialXGraph() {
     const multiplier = UNIT_FACTORS[chargeUnit] || 1e-6
     const physicalCharges = distributions.length > 0 ? [] : charges.map(c => ({ ...c, q: c.q * multiplier }))
     const { ke, rMin } = useStore.getState()
+    const scaled = scaleForLength(distributions, ke, lengthUnit)
     const axisIdx = potAxis === 'x' ? 0 : potAxis === 'y' ? 1 : 2
-    const V = calculateTotalPotential(physicalCharges, testPoint, ke, rMin, distributions)
+    const V = calculateTotalPotential(physicalCharges, testPoint, scaled.kePotential, rMin, scaled.distributions)
     return { testPos: testPoint[axisIdx], testV: V }
   })()
 
@@ -207,6 +210,7 @@ export function PotentialXGraph() {
     const multiplier = UNIT_FACTORS[chargeUnit] || 1e-6
     const physicalCharges = distributions.length > 0 ? [] : charges.map(c => ({ ...c, q: c.q * multiplier }))
     const { ke, rMin } = useStore.getState()
+    const scaled = scaleForLength(distributions, ke, lengthUnit)
     const axisIdx = potAxis === 'x' ? 0 : potAxis === 'y' ? 1 : 2
     const positions = []
     for (let i = 0; i < SAMPLES; i++) {
@@ -216,7 +220,7 @@ export function PotentialXGraph() {
       positions.push(p)
     }
 
-    computePotentialGrid(physicalCharges, positions, distributions, ke, rMin)
+    computePotentialGrid(physicalCharges, positions, scaled.distributions, scaled.kePotential, rMin)
       .then((values) => {
         if (version !== dataVersionRef.current) return
         const pts = []
@@ -237,7 +241,7 @@ export function PotentialXGraph() {
       })
       .catch(() => { if (version === dataVersionRef.current) setData(null) })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [show, charges, distributions, chargeUnit, potAxis, axisRange])
+  }, [show, charges, distributions, chargeUnit, lengthUnit, potAxis, axisRange])
   // Note: testPoint intentionally NOT in deps above — we don't restart async calc on every drag frame
 
   useEffect(() => {
@@ -306,7 +310,7 @@ export function PotentialXGraph() {
     }
     ctx.fillStyle = labelColor
     ctx.font = '11px monospace'
-    ctx.fillText(`${data.axisLabel.toLowerCase()} (m)`, PAD + plotW + 2, axisY + 3)
+    ctx.fillText(`${data.axisLabel.toLowerCase()} (${lengthUnit})`, PAD + plotW + 2, axisY + 3)
 
     ctx.beginPath()
     for (let i = 0; i < data.pts.length; i++) {
@@ -347,6 +351,13 @@ export function PotentialXGraph() {
     ctx.fillStyle = '#fbbf24'
     ctx.fill()
 
+    // Position of M along the sweep axis, riding on top of the cursor line
+    const posText = `${potAxis} = ${cursorPos.testPos.toFixed(2)} ${lengthUnit}`
+    ctx.font = '11px monospace'
+    const posW = ctx.measureText(posText).width
+    ctx.fillStyle = isDark ? '#fbbf24' : '#b45309'
+    ctx.fillText(posText, Math.max(PAD, Math.min(cx - posW / 2, PAD + plotW - posW)), PAD - 6)
+
     ctx.save()
     ctx.translate(PAD - 14, PAD + plotH / 2)
     ctx.rotate(-Math.PI / 2)
@@ -376,7 +387,7 @@ export function PotentialXGraph() {
     ctx.fillStyle = curveColor
     ctx.fill()
     ctx.fillText(`Balayage: V=${sv.toExponential(2)} V`, x2 + 8, textY)
-  }, [show, data, w, h, theme, cursorPos, axisRange, potAxis, curveColor])
+  }, [show, data, w, h, theme, cursorPos, axisRange, potAxis, curveColor, lengthUnit])
 
   const winRefState = useRef(win)
   useEffect(() => { winRefState.current = win }, [win])
@@ -392,7 +403,7 @@ export function PotentialXGraph() {
 
   const exportCsv = useCallback(() => {
     if (!data) return
-    const header = `position_${potAxis}_m,V_V\n`
+    const header = `position_${potAxis}_${lengthUnit},V_V\n`
     const rows = data.pts.map(p => `${p.t},${p.V}`).join('\n')
     const blob = new Blob([header + rows], { type: 'text/csv' })
     const link = document.createElement('a')
@@ -400,7 +411,7 @@ export function PotentialXGraph() {
     link.href = URL.createObjectURL(blob)
     link.click()
     URL.revokeObjectURL(link.href)
-  }, [data, potAxis])
+  }, [data, potAxis, lengthUnit])
 
   const handleWheelCapture = useCallback((e) => {
     e.preventDefault()

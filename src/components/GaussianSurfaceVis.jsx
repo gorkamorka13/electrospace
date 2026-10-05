@@ -2,6 +2,7 @@ import { useRef, useMemo, useState, useEffect } from 'react'
 import * as THREE from 'three'
 import { Billboard, Text, Html } from '@react-three/drei'
 import { useStore, UNIT_FACTORS } from '../store/useStore'
+import { scaleForLength } from '../physics/units'
 import { useFieldWorker } from '../hooks/useFieldWorker'
 
 function getVertexNormal(px, py, pz, surfaceType, radius, height, width, depth) {
@@ -84,6 +85,7 @@ export function GaussianSurfaceVis() {
   const ke = useStore((state) => state.ke)
   const rMin = useStore((state) => state.rMin)
   const chargeUnit = useStore((state) => state.chargeUnit)
+  const lengthUnit = useStore((state) => state.lengthUnit)
 
   const groupRef = useRef()
 
@@ -107,7 +109,7 @@ export function GaussianSurfaceVis() {
   const { computeFieldGrid } = useFieldWorker()
   const [fluxGeos, setFluxGeos] = useState({ sphere: null, cylinder: null, box: null })
   const cancelledRef = useRef(false)
-  const fluxKey = `${gaussSurfaceType}|${gaussStep}|${hasChargesOnly}|${gaussSurfaceRadius}|${gaussSurfaceHeight}|${gaussSurfaceWidth}|${gaussSurfaceDepth}|${gaussCenter.join(',')}|${charges.length}|${distributions.length}|${chargeUnit}|${ke}|${rMin}`
+  const fluxKey = `${gaussSurfaceType}|${gaussStep}|${hasChargesOnly}|${gaussSurfaceRadius}|${gaussSurfaceHeight}|${gaussSurfaceWidth}|${gaussSurfaceDepth}|${gaussCenter.join(',')}|${charges.length}|${distributions.length}|${chargeUnit}|${lengthUnit}|${ke}|${rMin}`
 
   useEffect(() => {
     cancelledRef.current = false
@@ -117,6 +119,7 @@ export function GaussianSurfaceVis() {
 
     const multiplier = UNIT_FACTORS[chargeUnit] || 1e-6
     const physicalCharges = distributions.length > 0 ? [] : charges.map(c => ({ ...c, q: c.q * multiplier }))
+    const scaled = scaleForLength(distributions, ke, lengthUnit)
 
     const geoType = gaussSurfaceType
     let geo, surfaceType
@@ -144,7 +147,7 @@ export function GaussianSurfaceVis() {
       ])
     }
 
-    computeFieldGrid(physicalCharges, positions, distributions, ke, rMin)
+    computeFieldGrid(physicalCharges, positions, scaled.distributions, scaled.keField, rMin)
       .then((fields) => {
         if (cancelledRef.current) {
           geo.dispose()
@@ -163,7 +166,7 @@ export function GaussianSurfaceVis() {
       })
 
     return () => { cancelledRef.current = true }
-  }, [fluxKey, gaussSurfaceType, gaussStep, hasChargesOnly, gaussSurfaceRadius, gaussSurfaceHeight, gaussSurfaceWidth, gaussSurfaceDepth, gaussCenter, charges, distributions, chargeUnit, ke, rMin, fluxSurfaceParams, computeFieldGrid])
+  }, [fluxKey, gaussSurfaceType, gaussStep, hasChargesOnly, gaussSurfaceRadius, gaussSurfaceHeight, gaussSurfaceWidth, gaussSurfaceDepth, gaussCenter, charges, distributions, chargeUnit, lengthUnit, ke, rMin, fluxSurfaceParams, computeFieldGrid])
 
   // Dispose flux geos when they change or on unmount
   useEffect(() => {

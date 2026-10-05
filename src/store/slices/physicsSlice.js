@@ -10,6 +10,8 @@ export const createPhysicsSlice = (set) => ({
   rMin: R_MIN,
   eMax: 15,
   chargeUnit: 'e',
+  /** Échelle de distance : longueur d'une unité de scène ('m' | 'cm' | 'mm') */
+  lengthUnit: 'm',
   vectorScale: 1.0,
   fieldLinesPerCharge: 12,
   fieldLineStep: 0.15,
@@ -22,6 +24,7 @@ export const createPhysicsSlice = (set) => ({
   setRMin: (rMin) => set({ rMin }),
   setEMax: (eMax) => set({ eMax }),
   setChargeUnit: (chargeUnit) => set({ chargeUnit }),
+  setLengthUnit: (lengthUnit) => set({ lengthUnit }),
   setVectorScale: (vectorScale) => set({ vectorScale }),
   setFieldLinesPerCharge: (fieldLinesPerCharge) => set({ fieldLinesPerCharge }),
   setFieldLineStep: (fieldLineStep) => set({ fieldLineStep }),

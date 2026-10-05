@@ -4,6 +4,7 @@ import * as THREE from 'three'
 import { Billboard, Text } from '@react-three/drei'
 import { useStore } from '../store/useStore'
 import { formatForce } from '../physics/coulomb'
+import { lengthFactor } from '../physics/units'
 
 // Scales chosen so that two |q|=1.0 charges 4m apart produce ~3 visual units
 const BASE_SCALE_BY_UNIT = {
@@ -59,7 +60,8 @@ function SingleChargeArrow({ slotIndex }) {
       : hasRepulsive ? '#f97316' : '#a855f7'
 
     const baseScale = BASE_SCALE_BY_UNIT[state.chargeUnit] ?? BASE_SCALE_BY_UNIT.uC
-    const visualLength = magnitude * baseScale * state.vectorScale
+    // baseScale is calibrated for a scene in metres: compensate the distance scale
+    const visualLength = magnitude * baseScale * lengthFactor(state.lengthUnit) ** 2 * state.vectorScale
     const renderLength = Math.min(visualLength, state.eMax)
     if (renderLength < 0.01) {
       arrow.visible = false

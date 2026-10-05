@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { Line } from '@react-three/drei'
 import * as THREE from 'three'
 import { useStore, UNIT_FACTORS } from '../store/useStore'
+import { scaleForLength } from '../physics/units'
 import { useFieldWorker } from '../hooks/useFieldWorker'
 
 const GRID = 64
@@ -56,6 +57,7 @@ export function Equipotentials() {
   const distributions = useStore((state) => state.distributions)
   const showEquipotentials = useStore((state) => state.showEquipotentials)
   const chargeUnit = useStore((state) => state.chargeUnit)
+  const lengthUnit = useStore((state) => state.lengthUnit)
   const theme = useStore((state) => state.theme)
   const { computePotentialGrid } = useFieldWorker()
   const [contours, setContours] = useState([])
@@ -86,6 +88,7 @@ export function Equipotentials() {
     const multiplier = UNIT_FACTORS[chargeUnit] || 1e-6
     const physicalCharges = distributions.length > 0 ? [] : charges.map(c => ({ ...c, q: c.q * multiplier }))
     const { ke, rMin } = useStore.getState()
+    const scaled = scaleForLength(distributions, ke, lengthUnit)
 
     const nx = GRID
     const ny = GRID
@@ -98,7 +101,7 @@ export function Equipotentials() {
       }
     }
 
-    computePotentialGrid(physicalCharges, positions, distributions, ke, rMin)
+    computePotentialGrid(physicalCharges, positions, scaled.distributions, scaled.kePotential, rMin)
       .then((values) => {
         if (cancelledRef.current) return
         const grid = new Float32Array(values)
@@ -115,7 +118,7 @@ export function Equipotentials() {
       })
 
     return () => { cancelledRef.current = true }
-  }, [charges, distributions, showEquipotentials, chargeUnit, theme, computePotentialGrid, buildContours])
+  }, [charges, distributions, showEquipotentials, chargeUnit, lengthUnit, theme, computePotentialGrid, buildContours])
 
   if (!showEquipotentials || contours.length === 0) return null
 

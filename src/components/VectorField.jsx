@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { useStore, UNIT_FACTORS } from '../store/useStore'
+import { scaleForLength } from '../physics/units'
 import { useFieldWorker } from '../hooks/useFieldWorker'
 import { computeFieldGridBounds } from '../physics/utils'
 
@@ -16,6 +17,7 @@ export function VectorField() {
   const distributions = useStore((state) => state.distributions)
   const showFieldVectors = useStore((state) => state.showFieldVectors)
   const chargeUnit = useStore((state) => state.chargeUnit)
+  const lengthUnit = useStore((state) => state.lengthUnit)
   const vectorScale = useStore((state) => state.vectorScale)
   const eMax = useStore((state) => state.eMax)
   const gridRes = useStore((state) => state.vectorGridResolution)
@@ -24,7 +26,7 @@ export function VectorField() {
   const cancelledRef = useRef(false)
   const tipMeshRef = useRef(null)
 
-  const key = `${showFieldVectors}|${charges.length}|${distributions.length}|${gridRes}|${chargeUnit}|${vectorScale}|${eMax}`
+  const key = `${showFieldVectors}|${charges.length}|${distributions.length}|${gridRes}|${chargeUnit}|${lengthUnit}|${vectorScale}|${eMax}`
 
   useEffect(() => {
     cancelledRef.current = false
@@ -34,6 +36,7 @@ export function VectorField() {
     const { ke, rMin } = useStore.getState()
     const multiplier = UNIT_FACTORS[chargeUnit] || 1e-6
     const physicalCharges = distributions.length > 0 ? [] : charges.map((c) => ({ ...c, q: c.q * multiplier }))
+    const scaled = scaleForLength(distributions, ke, lengthUnit)
 
     const { min, max } = computeFieldGridBounds({ charges: physicalCharges, distributions })
     const positions = []
@@ -49,7 +52,7 @@ export function VectorField() {
       }
     }
 
-    computeFieldGrid(physicalCharges, positions, distributions, ke, rMin)
+    computeFieldGrid(physicalCharges, positions, scaled.distributions, scaled.keField, rMin)
       .then((pts) => {
         if (cancelledRef.current) return
         setVectors(pts.map((p, i) => ({ pos: positions[i], e: [p.x, p.y, p.z] })))
@@ -57,7 +60,7 @@ export function VectorField() {
       .catch(() => { if (!cancelledRef.current) setVectors([]) })
 
     return () => { cancelledRef.current = true }
-  }, [key, showFieldVectors, charges, distributions, gridRes, chargeUnit, computeFieldGrid])
+  }, [key, showFieldVectors, charges, distributions, gridRes, chargeUnit, lengthUnit, computeFieldGrid])
 
   const data = useMemo(() => {
     if (!vectors.length) return null

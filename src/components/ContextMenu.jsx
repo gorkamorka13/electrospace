@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from 'react'
-import { useStore, DIST_PARAMS } from '../store/useStore'
+import { useStore, DIST_PARAMS, distParamLabel } from '../store/useStore'
 
 function toSigFigs(v, n) {
   if (v === 0) return '0'
@@ -71,6 +71,7 @@ export function ContextMenu() {
   const charges = useStore((s) => s.charges)
   const distributions = useStore((s) => s.distributions)
   const chargeUnit = useStore((s) => s.chargeUnit)
+  const lengthUnit = useStore((s) => s.lengthUnit)
   const freeCharges = useStore((s) => s.freeCharges)
   const updateChargeQ = useStore((s) => s.updateChargeQ)
   const updateChargePosition = useStore((s) => s.updateChargePosition)
@@ -135,7 +136,7 @@ export function ContextMenu() {
           if (param.type === 'mode') {
             return (
               <div key={param.key} className="ctx-param-row" style={{ gap: '4px' }}>
-                <span className="ctx-param-label">{param.label}</span>
+                <span className="ctx-param-label">{distParamLabel(param, lengthUnit)}</span>
                 <button className={`btn-unit ${dist.mode !== 'infinite' ? 'active' : ''}`}
                   onClick={() => updateDistribution(dist.id, { mode: 'finite' })}
                   title="Géométrie finie"
@@ -155,7 +156,7 @@ export function ContextMenu() {
             const val = Array.isArray(dist[param.key]) ? dist[param.key] : [0, 0, 0]
             return (
               <div key={param.key} className="ctx-param-row">
-                <span className="ctx-param-label mini">{param.label}</span>
+                <span className="ctx-param-label mini">{distParamLabel(param, lengthUnit)}</span>
                 {['X', 'Y', 'Z'].map((c, ci) => (
                   <CtxNumberInput key={c} value={val[ci] ?? 0}
                     onChange={(v) => {
@@ -175,7 +176,7 @@ export function ContextMenu() {
             const hideInner = param.innerKey === 'e_int' && !dist.innerRadius
             return (
               <div key={param.key} className="ctx-param-row" style={{ gap: '4px' }}>
-                <span className="ctx-param-label mini">{param.label}</span>
+                <span className="ctx-param-label mini">{distParamLabel(param, lengthUnit)}</span>
                 <span className="ctx-param-label" style={{ fontSize: '0.55rem' }}>{param.outerLabel}</span>
                 <input type="range" min={param.key === 'e_ext' ? 0 : 1} max={10} step={0.1}
                   value={outerVal}
@@ -200,7 +201,7 @@ export function ContextMenu() {
           if (param.type === 'range') {
             return (
               <div key={param.key} className="ctx-param-row">
-                <span className="ctx-param-label mini">{param.label}</span>
+                <span className="ctx-param-label mini">{distParamLabel(param, lengthUnit)}</span>
                 <input type="range" min={1} max={100} step={1}
                   value={dist[param.key] ?? 0}
                   onChange={(e) => updateDistribution(dist.id, { [param.key]: parseFloat(e.target.value) })}
@@ -214,7 +215,7 @@ export function ContextMenu() {
           return (
             <CoordInput key={param.key} value={dist[param.key] ?? 0}
               onChange={(v) => updateDistribution(dist.id, { [param.key]: v })}
-              label={param.label}
+              label={distParamLabel(param, lengthUnit)}
             />
           )
         })}
@@ -269,9 +270,9 @@ export function ContextMenu() {
           <span className="ctx-value">{s.isOnPointCharge(testPoint) ? 'non défini' : `${fmt(magE)} V/m`}</span>
         </div>
         <div className="ctx-separator" />
-        <CoordInput value={testPoint[0]} onChange={(v) => { useStore.getState().moveTestPoint([v, testPoint[1], testPoint[2]]) }} label="X" />
-        <CoordInput value={testPoint[1]} onChange={(v) => { useStore.getState().moveTestPoint([testPoint[0], v, testPoint[2]]) }} label="Y" />
-        <CoordInput value={testPoint[2]} onChange={(v) => { useStore.getState().moveTestPoint([testPoint[0], testPoint[1], v]) }} label="Z" />
+        <CoordInput value={testPoint[0]} onChange={(v) => { useStore.getState().moveTestPoint([v, testPoint[1], testPoint[2]]) }} label={`X (${lengthUnit})`} />
+        <CoordInput value={testPoint[1]} onChange={(v) => { useStore.getState().moveTestPoint([testPoint[0], v, testPoint[2]]) }} label={`Y (${lengthUnit})`} />
+        <CoordInput value={testPoint[2]} onChange={(v) => { useStore.getState().moveTestPoint([testPoint[0], testPoint[1], v]) }} label={`Z (${lengthUnit})`} />
         <div className="ctx-param-row" style={{ justifyContent: 'flex-start', gap: '0.35rem' }}>
           <button className="ctx-action-btn" onClick={() => { const p = useStore.getState().testPoint; useStore.getState().moveTestPoint([p[0], 0, 0]); closeContextMenu() }}>Sur X</button>
           <button className="ctx-action-btn" onClick={() => { const p = useStore.getState().testPoint; useStore.getState().moveTestPoint([0, p[1], 0]); closeContextMenu() }}>Sur Y</button>
@@ -322,9 +323,9 @@ export function ContextMenu() {
 
       <div className="ctx-separator" />
 
-      <CoordInput value={charge.position[0]} onChange={(v) => handlePosChange(0, v)} label="X" />
-      <CoordInput value={charge.position[1]} onChange={(v) => handlePosChange(1, v)} label="Y" />
-      <CoordInput value={charge.position[2]} onChange={(v) => handlePosChange(2, v)} label="Z" />
+      <CoordInput value={charge.position[0]} onChange={(v) => handlePosChange(0, v)} label={`X (${lengthUnit})`} />
+      <CoordInput value={charge.position[1]} onChange={(v) => handlePosChange(1, v)} label={`Y (${lengthUnit})`} />
+      <CoordInput value={charge.position[2]} onChange={(v) => handlePosChange(2, v)} label={`Z (${lengthUnit})`} />
 
       <div className="ctx-separator" />
 
